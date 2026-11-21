@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles                        # noqa: E402
 
 from core.errors import ApiError                                   # noqa: E402
 from core.store import DATA                                        # noqa: E402
-from routes import documents, photos, plan, site, system           # noqa: E402
+from routes import documents, inbox, metrics, photos, plan, replan, site, system, voice          # noqa: E402
 
 FRONTEND = Path(os.environ.get("FRONTEND_DIR", BACKEND.parent / "frontend")).resolve()
 # Origins allowed to call the API when the frontend is hosted separately ("*" = any; fine for a local demo).
@@ -29,7 +29,8 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGIN", "*").split(",")
 app = FastAPI(title="Nachweis – AI Site Manager Assistant")
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
-for r in (system.router, photos.router, documents.router, plan.router, site.router):
+for r in (system.router, photos.router, documents.router, plan.router, site.router,
+          voice.router, inbox.router, replan.router, metrics.router):
     app.include_router(r)
 
 

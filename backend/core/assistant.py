@@ -1,7 +1,7 @@
 """Chat handling (host side): builds evidence lists, calls the extraction layer, persists proposals, asks follow-ups,
 handles edits by chat, daily report and proposals from alerts. All status changes stay with the user."""
 import re, datetime as dt
-from . import docs, plan, sanitizer, llm_bridge
+from . import docs, plan, sanitizer, llm_bridge, replanner
 from .extract import detect_intents, extract, DAILY_RX, EDIT_RX, LOC
 from .store import load, save, new_id, now, today, SITE
 
@@ -82,13 +82,15 @@ def _host_fields(doc):
                                                                  "locator": "Fotoablage", "quote": val}, "ai", 1.0)
 
 
-def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None):
+def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None, evidence_meta: dict | None = None):
     """Extract fields from text into a new or matching draft (one incident = one draft per type)."""
     masked, mapping = sanitizer.mask(text)
     run_id = f"{dtype}-{new_id()}"
     primary = {"id": f"{'mail' if source_kind == 'email' else 'msg'}-{source_ref or new_id()}", "kind": source_kind,
                "locator": locator or {"email": "E-Mail", "audio": "Diktat (Spracherkennung)"}.get(source_kind, f"Chat-Nachricht {now()[11:16]}"),
                "excerpt": masked}
+    if evidence_meta:
+        primary["meta"] = evidence_meta   # audio segments, mail headers (W1/W2)
     evidence = build_evidence(primary)
     # find an open draft for the same incident first, so its user edits are passed as locked fields
     pre = rules_loc(text)
@@ -203,6 +205,7 @@ def _handle(text, voice):
         parts.append(_ask_next(doc, state))
         extra = intents[1:] + (["mehrkostenanzeige"] if primary == "nachtragsmeldung" and "mehrkostenanzeige" not in intents else [])
         actions = [{"label": f"Auch {docs.DOC_TYPES[i]['title']} entwerfen", "type": i, "text": text} for i in extra]
+        actions += replanner.actions_for(doc)
         out.append(_msg("assistant", " ".join(parts), doc=doc["id"], actions=actions, mode=mode))
     elif SKIP_RX.match(text) and not state.get("pending"):
         out.append(_msg("assistant", "Es gibt gerade keine offene Frage."))
@@ -264,6 +267,7 @@ def _daily_report(day=None):
     st = plan.status(day)
     work = [n["text"] for n in notes] + [f"{sched.get(p['activity'], {}).get('name', p['activity'])}: {p['qty']:g} {sched.get(p['activity'], {}).get('unit', '')}"
                                           + (f" ({p['note']})" if p["note"] else "") for p in prog]
+    work += [f"Umplanung (bestätigt): {r['text']}" if isinstance(r, dict) and r.get("text") else str(r) for r in replanner.accepted_for(day)]
     status_lines = [f"Leistungsstand {a['name']}: Ist {a['actual']:g} / Soll {a['planned']:g} {a['unit']}" for a in st["activities"] if a["light"] != "grey"]
     if work or status_lines:
         docs.set_field(doc, "work_performed", "\n".join(work + status_lines),

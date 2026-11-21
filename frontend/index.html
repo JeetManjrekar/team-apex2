@@ -23,14 +23,17 @@
   <button data-t="sum">Summaries<kbd>4</kbd></button><button data-t="photos">Photos<kbd>5</kbd></button><button data-t="twin">Site twin<kbd>6</kbd></button><button data-t="mapt">Map<kbd>7</kbd></button><button data-t="live">Live camera<kbd>8</kbd></button><button data-t="metrics">Metrics<kbd>9</kbd></button>
 </nav>
 <main>
+<div id="inboxSlot"></div>
+<div id="metricsTile"></div>
 <section id="assist" class="tab on"><div class="two">
   <div class="card" id="chat">
     <div id="msgs"></div>
+    <div id="replanSlot"></div>
     <div class="chips" id="demoChips"></div>
     <div class="inbar">
       <input type="file" id="chatPhotos" accept="image/*" multiple hidden>
       <button title="Add photos" onclick="chatPhotos.click()">📷</button>
-      <button id="mic" title="Dictate (Chrome speech recognition)">🎤</button>
+      <span id="voiceSlot"></span><button id="mic" title="Dictate (Chrome speech recognition)">🎤</button>
       <select id="lang" title="Dictation language"><option value="de-DE">DE</option><option value="en-US">EN</option></select>
       <textarea id="inp" placeholder="Type or dictate, e.g. „Bagger steht seit 10 Uhr an Widerlager Süd, weil Bewehrungspläne fehlen“"></textarea>
       <button class="p" id="send">Send</button>
@@ -102,6 +105,10 @@
 <dialog id="dlg"><div class="dr"><img id="dimg"><canvas id="dcv"></canvas></div><div style="padding:14px" id="dinfo"></div></dialog>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="js/app.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/inbox.js"></script>
+<script src="js/replan.js"></script>
+<script src="js/tile.js"></script>
 <script src="js/fx.js"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script>

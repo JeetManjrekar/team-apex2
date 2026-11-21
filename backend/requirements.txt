@@ -8,3 +8,6 @@ requests
 pydantic>=2.7
 python-dotenv
 openai>=1.40
+docxtpl
+faster-whisper
+icalendar
