@@ -11,10 +11,11 @@ router = APIRouter(prefix="/api/inbox", tags=["inbox"])
 
 @router.post("/import")
 def import_inbox(files: List[UploadFile] = File(...)):
-    """Import one or more Outlook .eml / .ics files.
+    """Import Outlook .eml / .ics files and client documents (.pdf .docx .xlsx .csv).
 
-    .eml -> mail- evidence, proposals on matching open drafts (or a new draft); .ics -> cal- reminders + chat notifications.
-    Response: {created, drafts (with links), reminders, emails, notifications, skipped}.
+    .eml -> mail- evidence, proposals on matching open drafts (or a new draft); .ics -> cal- reminders + chat notifications;
+    documents/tables -> cited proposals (PDF page, sheet/row) on matching open drafts only.
+    Response: {created, drafts (with links), reminders, emails, documents, notifications, skipped}.
     """
     named = [(f.filename or "", f.file.read(outlook.MAX_BYTES + 1)) for f in files]
     if not any(name for name, _ in named):
