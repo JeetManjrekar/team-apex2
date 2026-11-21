@@ -67,6 +67,8 @@ def pile_id(s: str) -> str | None:
 def message_chunk(msg_id: str, text: str, kind: str = "text", locator: str | None = None) -> SourceChunk:
     if kind == "email":
         return SourceChunk(ref=f"mail:{msg_id}", kind="email", label_de="E-Mail", locator=locator or "E-Mail", text=text.strip())
+    if kind == "document":      # one page / sheet block of an imported client document (outlook.import_document)
+        return SourceChunk(ref=f"msg:{msg_id}", kind="document", label_de="Dokument", locator=locator or "Dokument", text=text.strip())
     return SourceChunk(ref=f"msg:{msg_id}", kind="text", label_de="Chatnachricht",
                        locator=locator or f"Chat-Nachricht {dt.datetime.now():%H:%M}", text=text.strip())
 

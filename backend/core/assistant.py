@@ -44,7 +44,7 @@ def primary_chunks(text, source_kind="text", source_ref=None, locator=None, evid
     ref = source_ref or new_id()
     if source_kind == "audio" and evidence_meta and (evidence_meta.get("segments") or text):
         return sources.audio_chunks(ref, evidence_meta.get("segments") or [], evidence_meta.get("audio_file"), text)
-    return [sources.message_chunk(ref, text, "email" if source_kind == "email" else "text", locator)]
+    return [sources.message_chunk(ref, text, {"email": "email", "document_page": "document"}.get(source_kind, "text"), locator)]
 
 
 def context_chunks():
