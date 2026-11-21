@@ -35,20 +35,7 @@
         "confidence": 0.9,
         "proposal": null
       },
-      "temperature": {
-        "value": "4 bis 8 °C",
-        "source": {
-          "type": "weather",
-          "evidence_id": "weather-api",
-          "locator": "Open-Meteo 2026-11-21",
-          "quote": "Regenschauer, 4 bis 8 °C, Niederschlag 2.9 mm, Wind bis 32 km/h"
-        },
-        "by": "ai",
-        "locked": false,
-        "confidence": 0.9,
-        "proposal": null
-      },
-      "staff_by_company_trade": {
+      "staff_by_company": {
         "value": "",
         "source": null,
         "by": null,
@@ -69,7 +56,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "work_performed": {
+      "work_done": {
         "value": "Hey what can you do for me\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
         "source": {
           "type": "diary",
@@ -90,15 +77,7 @@
         "confidence": null,
         "proposal": null
       },
-      "visits_inspections": {
-        "value": "",
-        "source": null,
-        "by": null,
-        "locked": false,
-        "confidence": null,
-        "proposal": null
-      },
-      "obstructions_incidents": {
+      "incidents": {
         "value": "Bohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -2 °C.",
         "source": {
           "type": "documents",
@@ -119,7 +98,7 @@
         "confidence": null,
         "proposal": null
       },
-      "photo_captions": {
+      "photos": {
         "value": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety",
         "source": {
           "type": "photo",
@@ -132,13 +111,45 @@
         "confidence": 0.8,
         "proposal": null
       },
-      "signature": {
+      "temperature_max_c": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "reassignments": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "temperature_min_c": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "visits": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
       }
     },
     "photos": [
@@ -281,14 +292,6 @@
         "confidence": 0.9,
         "proposal": null
       },
-      "event_datetime": {
-        "value": "",
-        "source": null,
-        "by": null,
-        "locked": false,
-        "confidence": null,
-        "proposal": null
-      },
       "description": {
         "value": "Bohrpfahl 7: bei 4 m auf Fels gestoßen",
         "source": {
@@ -302,7 +305,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "instruction_by": {
+      "ordered_by": {
         "value": "",
         "source": null,
         "by": null,
@@ -310,7 +313,7 @@
         "confidence": null,
         "proposal": null
       },
-      "instruction_datetime": {
+      "tender_ref": {
         "value": "",
         "source": null,
         "by": null,
@@ -318,7 +321,7 @@
         "confidence": null,
         "proposal": null
       },
-      "tender_reference": {
+      "crew_hours": {
         "value": "",
         "source": null,
         "by": null,
@@ -326,15 +329,7 @@
         "confidence": null,
         "proposal": null
       },
-      "staff_hours": {
-        "value": "",
-        "source": null,
-        "by": null,
-        "locked": false,
-        "confidence": null,
-        "proposal": null
-      },
-      "equipment": {
+      "rig": {
         "value": "Bohrgerät",
         "source": {
           "type": "message",
@@ -345,14 +340,6 @@
         "by": "ai",
         "locked": false,
         "confidence": 0.7,
-        "proposal": null
-      },
-      "material": {
-        "value": "",
-        "source": null,
-        "by": null,
-        "locked": false,
-        "confidence": null,
         "proposal": null
       },
       "expected_ground": {
@@ -368,7 +355,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "expected_ground_page": {
+      "expected_ground_ref": {
         "value": "Baugrundgutachten BW 7, Seite 14",
         "source": {
           "type": "document",
@@ -394,20 +381,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "drilling_times": {
-        "value": "Bohrzeit 6 Stunden statt 2",
-        "source": {
-          "type": "message",
-          "evidence_id": "msg-4fe50c62",
-          "locator": "Chat-Nachricht 01:17",
-          "quote": "Bohrzeit 6 Stunden statt 2"
-        },
-        "by": "ai",
-        "locked": false,
-        "confidence": 0.7,
-        "proposal": null
-      },
-      "drilling_log": {
+      "drilling_log_ref": {
         "value": "",
         "source": null,
         "by": null,
@@ -415,21 +389,85 @@
         "confidence": null,
         "proposal": null
       },
-      "related_instruction": {
+      "depth_rock_m": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
       },
-      "photo_evidence": {
+      "photos": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "attachments": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "drilling_time_h": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "rig_hours": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "occurred_at": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "drilling_time_ratio": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "drilling_time_ref_h": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
       }
     },
     "photos": [],
@@ -538,19 +576,6 @@
     "updated_at": "2026-11-21T01:18:11",
     "date": "2026-11-21",
     "fields": {
-      "project": {
-        "value": "Fictional road bridge",
-        "source": {
-          "type": "project",
-          "evidence_id": null,
-          "locator": "Projektstammdaten",
-          "quote": "Fictional road bridge"
-        },
-        "by": "ai",
-        "locked": false,
-        "confidence": 1.0,
-        "proposal": null
-      },
       "location": {
         "value": "pier 2",
         "source": {
@@ -562,19 +587,6 @@
         "by": "ai",
         "locked": false,
         "confidence": 0.9,
-        "proposal": null
-      },
-      "event_datetime": {
-        "value": "my name is Jeet I am from what can you do for me",
-        "source": {
-          "type": "answer",
-          "evidence_id": "msg-32c19695",
-          "locator": "Antwort im Chat 01:18",
-          "quote": "my name is Jeet I am from what can you do for me"
-        },
-        "by": "user",
-        "locked": true,
-        "confidence": null,
         "proposal": null
       },
       "defect_description": {
@@ -590,20 +602,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "affected_trade": {
-        "value": "formwork",
-        "source": {
-          "type": "message",
-          "evidence_id": "msg-d00a8766",
-          "locator": "Chat-Nachricht 01:17",
-          "quote": "formwork"
-        },
-        "by": "ai",
-        "locked": false,
-        "confidence": 0.6,
-        "proposal": null
-      },
-      "responsible_party": {
+      "responsible_company": {
         "value": "Müller Bau",
         "source": {
           "type": "message",
@@ -616,21 +615,55 @@
         "confidence": 0.8,
         "proposal": null
       },
-      "evidence": {
+      "detected_at": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
       },
-      "measure_taken": {
+      "photos": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "addressee": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "detected_by": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "deadline": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
       }
     },
     "photos": [],
@@ -743,20 +776,7 @@
         "confidence": 0.9,
         "proposal": null
       },
-      "temperature": {
-        "value": "4 bis 9 °C",
-        "source": {
-          "type": "weather",
-          "evidence_id": "weather-api",
-          "locator": "Open-Meteo 2026-11-21",
-          "quote": "Regenschauer, 4 bis 9 °C, Niederschlag 3.4 mm, Wind bis 32 km/h"
-        },
-        "by": "ai",
-        "locked": false,
-        "confidence": 0.9,
-        "proposal": null
-      },
-      "staff_by_company_trade": {
+      "staff_by_company": {
         "value": "",
         "source": null,
         "by": null,
@@ -777,7 +797,7 @@
         "confidence": 0.7,
         "proposal": null
       },
-      "work_performed": {
+      "work_done": {
         "value": "Hey what can you do for me\nBetonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle\nmy name is Jeet I am from what can you do for me language\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
         "source": {
           "type": "diary",
@@ -798,15 +818,7 @@
         "confidence": null,
         "proposal": null
       },
-      "visits_inspections": {
-        "value": "",
-        "source": null,
-        "by": null,
-        "locked": false,
-        "confidence": null,
-        "proposal": null
-      },
-      "obstructions_incidents": {
+      "incidents": {
         "value": "Nachtragsmeldung: Bohrpfahl 7\nMängelanzeige: pier 2\nBohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -4 °C.",
         "source": {
           "type": "documents",
@@ -827,7 +839,7 @@
         "confidence": null,
         "proposal": null
       },
-      "photo_captions": {
+      "photos": {
         "value": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety\noriginal (3).jpg (01:18): progress\noriginal (1).jpg (01:18): progress",
         "source": {
           "type": "photo",
@@ -840,13 +852,45 @@
         "confidence": 0.8,
         "proposal": null
       },
-      "signature": {
+      "temperature_max_c": {
         "value": "",
         "source": null,
         "by": null,
         "locked": false,
         "confidence": null,
-        "proposal": null
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "reassignments": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "temperature_min_c": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
+      },
+      "visits": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null,
+        "version": 0,
+        "review": null
       }
     },
     "photos": [
