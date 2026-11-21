@@ -936,7 +936,7 @@ function renderStructure(el, id) {
     const done = Math.floor(a.actual);
     extra = `<p>${done} of ${s.count} piles complete${done < s.count ? `; pile ${done + 1} is current` : ""}.</p>`;
     const zs = inZone && zoneSum(inZone.id);
-    const n = zs?.timeline.filter(t => t.kind === "progress" && t.evidence_id === `sched-${s.activity}`).slice(0, 3) || [];
+    const n = zs?.timeline.filter(t => t.kind === "progress" && t.evidence_id === `sched:${s.activity}`).slice(0, 3) || [];
     if (n.length) extra += `<ol class="tw-tl">${n.map(t => `<li class="progress"><span class="mut">${esc(t.date)}</span>${esc(t.text)}</li>`).join("")}</ol>`;
   }
   el.innerHTML = `<div class="pad">${back}
@@ -1106,7 +1106,7 @@ async function tour({ isCancelled = () => false } = {}) {
     const piles = L.structures.find(s => s.kind === "pile_row" && s.activity);
     if (piles && !off()) {
       const a = act(piles.activity), done = Math.floor(a?.actual ?? 0);
-      const note = [...(S.data.zones.flatMap(z => z.timeline))].find(t => t.evidence_id === `sched-${piles.activity}` && t.text.includes("–"));
+      const note = [...(S.data.zones.flatMap(z => z.timeline))].find(t => t.evidence_id === `sched:${piles.activity}` && t.text.includes("–"));
       select({ type: "structure", id: piles.id });
       cap(a?.light === "red" ? "Early warning" : "Structure", `${done} of ${piles.count} piles complete`, note ? note.text : (a ? `${a.name} · planned ${a.planned} ${a.unit}` : ""), 4200);
       await flyTo({ target: P((piles.x1 + piles.x2) / 2, (piles.y1 + piles.y2) / 2), zoom: 3.2, theta: th + 0.5, phi: 0.95, dur: 1600 });

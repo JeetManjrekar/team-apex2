@@ -1,0 +1,28 @@
+key: bautagesbericht
+label_de: Bautagesbericht
+template: bautagesbericht.docx
+prompt: bautagesbericht.md
+intent: daily_report_request
+intent_keywords:
+  - [tagesbericht]
+  - [bautagesbericht]
+fields:
+  - {key: date, label_de: Datum, type: date, required: true, critical: false}
+  - {key: weather, label_de: Wetter, type: text, required: true, critical: false}
+  - {key: temperature_min_c, label_de: Temperatur min (°C), type: number, required: false, critical: false}
+  - {key: temperature_max_c, label_de: Temperatur max (°C), type: number, required: false, critical: false}
+  - {key: staff_by_company, label_de: Personal je Firma, type: list, required: true, critical: false, question_de: "Welche Firmen waren heute mit wie vielen Personen auf der Baustelle?"}
+  - {key: equipment, label_de: Geräte, type: list, required: false, critical: false}
+  - {key: work_done, label_de: Ausgeführte Leistungen, type: list, required: true, critical: false}
+  - {key: deliveries, label_de: Lieferungen, type: list, required: false, critical: false}
+  - {key: visits, label_de: Besuche, type: list, required: false, critical: false}
+  - {key: incidents, label_de: Besondere Vorkommnisse, type: list, required: false, critical: false}
+  - {key: instructions, label_de: Anordnungen, type: list, required: false, critical: false}
+  - {key: reassignments, label_de: Umsetzungen, type: list, required: false, critical: false}
+  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+checklist:
+  - {key: date, label_de: Datum, field_key: date}
+  - {key: weather, label_de: Wetter, field_key: weather}
+  - {key: staff, label_de: Personal, field_key: staff_by_company}
+  - {key: work, label_de: Leistungen, field_key: work_done}
+static_text_de: ""

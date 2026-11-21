@@ -1,7 +1,8 @@
 """Plan vs actual, weather and early warnings."""
-import datetime as dt, time
+import csv, datetime as dt, time
 import requests
-from .store import load, save, SITE
+from .llm_settings import today as demo_today
+from .store import DATA, load, save, SITE
 
 WMO = {0: "klar", 1: "überwiegend klar", 2: "teilweise bewölkt", 3: "bedeckt", 45: "Nebel", 48: "Reifnebel",
        51: "leichter Niesel", 53: "Niesel", 55: "starker Niesel", 61: "leichter Regen", 63: "Regen", 65: "starker Regen",
@@ -36,33 +37,49 @@ def weather_text(w):
     return f"{w['text']}, {w['tmin']:.0f} bis {w['tmax']:.0f} °C, Niederschlag {w['rain']:.1f} mm, Wind bis {w['wind']:.0f} km/h"
 
 
-DEMO_SCHEDULE = [
-    {"id": "piles", "name": "Bohrpfähle Achse 10", "unit": "Stk", "total": 10, "start": "2026-11-13", "end": "2026-11-22", "concrete": False},
-    {"id": "rebar", "name": "Bewehrung Pfahlkopfbalken", "unit": "t", "total": 12, "start": "2026-11-19", "end": "2026-11-26", "concrete": False},
-    {"id": "formwork", "name": "Schalung Widerlager Süd", "unit": "m²", "total": 240, "start": "2026-11-17", "end": "2026-11-28", "concrete": False},
-    {"id": "concrete", "name": "Betonage Pfahlkopfbalken", "unit": "m³", "total": 85, "start": "2026-11-26", "end": "2026-11-28", "concrete": True},
-]
-DEMO_PROGRESS = [
-    ("2026-11-13", "piles", 1, "Pfahl 1"), ("2026-11-14", "piles", 1, "Pfahl 2"), ("2026-11-16", "piles", 1, "Pfahl 3"),
-    ("2026-11-17", "piles", 1, "Pfahl 4"), ("2026-11-18", "piles", 1, "Pfahl 5"), ("2026-11-19", "piles", 1, "Pfahl 6"),
-    ("2026-11-20", "piles", 0, "Pfahl 7: Fels bei 4 m, Bohrfortschritt gering"),
-    ("2026-11-17", "formwork", 20, ""), ("2026-11-18", "formwork", 20, ""), ("2026-11-19", "formwork", 15, ""), ("2026-11-20", "formwork", 15, ""),
-    ("2026-11-19", "rebar", 1.5, ""), ("2026-11-20", "rebar", 1.5, ""),
-]
+# ---------------------------------------------------------------- demo data: BW 12 Mühlbach (backend/data/demo)
+# One dataset for the whole app: the same Bauzeitenplan, drilling list and Baugrundgutachten the LLM cites.
+DEMO_DIR = DATA / "demo"
+# activities shown in plan vs actual: measurable drilling output, plus the concreting days (frost check)
+_PLAN_IDS = ("W1_BP", "A1_BP", "A2_BP", "W2_BP", "W1_BET", "A1_BET", "A2_BET", "W2_BET")
 
 
-DEMO_CLIENT_DOCS = [
-    {"id": "gutachten-14", "locator": "Baugrundgutachten BW 7, Seite 14",
-     "excerpt": "Bohrung BK 3 (Achse 10): 0,0 bis ca. 9,2 m unter GOK Sand und Kies, mitteldicht gelagert; ab ca. 9,2 m Kalkstein (Fels), angewittert."},
-    {"id": "lv-02-110", "locator": "Leistungsverzeichnis Pos. 02.110",
-     "excerpt": "Bohrpfähle d = 90 cm herstellen, Bodenklasse BK 3 bis 5, Pfahllänge 12 m, Fels nicht enthalten."},
-]
+def _demo_schedule():
+    rows = []
+    with (DEMO_DIR / "schedule" / "bauzeitenplan.csv").open(encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if r["id"] not in _PLAN_IDS:
+                continue
+            per_day, days = float(r["planned_output_per_day"] or 0), int(r["duration_days"] or 1)
+            qty = per_day * days if per_day else 1
+            rows.append({"id": r["id"], "name": r["name_de"], "unit": r["unit"] or "Vorgang", "total": qty,
+                         "start": r["start_planned"], "end": r["end_planned"], "concrete": r["weather_sensitive"] == "1",
+                         "zone": r["zone_id"], "crew_role": r["crew_role"]})
+    return rows
+
+
+def _demo_progress():
+    """Drilling metres per pile and day from the Polier's drilling list (activity = W1_BP etc. by zone)."""
+    act = {"W1": "W1_BP", "A1": "A1_BP", "A2": "A2_BP", "W2": "W2_BP"}
+    out = []
+    with (DEMO_DIR / "drilling" / "drilling_times.csv").open(encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            m = float(r["depth_reached_m"] or 0)
+            if m and r["zone_id"] in act:
+                out.append({"date": r["date"], "activity": act[r["zone_id"]], "qty": m, "note": f"{r['pile_id']}: {r['note_de']}"})
+    return out
+
+
+def _demo_client_docs():
+    from .sources import pages
+    md = (DEMO_DIR / "source_documents" / "baugrundgutachten_auszug.md").read_text(encoding="utf-8")
+    return [{"id": f"doc:bgg@p{n}", "locator": f"Baugrundgutachten BW 12, Seite {n}", "excerpt": t} for n, t in pages(md)]
 
 
 def load_demo():
-    save("client_docs", DEMO_CLIENT_DOCS)
-    save("schedule", DEMO_SCHEDULE)
-    save("progress", [{"date": d, "activity": a, "qty": q, "note": n} for d, a, q, n in DEMO_PROGRESS])
+    save("client_docs", _demo_client_docs())
+    save("schedule", _demo_schedule())
+    save("progress", _demo_progress())
 
 
 def _d(s):
@@ -72,7 +89,7 @@ def _d(s):
 def status(as_of=None, with_weather=True):
     sched, prog = load("schedule", []), load("progress", [])
     if not as_of:
-        as_of = dt.date.today().isoformat()
+        as_of = demo_today().isoformat()     # DEMO_TODAY pins the demo day; empty = real date
     a = _d(as_of)
     rows, alerts = [], []
     for s in sched:
@@ -108,7 +125,7 @@ def status(as_of=None, with_weather=True):
                                "suggest": "bedenken", "suggest_label": "Draft Bedenkenanzeige (winter measures)",
                                "weather_date": d, "tmin": v["tmin"]})
     return {"as_of": as_of, "activities": rows, "alerts": alerts, "weather_available": w is not None,
-            "weather_today": (w or {}).get(dt.date.today().isoformat())}
+            "weather_today": (w or {}).get(as_of)}
 
 
 def add_progress(date, activity, qty, note=""):

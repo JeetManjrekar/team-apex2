@@ -1,0 +1,24 @@
+key: bedenkenanmeldung
+label_de: Bedenkenanmeldung
+template: bedenkenanmeldung.docx
+prompt: bedenkenanmeldung.md
+intent: bedenken
+# Added in the merge (not in APEX 2): used by the frost / winter-measures alert in core/plan.py.
+intent_keywords:
+  - [bedenken]
+  - [nicht ausführbar]
+fields:
+  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true, question_de: "Auf welchen Ort oder welches Bauteil beziehen sich die Bedenken?"}
+  - {key: occurred_at, label_de: Datum, type: datetime, required: true, critical: true, question_de: "Wann wurden die Bedenken festgestellt?"}
+  - {key: concern_description, label_de: Bedenken, type: text, required: true, critical: false, question_de: "Welche konkreten Bedenken bestehen?"}
+  - {key: technical_basis, label_de: Technische Grundlage, type: text, required: false, critical: false}
+  - {key: proposed_clarification, label_de: Offene Klärung, type: text, required: false, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
+  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+checklist:
+  - {key: written_form, label_de: Schriftform, field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
+  - {key: concern, label_de: Bedenken beschrieben, field_key: concern_description}
+  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+static_text_de: "Hinweis: Diese Anmeldung erfolgt ohne rechtliche Bewertung."

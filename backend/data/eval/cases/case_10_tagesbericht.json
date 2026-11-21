@@ -1,0 +1,65 @@
+{
+  "id": "case_10_tagesbericht",
+  "doc_type": "bautagesbericht",
+  "input": {
+    "text": "Tagesbericht für heute bitte",
+    "audio": null,
+    "photos": [
+      "ph_prog_01.jpg",
+      "ph_prog_02.jpg",
+      "ph_prog_03.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "date": {
+      "value": "2026-11-17",
+      "match": "date"
+    },
+    "temperature_min_c": {
+      "value": 2.0,
+      "match": "numeric_tol",
+      "tol": 0.1
+    },
+    "temperature_max_c": {
+      "value": 7.0,
+      "match": "numeric_tol",
+      "tol": 0.1
+    },
+    "weather": {
+      "value": "wx:2026-11-17",
+      "match": "source_ref"
+    },
+    "staff_by_company": {
+      "match": "contains_all",
+      "terms": [
+        "Muster Bau",
+        "TiefBohr",
+        "Stahlflechter"
+      ]
+    },
+    "equipment": {
+      "match": "contains_all",
+      "terms": [
+        "EX-01",
+        "BG-01"
+      ]
+    },
+    "incidents": {
+      "match": "contains_all",
+      "terms": [
+        "Pfahl 7"
+      ]
+    }
+  },
+  "must_be_empty": [],
+  "expected_followup_fields": [],
+  "setup": {
+    "events_from_cases": [
+      "case_01_pfahl7_text",
+      "case_04_bagger_text",
+      "case_07_bewehrung_teillieferung"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+key: nachtragsmeldung
+label_de: Nachtragsmeldung
+template: nachtragsmeldung.docx
+prompt: nachtragsmeldung.md
+intent: nachtrag_candidate
+# WS2 request in #contract: intent_keywords (rule routing, 8.1), field keys `derived` and `question_de`.
+intent_keywords:            # each entry: all terms must occur (case insensitive)
+  - [pfahl, fels]
+  - [baugrund, abweichung]
+  - [nachtrag]
+fields:
+  - {key: project, label_de: Projekt, type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
+  - {key: occurred_at, label_de: Datum und Uhrzeit, type: datetime, required: true, critical: true}
+  - {key: description, label_de: Sachverhalt, type: text, required: true, critical: false}
+  - {key: expected_ground, label_de: Erwarteter Baugrund, type: text, required: true, critical: true}
+  - {key: expected_ground_ref, label_de: Quelle erwarteter Baugrund, type: text, required: true, critical: false}
+  - {key: found_ground, label_de: Angetroffener Baugrund, type: text, required: true, critical: true}
+  - {key: depth_rock_m, label_de: Tiefe Fels (m), type: number, required: true, critical: true}
+  - {key: drilling_time_h, label_de: Bohrzeit Pfahl (h), type: number, required: true, critical: true, derived: true}
+  - {key: drilling_time_ref_h, label_de: Bohrzeit Referenzpfähle (h), type: number, required: true, critical: true, derived: true}
+  - {key: drilling_time_ratio, label_de: Verhältnis Bohrzeit je Meter, type: number, required: true, critical: false, derived: true}
+  - {key: rig, label_de: Bohrgerät, type: text, required: false, critical: false}
+  - {key: crew_hours, label_de: Personalstunden, type: number, required: false, critical: false, derived: true}
+  - {key: rig_hours, label_de: Gerätestunden, type: number, required: false, critical: false, derived: true}
+  - {key: ordered_by, label_de: Angeordnet durch, type: text, required: false, critical: true, question_de: "Wer hat die Weiterarbeit angeordnet?"}
+  - {key: tender_ref, label_de: LV-Position, type: text, required: false, critical: false}
+  - {key: drilling_log_ref, label_de: Bohrprotokoll, type: text, required: true, critical: false, question_de: "Gibt es ein Bohrprotokoll für Pfahl 7?"}
+  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+  - {key: attachments, label_de: Anlagen, type: list, required: false, critical: false}
+followup_related:
+  drilling_log_ref: [found_ground, depth_rock_m]
+checklist:
+  - {key: location, label_de: Ort benannt, field_key: location}
+  - {key: expected, label_de: Erwarteter Baugrund mit Quelle, field_key: expected_ground_ref}
+  - {key: found, label_de: Angetroffener Baugrund, field_key: found_ground}
+  - {key: drilling_log, label_de: Bohrprotokoll beigefügt, field_key: drilling_log_ref}
+  - {key: photos, label_de: Fotodokumentation, field_key: photos}
+static_text_de: "Hinweis: Diese Meldung dokumentiert Sachverhalt und Belege ohne rechtliche Bewertung und ohne Preisangabe."

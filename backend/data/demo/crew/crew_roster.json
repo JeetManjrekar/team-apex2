@@ -1,0 +1,142 @@
+[
+  {
+    "id": "crew_01",
+    "name": "Josef Huber",
+    "role": "polier",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Polier"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "W1_BP"
+  },
+  {
+    "id": "crew_02",
+    "name": "Tobias Wagner",
+    "role": "baggerfahrer",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Bagger bis 30 t",
+      "Radlader"
+    ],
+    "equipment_id": "EX-01",
+    "current_activity_id": "A2_AUSHUB"
+  },
+  {
+    "id": "crew_03",
+    "name": "Stefan Bauer",
+    "role": "schaler",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Schalung"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_SCHAL"
+  },
+  {
+    "id": "crew_04",
+    "name": "Karl Maier",
+    "role": "schaler",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Schalung"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_SCHAL"
+  },
+  {
+    "id": "crew_05",
+    "name": "Peter Gruber",
+    "role": "helfer",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Erdarbeiten Hand"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A2_AUSHUB"
+  },
+  {
+    "id": "crew_06",
+    "name": "Ludwig Fischer",
+    "role": "helfer",
+    "company": "Muster Bau GmbH (fiktiv)",
+    "qualifications": [
+      "Radlader"
+    ],
+    "equipment_id": "RL-01",
+    "current_activity_id": "A2_AUSHUB"
+  },
+  {
+    "id": "crew_07",
+    "name": "Anton Weber",
+    "role": "bohrgeraetefuehrer",
+    "company": "TiefBohr GmbH (fiktiv)",
+    "qualifications": [
+      "Bohrgeräteführer"
+    ],
+    "equipment_id": "BG-01",
+    "current_activity_id": "W1_BP"
+  },
+  {
+    "id": "crew_08",
+    "name": "Dieter Lang",
+    "role": "helfer",
+    "company": "TiefBohr GmbH (fiktiv)",
+    "qualifications": [],
+    "equipment_id": "BG-01",
+    "current_activity_id": "W1_BP"
+  },
+  {
+    "id": "crew_09",
+    "name": "Emre Yilmaz",
+    "role": "helfer",
+    "company": "TiefBohr GmbH (fiktiv)",
+    "qualifications": [],
+    "equipment_id": "BG-01",
+    "current_activity_id": "W1_BP"
+  },
+  {
+    "id": "crew_10",
+    "name": "Mehmet Kaya",
+    "role": "eisenflechter",
+    "company": "Stahlflechter Süd (fiktiv)",
+    "qualifications": [
+      "Flechten"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_BEW"
+  },
+  {
+    "id": "crew_11",
+    "name": "Jan Novak",
+    "role": "eisenflechter",
+    "company": "Stahlflechter Süd (fiktiv)",
+    "qualifications": [
+      "Flechten"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_BEW"
+  },
+  {
+    "id": "crew_12",
+    "name": "Marta Kowalski",
+    "role": "eisenflechter",
+    "company": "Stahlflechter Süd (fiktiv)",
+    "qualifications": [
+      "Flechten"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_BEW"
+  },
+  {
+    "id": "crew_13",
+    "name": "Georg Lenz",
+    "role": "eisenflechter",
+    "company": "Stahlflechter Süd (fiktiv)",
+    "qualifications": [
+      "Flechten"
+    ],
+    "equipment_id": null,
+    "current_activity_id": "A1_BEW"
+  }
+]

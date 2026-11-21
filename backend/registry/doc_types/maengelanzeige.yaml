@@ -1,0 +1,25 @@
+key: maengelanzeige
+label_de: Mängelanzeige
+template: maengelanzeige.docx
+prompt: maengelanzeige.md
+intent: mangel
+intent_keywords:
+  - [mangel]
+  - [mängel]
+  - [beschädigt]
+  - [riss]
+fields:
+  - {key: addressee, label_de: Empfänger, type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
+  - {key: defect_description, label_de: Beschreibung des Mangels, type: text, required: true, critical: false}
+  - {key: detected_at, label_de: Festgestellt am, type: datetime, required: true, critical: false}
+  - {key: detected_by, label_de: Festgestellt durch, type: text, required: false, critical: false}
+  - {key: responsible_company, label_de: Verantwortliches Unternehmen, type: text, required: true, critical: false, question_de: "Welches Unternehmen ist für den Mangel verantwortlich?"}
+  - {key: deadline, label_de: Frist zur Beseitigung, type: text, required: true, critical: false, question_de: "Bis wann soll der Mangel beseitigt werden?"}
+  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+checklist:
+  - {key: written_form, label_de: Schriftform, field_key: null}
+  - {key: description, label_de: Mangel beschrieben, field_key: defect_description}
+  - {key: responsible, label_de: Verantwortlicher benannt, field_key: responsible_company}
+  - {key: deadline, label_de: Frist gesetzt, field_key: deadline}
+static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung."

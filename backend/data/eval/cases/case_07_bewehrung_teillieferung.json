@@ -1,0 +1,40 @@
+{
+  "id": "case_07_bewehrung_teillieferung",
+  "doc_type": "behinderungsanzeige",
+  "input": {
+    "text": "Bewehrungsstahl nur zur Hälfte geliefert",
+    "audio": null,
+    "photos": [
+      "ph_rebar_01.jpg",
+      "ph_rebar_03.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "occurred_at": {
+      "value": "2026-11-17",
+      "match": "date"
+    },
+    "affected_work": {
+      "match": "contains_all",
+      "terms": [
+        "Bewehrung"
+      ],
+      "value": "Bewehrung Achse 1"
+    },
+    "cause": {
+      "match": "contains_all",
+      "terms": [
+        "Bewehrung"
+      ],
+      "value": "Teillieferung Bewehrung (50 %)"
+    }
+  },
+  "must_be_empty": [
+    "expected_duration"
+  ],
+  "expected_followup_fields": [
+    "expected_duration"
+  ]
+}

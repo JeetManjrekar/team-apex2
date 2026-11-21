@@ -97,10 +97,10 @@ def default_layout():
         "zones": [
             {"id": "be", "name": "Baustelleneinrichtung", "kind": "facilities", "color": "#8a8f98",
              "polygon": [[-70, -45], [-35, -45], [-35, 45], [-70, 45]], "activities": []},
-            {"id": "wls", "name": "Widerlager Süd", "kind": "work", "color": "#c8501e",
-             "polygon": [[-35, -45], [70, -45], [70, -12], [-35, -12]], "activities": ["formwork"]},
-            {"id": "a10", "name": "Achse 10 – Bohrpfähle / Pfahlkopfbalken", "kind": "work", "color": "#2f6db5",
-             "polygon": [[-35, -12], [35, -12], [35, 12], [-35, 12]], "activities": ["piles", "rebar", "concrete"]},
+            {"id": "wls", "name": "Achse 1 – Fundament", "kind": "work", "color": "#c8501e",
+             "polygon": [[-35, -45], [70, -45], [70, -12], [-35, -12]], "activities": ["A1_BET"]},
+            {"id": "a10", "name": "Widerlager 1 – Bohrpfähle", "kind": "work", "color": "#2f6db5",
+             "polygon": [[-35, -12], [35, -12], [35, 12], [-35, 12]], "activities": ["W1_BP", "W1_BET"]},
             {"id": "erd", "name": "Erdbau / Aushub Ost", "kind": "earthworks", "color": "#a0782c",
              "polygon": [[35, -12], [70, -12], [70, 30], [55, 45], [35, 45]], "activities": []},
             {"id": "wln", "name": "Widerlager Nord (2. Bauabschnitt)", "kind": "future", "color": "#6b6a66",
@@ -115,13 +115,13 @@ def default_layout():
             {"id": "office", "name": "Bauleitungscontainer", "kind": "container", "x": -58, "y": 32, "w": 6, "d": 2.5, "h": 5.2, "rot": 0},
             {"id": "crew", "name": "Mannschaftscontainer", "kind": "container", "x": -58, "y": 24, "w": 6, "d": 2.5, "h": 2.6, "rot": 0},
             {"id": "wc", "name": "Sanitär", "kind": "container", "x": -63, "y": 17, "w": 2.5, "d": 2.5, "h": 2.6, "rot": 0},
-            {"id": "rebar_store", "name": "Lager Bewehrung", "kind": "stockpile", "x": -54, "y": -8, "w": 12, "d": 6, "h": 1.0, "rot": 0, "activity": "rebar"},
-            {"id": "form_store", "name": "Lager Schalung", "kind": "stockpile", "x": -54, "y": -26, "w": 10, "d": 6, "h": 1.6, "rot": 0, "activity": "formwork"},
+            {"id": "rebar_store", "name": "Lager Bewehrung", "kind": "stockpile", "x": -54, "y": -8, "w": 12, "d": 6, "h": 1.0, "rot": 0, "activity": "W1_BET"},
+            {"id": "form_store", "name": "Lager Schalung", "kind": "stockpile", "x": -54, "y": -26, "w": 10, "d": 6, "h": 1.6, "rot": 0, "activity": "A1_BET"},
             {"id": "crane", "name": "Turmdrehkran TDK 1", "kind": "crane", "x": -26, "y": -6, "h": 32, "jib": 40, "rot": 20},
-            {"id": "piles", "name": "Bohrpfähle Achse 10 (10 Stk)", "kind": "pile_row", "x1": -27, "y1": 0, "x2": 27, "y2": 0,
-             "count": 10, "diameter": 0.9, "activity": "piles"},
-            {"id": "capbeam", "name": "Pfahlkopfbalken", "kind": "beam", "x": 0, "y": 0, "w": 58, "d": 2.4, "h": 1.6, "rot": 0, "activity": "rebar"},
-            {"id": "abut_s", "name": "Widerlager Süd", "kind": "abutment", "x": 0, "y": -24, "w": 30, "d": 5, "h": 6, "rot": 0, "activity": "formwork"},
+            {"id": "piles", "name": "Bohrpfähle Widerlager 1 (8 Stk)", "kind": "pile_row", "x1": -27, "y1": 0, "x2": 27, "y2": 0,
+             "count": 8, "diameter": 0.9, "activity": "W1_BP"},
+            {"id": "capbeam", "name": "Pfahlkopfbalken", "kind": "beam", "x": 0, "y": 0, "w": 58, "d": 2.4, "h": 1.6, "rot": 0, "activity": "W1_BET"},
+            {"id": "abut_s", "name": "Achse 1 – Fundament", "kind": "abutment", "x": 0, "y": -24, "w": 30, "d": 5, "h": 6, "rot": 0, "activity": "A1_BET"},
             {"id": "abut_n", "name": "Widerlager Nord (geplant)", "kind": "abutment", "x": 0, "y": 26, "w": 30, "d": 5, "h": 6, "rot": 0, "planned": True},
             {"id": "deck", "name": "Überbau BW 7 (geplant)", "kind": "deck", "x": 0, "y": 1, "w": 14, "d": 52, "h": 1.4, "z": 6, "rot": 0, "planned": True},
             {"id": "spoil", "name": "Bodenmiete", "kind": "heap", "x": 54, "y": 8, "r": 8, "h": 4},
@@ -249,7 +249,7 @@ def twin():
         zone = p.get("zone") if p.get("zone") in zone_ids else zone_of(pos, layout)
         size = image_size(p)
         rec = {
-            "id": p["id"], "evidence_id": f"photo-{p['id']}", "file": p["file"],
+            "id": p["id"], "evidence_id": f"photo:{p['id']}", "file": p["file"],
             "ann_file": p["file"].replace(".jpg", "_ann.jpg") if (DATA / p["file"].replace(".jpg", "_ann.jpg")).exists() else None,
             "original_name": p.get("original_name"), "category": p.get("category"), "taken_at": p.get("taken_at"),
             "lat": p.get("lat"), "lon": p.get("lon"), "location_source": p.get("location_source"),
@@ -284,11 +284,11 @@ def twin():
         for e in progress:
             if e["activity"] in z["activities"]:
                 row = sched_rows.get(e["activity"], {})
-                timeline.append({"date": e["date"], "kind": "progress", "evidence_id": f"sched-{e['activity']}",
+                timeline.append({"date": e["date"], "kind": "progress", "evidence_id": f"sched:{e['activity']}",
                                  "text": f"{row.get('name', e['activity'])}: +{e['qty']:g} {row.get('unit', '')}" + (f" – {e['note']}" if e.get("note") else "")})
         timeline.sort(key=lambda t: t["date"], reverse=True)
         evidence = [{"id": p["evidence_id"], "kind": "photo", "label": p["original_name"]} for p in zp]
-        evidence += [{"id": f"sched-{a['id']}", "kind": "schedule", "label": a["name"]} for a in acts]
+        evidence += [{"id": f"sched:{a['id']}", "kind": "schedule", "label": a["name"]} for a in acts]
         seen = set()
         for p in zp:
             for d in p["docs"]:

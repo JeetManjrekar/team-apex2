@@ -1,0 +1,30 @@
+key: behinderungsanzeige
+label_de: Behinderungsanzeige
+template: behinderungsanzeige.docx
+prompt: behinderungsanzeige.md
+intent: behinderung
+intent_keywords:
+  - [bagger steht]
+  - [steht seit]
+  - [hydraulikschaden]
+  - [bagger, kaputt]
+  - [behinderung]
+  - [gerät, defekt]
+fields:
+  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
+  - {key: occurred_at, label_de: Beginn der Behinderung, type: datetime, required: true, critical: true, question_de: "Seit wann genau besteht die Behinderung (Uhrzeit)?"}
+  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
+  - {key: cause, label_de: Ursache, type: text, required: true, critical: false}
+  - {key: affected_work, label_de: Betroffene Leistungen, type: text, required: true, critical: false}
+  - {key: expected_duration, label_de: Voraussichtliche Dauer, type: text, required: true, critical: false, question_de: "Wie lange wird die Behinderung voraussichtlich dauern?"}
+  - {key: measures, label_de: Getroffene Maßnahmen, type: text, required: false, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
+checklist:
+  - {key: written_form, label_de: Schriftform, field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
+  - {key: event_time, label_de: Datum und Uhrzeit des Ereignisses, field_key: occurred_at}
+  - {key: description, label_de: Beschreibung, field_key: cause}
+  - {key: impact, label_de: Auswirkungen, field_key: affected_work}
+  - {key: duration, label_de: Voraussichtliche Dauer, field_key: expected_duration}
+  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung. Die Prüfung obliegt dem Unternehmen."

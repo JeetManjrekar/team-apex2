@@ -1,0 +1,30 @@
+[
+  {
+    "id": "EX-01",
+    "name_de": "Bagger",
+    "type": "bagger",
+    "zone_id": "A2",
+    "status": "einsatzbereit"
+  },
+  {
+    "id": "BG-01",
+    "name_de": "Bohrgerät",
+    "type": "bohrgeraet",
+    "zone_id": "W1",
+    "status": "einsatzbereit"
+  },
+  {
+    "id": "KR-01",
+    "name_de": "Mobilkran",
+    "type": "kran",
+    "zone_id": "BE",
+    "status": "einsatzbereit"
+  },
+  {
+    "id": "RL-01",
+    "name_de": "Radlader",
+    "type": "radlader",
+    "zone_id": "A2",
+    "status": "einsatzbereit"
+  }
+]

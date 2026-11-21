@@ -1,0 +1,47 @@
+{
+  "id": "case_04_bagger_text",
+  "doc_type": "behinderungsanzeige",
+  "input": {
+    "text": "Bagger steht seit 10 Uhr wegen Hydraulikschaden",
+    "audio": null,
+    "photos": [
+      "ph_ex_01.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "occurred_at": {
+      "value": "2026-11-17T10:00",
+      "match": "date",
+      "granularity": "minute"
+    },
+    "cause": {
+      "match": "contains_all",
+      "terms": [
+        "Hydraulik"
+      ],
+      "value": "Hydraulikschaden"
+    },
+    "addressee": {
+      "match": "contains_all",
+      "terms": [
+        "Staatliches Bauamt"
+      ],
+      "value": "Staatliches Bauamt (fiktiv)"
+    },
+    "contract_ref": {
+      "match": "contains_all",
+      "terms": [
+        "2026-117"
+      ],
+      "value": "Bauvertrag Nr. 2026-117"
+    }
+  },
+  "must_be_empty": [
+    "expected_duration"
+  ],
+  "expected_followup_fields": [
+    "expected_duration"
+  ]
+}

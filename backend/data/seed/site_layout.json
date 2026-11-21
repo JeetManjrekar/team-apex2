@@ -1,5 +1,5 @@
 {
-  "name": "Ersatzneubau Brücke BW 7",
+  "name": "Ersatzneubau Straßenbrücke BW 12 über den Mühlbach",
   "origin": {
     "lat": 48.15,
     "lon": 11.58
@@ -55,7 +55,7 @@
     },
     {
       "id": "wls",
-      "name": "Widerlager Süd",
+      "name": "Achse 1 – Fundament",
       "kind": "work",
       "color": "#c8501e",
       "polygon": [
@@ -77,12 +77,12 @@
         ]
       ],
       "activities": [
-        "formwork"
+        "A1_BET"
       ]
     },
     {
       "id": "a10",
-      "name": "Achse 10 – Bohrpfähle / Pfahlkopfbalken",
+      "name": "Widerlager 1 – Bohrpfähle",
       "kind": "work",
       "color": "#2f6db5",
       "polygon": [
@@ -104,9 +104,8 @@
         ]
       ],
       "activities": [
-        "piles",
-        "rebar",
-        "concrete"
+        "W1_BP",
+        "W1_BET"
       ]
     },
     {
@@ -253,7 +252,7 @@
       "d": 6,
       "h": 1.0,
       "rot": 0,
-      "activity": "rebar"
+      "activity": "W1_BET"
     },
     {
       "id": "form_store",
@@ -265,7 +264,7 @@
       "d": 6,
       "h": 1.6,
       "rot": 0,
-      "activity": "formwork"
+      "activity": "A1_BET"
     },
     {
       "id": "crane",
@@ -279,15 +278,15 @@
     },
     {
       "id": "piles",
-      "name": "Bohrpfähle Achse 10 (10 Stk)",
+      "name": "Bohrpfähle Widerlager 1 (8 Stk)",
       "kind": "pile_row",
       "x1": -27,
       "y1": 0,
       "x2": 27,
       "y2": 0,
-      "count": 10,
+      "count": 8,
       "diameter": 0.9,
-      "activity": "piles"
+      "activity": "W1_BP"
     },
     {
       "id": "capbeam",
@@ -299,11 +298,11 @@
       "d": 2.4,
       "h": 1.6,
       "rot": 0,
-      "activity": "rebar"
+      "activity": "W1_BET"
     },
     {
       "id": "abut_s",
-      "name": "Widerlager Süd",
+      "name": "Achse 1 – Fundament",
       "kind": "abutment",
       "x": 0,
       "y": -24,
@@ -311,7 +310,7 @@
       "d": 5,
       "h": 6,
       "rot": 0,
-      "activity": "formwork"
+      "activity": "A1_BET"
     },
     {
       "id": "abut_n",

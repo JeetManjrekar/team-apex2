@@ -1,0 +1,43 @@
+{
+  "id": "case_09_mehrkostenanzeige_text",
+  "doc_type": "mehrkostenanzeige",
+  "input": {
+    "text": "Mehrkosten durch Fels bei Pfahl 7: Das Bohrgerät braucht für 12 m statt 4 Stunden voraussichtlich 12 Stunden.",
+    "audio": null,
+    "photos": [],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "location": {
+      "match": "contains_all",
+      "terms": [
+        "Pfahl 7"
+      ],
+      "value": "Widerlager 1, Pfahl 7"
+    },
+    "cause": {
+      "match": "contains_all",
+      "terms": [
+        "Fels"
+      ],
+      "value": "Fels ab 4 m"
+    },
+    "additional_effort": {
+      "match": "contains_all",
+      "terms": [
+        "Bohrgerät"
+      ],
+      "value": "Mehrstunden Bohrgerät"
+    },
+    "contract_ref": {
+      "match": "contains_all",
+      "terms": [
+        "2026-117"
+      ],
+      "value": "Bauvertrag Nr. 2026-117"
+    }
+  },
+  "must_be_empty": [],
+  "expected_followup_fields": []
+}

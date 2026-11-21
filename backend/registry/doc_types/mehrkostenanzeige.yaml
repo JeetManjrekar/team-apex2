@@ -1,0 +1,23 @@
+key: mehrkostenanzeige
+label_de: Mehrkostenanzeige
+template: mehrkostenanzeige.docx
+prompt: mehrkostenanzeige.md
+intent: mehrkosten
+intent_keywords:
+  - [mehrkosten]
+  - [zusätzlich, aufwand]
+fields:
+  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
+  - {key: occurred_at, label_de: Datum, type: datetime, required: true, critical: true}
+  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
+  - {key: cause, label_de: Ursache, type: text, required: true, critical: false}
+  - {key: additional_effort, label_de: Zusätzlicher Aufwand, type: text, required: true, critical: false}
+  - {key: affected_work, label_de: Betroffene Leistungen, type: text, required: true, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
+checklist:
+  - {key: written_form, label_de: Schriftform, field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
+  - {key: cause, label_de: Ursache beschrieben, field_key: cause}
+  - {key: effort, label_de: Mehraufwand beschrieben, field_key: additional_effort}
+  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung und ohne Preisangabe."

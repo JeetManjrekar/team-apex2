@@ -1,0 +1,43 @@
+[
+  {
+    "id": "replan_01_ex01",
+    "today": "2026-11-17",
+    "event": {
+      "type": "equipment_breakdown",
+      "equipment_id": "EX-01",
+      "zone_id": "A2",
+      "occurred_at": "2026-11-17T10:00"
+    },
+    "affected_crew": [
+      "crew_02"
+    ],
+    "blocked_activities": [
+      "A2_AUSHUB"
+    ],
+    "rules_used": {
+      "baggerfahrer": [
+        "schalung_hilfe",
+        "erdarbeiten_hand",
+        "baustellenlogistik"
+      ]
+    },
+    "expected_proposals": [
+      {
+        "kind": "reassignment",
+        "person": "Tobias Wagner",
+        "person_id": "crew_02",
+        "to_activity_id": "A1_SCHAL",
+        "zone_id": "A1"
+      },
+      {
+        "kind": "alternative_work",
+        "for_crew": [
+          "crew_02",
+          "crew_05",
+          "crew_06"
+        ]
+      }
+    ],
+    "max_reassignments": 2
+  }
+]
