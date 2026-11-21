@@ -76,6 +76,7 @@
       <div class="bb-hist"><div id="bbHist" class="bb-histlist" aria-live="polite"></div></div>
       <div class="bb-live" id="bbLive" hidden></div>
       <div class="bb-compose">
+        <div class="bb-tray" id="bbTray" hidden></div>
         <div class="bb-pal" id="bbPal" role="menu" hidden>${CHIPS.map(([l, t]) => `<button class="bb-chip" role="menuitem" data-cmd="${esc(t)}">${esc(l)}</button>`).join("")}</div>
         <div class="bb-in">
           <button class="bb-mic" id="bbMic" title="${L("Speak a command", "Befehl sprechen")}" aria-label="${L("Speak a command", "Befehl sprechen")}">${ICON.mic}<span class="bb-ring"></span><span class="bb-ring r2"></span></button>
@@ -265,12 +266,14 @@
   const pct = c => c == null ? "—" : Math.round(c * 100) + "%";
   const cls = c => (c || "").replace(/_/g, " ");
   let pendingPhotos = [];                                   // photo ids added in the chat, sent with the next drafting message
+  let staged = [];                                          // attachments waiting in the composer tray until Send: {id, file, kind, url?}
   function hist(role, text, o = {}) {
     const el = document.createElement("div"); el.className = "bb-msg " + role;
     const docs = (o.docs || []).concat(o.doc ? [{ id: o.doc }] : []);
     const btns = docs.map(d => `<button class="s" data-open="${esc(d.id)}">${L("Open draft", "Entwurf öffnen")}${d.title ? ": " + esc(d.title) : ""}</button>`)
       .concat((o.actions || []).map(a => `<button class="s" data-act='${esc(JSON.stringify(a))}'>${esc(a.label)}</button>`)).join("");
-    el.innerHTML = `<div>${esc(text)}</div>${btns ? `<div class="bb-macts">${btns}</div>` : ""}${o.masked?.length ? `<small class="bb-mask">${L("Masked before AI", "Vor KI-Aufruf maskiert")}: ${esc(o.masked.join(", "))}</small>` : ""}<span>${esc((o.at || "").slice(11, 16) || new Date().toTimeString().slice(0, 5))}</span>`;
+    const atts = (o.attach || []).map(a => a.url ? `<img src="${esc(a.url)}" alt="${esc(a.name)}" title="${esc(a.name)}">` : `<b>${ICON.clip}${esc(a.name)}</b>`).join("");
+    el.innerHTML = `${text ? `<div>${esc(text)}</div>` : ""}${atts ? `<div class="bb-atts">${atts}</div>` : ""}${btns ? `<div class="bb-macts">${btns}</div>` : ""}${o.masked?.length ? `<small class="bb-mask">${L("Masked before AI", "Vor KI-Aufruf maskiert")}: ${esc(o.masked.join(", "))}</small>` : ""}<span>${esc((o.at || "").slice(11, 16) || new Date().toTimeString().slice(0, 5))}</span>`;
     qa("[data-open]", el).forEach(b => b.onclick = () => NW.openDocInTab(b.dataset.open));
     qa("[data-act]", el).forEach(b => b.onclick = async () => {
       const a = JSON.parse(b.dataset.act); b.disabled = true;
@@ -482,11 +485,11 @@
   q("#snap")?.addEventListener("click", () => { q("#snap").classList.remove("bb-pulse"); setTimeout(() => poll(true), 2500); });
 
   /* ------------------------------------------------------------------ the workflow */
-  async function command(text, { voice = false, silent = false } = {}) {
+  async function command(text, { voice = false, silent = false, echo = true } = {}) {
     text = (text || "").trim(); if (!text) return;
     speechSynthesis?.cancel();
     closePal();
-    q("#bbInp").value = ""; if (!silent) hist("user", text);
+    q("#bbInp").value = ""; if (!silent && echo) hist("user", text);
     setState("processing");
     let r;
     try { r = await api("/api/agent", { json: { text, ctx: S.ctx, lang: S.lang } }); }
@@ -567,37 +570,83 @@
   const photoIn = q("#bbPhotoIn"), fileIn = q("#bbFileIn");
   q("#bbPhotoBtn").onclick = () => photoIn.click();
   q("#bbFileBtn").onclick = () => fileIn.click();
-  photoIn.onchange = async () => {
-    const fd = new FormData(); [...photoIn.files].forEach(f => fd.append("files", f));
-    if (![...fd.keys()].length) return;
-    try {
-      const r = await api("/api/photos", { method: "POST", body: fd });
-      pendingPhotos.push(...r.map(p => p.id));
-      const what = r.map(p => p.category + (p.detections?.length ? " (" + p.detections.map(d => d.class).join(", ") + ")" : "")).join("; ");
-      hist("ai", L(`Added ${r.length} photo(s): ${what}. They will be attached to matching drafts and today's daily report.`, `${r.length} Foto(s) hinzugefügt: ${what}. Sie werden passenden Entwürfen und dem Tagesbericht beigefügt.`));
-      window.loadPhotos?.(); loadTwin(); poll(true);
-    } catch (e) { toast(e.message, "bad"); }
-    photoIn.value = "";
-  };
-  fileIn.onchange = async () => {
-    const files = [...fileIn.files]; if (!files.length) return;
-    const fd = new FormData(); files.forEach(f => fd.append("files", f));
-    hist("user", files.map(f => f.name).join(", "));
-    setState("processing", L("Importing files", "Dateien werden importiert"));
-    try {
-      const r = await api("/api/inbox/import", { method: "POST", body: fd });
-      const items = [...(r.emails || []), ...(r.documents || [])], docs = new Map();
-      items.forEach(m => (m.drafts || []).forEach(d => docs.set(d.id, { id: d.id, title: d.title })));
-      const lines = items.map(m => `• ${m.subject || m.file}${m.duplicate ? " (" + L("already imported", "bereits importiert") + ")" : ""}${(m.open_items || []).length ? " · " + m.open_items.length + " " + L("open items", "offene Punkte") : ""}`)
-        .concat((r.reminders || []).map(x => "• " + x.message), (r.skipped || []).map(x => `• ${x.file}: ${x.reason}`));
-      hist("ai", lines.join("\n") || L("Nothing imported.", "Nichts importiert."), { docs: [...docs.values()] });
-      poll(true);
-    } catch (e) { hist("ai", e.message); toast(e.message, "bad"); }
-    fileIn.value = ""; setState("idle");
-  };
+  // picked files wait in the composer tray (removable) and go out together with the typed message on Send
+  const MAX_STAGED = 10, tray = q("#bbTray");
+  function stage(files, kind) {
+    for (const f of files) {
+      if (staged.length >= MAX_STAGED) { toast(L(`At most ${MAX_STAGED} attachments per message.`, `Höchstens ${MAX_STAGED} Anhänge pro Nachricht.`), "bad"); break; }
+      const k = kind || (f.type.startsWith("image/") ? "photo" : "file");
+      staged.push({ id: Math.random().toString(36).slice(2), file: f, kind: k, url: k === "photo" ? URL.createObjectURL(f) : null });
+    }
+    renderTray(); q("#bbInp").focus();
+  }
+  function renderTray() {
+    tray.hidden = !staged.length;
+    tray.innerHTML = staged.map(a => `<div class="bb-att${a.url ? " img" : ""}" title="${esc(a.file.name)}">
+      ${a.url ? `<img src="${esc(a.url)}" alt="${esc(a.file.name)}">` : `${ICON.clip}<b>${esc(a.file.name)}</b>`}
+      <button data-rm="${a.id}" aria-label="${L("Remove", "Entfernen")}" title="${L("Remove", "Entfernen")}">×</button></div>`).join("");
+    qa("[data-rm]", tray).forEach(b => b.onclick = () => {
+      const a = staged.find(x => x.id === b.dataset.rm); if (a?.url) URL.revokeObjectURL(a.url);
+      staged = staged.filter(x => x !== a); renderTray(); q("#bbInp").focus();
+    });
+  }
+  photoIn.onchange = () => { stage([...photoIn.files], "photo"); photoIn.value = ""; };
+  fileIn.onchange = () => { stage([...fileIn.files], "file"); fileIn.value = ""; };
+  q("#bbInp").addEventListener("paste", e => {
+    const imgs = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
+    if (imgs.length) { e.preventDefault(); stage(imgs, "photo"); }
+  });
+  const compose = q(".bb-compose");
+  compose.addEventListener("dragover", e => { if (e.dataTransfer?.types.includes("Files")) { e.preventDefault(); compose.classList.add("drop"); } });
+  compose.addEventListener("dragleave", e => { if (!compose.contains(e.relatedTarget)) compose.classList.remove("drop"); });
+  compose.addEventListener("drop", e => { e.preventDefault(); compose.classList.remove("drop"); if (e.dataTransfer?.files.length) stage([...e.dataTransfer.files]); });
 
-  q("#bbSend").onclick = () => command(q("#bbInp").value);
-  q("#bbInp").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); command(q("#bbInp").value); } };
+  async function uploadPhotos(files) {
+    const fd = new FormData(); files.forEach(f => fd.append("files", f));
+    const r = await api("/api/photos", { method: "POST", body: fd });
+    pendingPhotos.push(...r.map(p => p.id));
+    window.loadPhotos?.(); loadTwin();
+    const what = r.map(p => p.category + (p.detections?.length ? " (" + p.detections.map(d => d.class).join(", ") + ")" : "")).join("; ");
+    return L(`Added ${r.length} photo(s): ${what}. They will be attached to matching drafts and today's daily report.`, `${r.length} Foto(s) hinzugefügt: ${what}. Sie werden passenden Entwürfen und dem Tagesbericht beigefügt.`);
+  }
+  async function importFiles(files) {
+    const fd = new FormData(); files.forEach(f => fd.append("files", f));
+    const r = await api("/api/inbox/import", { method: "POST", body: fd });
+    const items = [...(r.emails || []), ...(r.documents || [])], docs = new Map();
+    items.forEach(m => (m.drafts || []).forEach(d => docs.set(d.id, { id: d.id, title: d.title })));
+    const lines = items.map(m => `• ${m.subject || m.file}${m.duplicate ? " (" + L("already imported", "bereits importiert") + ")" : ""}${(m.open_items || []).length ? " · " + m.open_items.length + " " + L("open items", "offene Punkte") : ""}`)
+      .concat((r.reminders || []).map(x => "• " + x.message), (r.skipped || []).map(x => `• ${x.file}: ${x.reason}`));
+    return { text: lines.join("\n") || L("Nothing imported.", "Nichts importiert."), docs: [...docs.values()] };
+  }
+
+  let sending = false;
+  async function send() {
+    const inp = q("#bbInp"), text = inp.value.trim();
+    if (sending || (!text && !staged.length)) return;
+    if (!staged.length) return command(text);
+    sending = true;
+    const batch = staged; staged = []; renderTray(); inp.value = "";
+    hist("user", text, { attach: batch.map(a => ({ name: a.file.name, url: a.url })) });
+    setState("processing", L("Uploading attachments", "Anhänge werden hochgeladen"));
+    const photos = batch.filter(a => a.kind === "photo"), files = batch.filter(a => a.kind === "file");
+    const [p, f] = await Promise.allSettled([photos.length ? uploadPhotos(photos.map(a => a.file)) : null, files.length ? importFiles(files.map(a => a.file)) : null]);
+    poll(true);
+    const failed = [...(p.status === "rejected" ? photos : []), ...(f.status === "rejected" ? files : [])];
+    if (failed.length) {                                    // put what did not go out back into the tray, keep the typed text
+      const err = (p.reason || f.reason)?.message || "";
+      toast(L("Upload failed: ", "Hochladen fehlgeschlagen: ") + err, "bad");
+      staged = failed.concat(staged); renderTray();
+      if (text) inp.value = text;
+    }
+    if (f.status === "fulfilled" && f.value) hist("ai", f.value.text, { docs: f.value.docs });
+    sending = false;
+    if (failed.length) return setState("idle");
+    if (text) return command(text, { echo: false });
+    if (p.value) hist("ai", p.value);
+    setState("idle");
+  }
+  q("#bbSend").onclick = send;
+  q("#bbInp").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); send(); } };
   BB.command = command; BB.report = makeReport; BB.openIncident = openIncident; BB.flyZone = flyZone;
 
   /* ------------------------------------------------------------------ boot */

@@ -296,8 +296,12 @@ def _chat_context(state):
     return "\n".join(lines)
 
 
+HELP_RX = re.compile(r"\b(wer bist du|who are you|was kannst du|what can you do|hilfe|help)\b", re.I)
+
+
 def _help_text(text, lang=None):
-    return T("help_text", lang or get_lang())
+    """No-LLM fallback: capabilities only when asked for them, otherwise a short reply (never example sentences)."""
+    return T("help_text" if HELP_RX.search(text or "") else "chat_fallback", lang or get_lang())
 
 
 def chat_reply(text, state, lang=None):

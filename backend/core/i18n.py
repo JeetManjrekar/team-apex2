@@ -141,11 +141,11 @@ add({
     "ctx_open_drafts": ("Offene Entwürfe: ", "Open drafts: "), "ctx_n_open": ("{title} ({n} Angaben offen)", "{title} ({n} fields open)"),
     "ctx_question": ("Offene Rückfrage an den Bauleiter: ", "Open question to the site manager: "),
     "help_text": ("Ich bin Ihr Baustellen-Assistent: Ich mache aus Sprachnachrichten, Texten und Fotos Entwürfe wie Nachtragsmeldung, "
-                  "Behinderungsanzeige oder Bautagesbericht, mit Quelle je Feld. Sagen Sie mir zum Beispiel: „Pfahl 7, ab 4 Meter Fels“ "
-                  "oder „Bagger steht seit 10 Uhr wegen Hydraulikschaden“.",
+                  "Behinderungsanzeige oder Bautagesbericht, mit Quelle je Feld. Nichts wird ohne Ihren Klick versendet.",
                   "I'm your site assistant: I turn voice notes, texts and photos into drafts such as a change order notice, "
-                  "obstruction notice or daily report, with a source for every field. Try for example: “Pile 7, rock from 4 metres” "
-                  "or “Excavator stopped since 10 am due to hydraulic failure”."),
+                  "obstruction notice or daily report, with a source for every field. Nothing is sent without your click."),
+    "chat_fallback": ("Ich bin Ihr Baustellen-Assistent und erstelle aus Sprachnachrichten, Texten und Fotos Dokumententwürfe. Wie kann ich helfen?",
+                      "I'm your site assistant and turn voice notes, texts and photos into document drafts. How can I help?"),
 })
 
 add({
