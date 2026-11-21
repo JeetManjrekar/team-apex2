@@ -53,6 +53,7 @@
 
   /* ---------- helpers ---------- */
   const lang = () => ($("#lang")?.value || "de-DE");
+  try { const sel = $("#lang"); if (sel) sel.value = localStorage.getItem("nw-lang") === "de" ? "de-DE" : "en-US"; } catch {}
   const fmt = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const setText = (stable, partial) => { $("#vText").innerHTML = (stable || partial) ? `${esc(stable)} <i>${esc(partial)}</i>` : `<span class="ph">Listening…</span>`; $("#vText").scrollTop = 1e6; };

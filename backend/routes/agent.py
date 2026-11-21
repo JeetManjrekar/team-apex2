@@ -42,5 +42,5 @@ def incident_status(iid: str, body: dict = Body(...)):
 
 @router.post("/report")
 def report(body: dict = Body(default={})):
-    return agent.report(body.get("scope") or "site", body.get("incident"), body.get("snapshot"), body.get("lang") or "de", body.get("note"),
+    return agent.report(body.get("scope") or "site", body.get("incident"), body.get("snapshot"), body.get("lang") or "en", body.get("note"),
                         body.get("plan_snapshot"))

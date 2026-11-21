@@ -1,0 +1,50 @@
+{
+  "_doc": "Prognose-Varianten für die Frostwarnung (Betonieren W1_BET, Schwelle Min < 5 °C). Feldnamen vor Nutzung mit data/demo/weather/weather_fixture.json abgleichen.",
+  "cases": [
+    {
+      "id": "w01",
+      "date": "2026-11-19",
+      "min_c": -4,
+      "max_c": 3,
+      "precip_mm": 0,
+      "wind_kmh": 12,
+      "expect": "Frostwarnung"
+    },
+    {
+      "id": "w02",
+      "date": "2026-11-19",
+      "min_c": 5,
+      "max_c": 9,
+      "precip_mm": 0,
+      "wind_kmh": 8,
+      "expect": "keine Warnung (genau auf der Schwelle: nicht < 5)"
+    },
+    {
+      "id": "w03",
+      "date": "2026-11-19",
+      "min_c": 4.9,
+      "max_c": 9,
+      "precip_mm": 0,
+      "wind_kmh": 8,
+      "expect": "Warnung (knapp unter Schwelle)"
+    },
+    {
+      "id": "w04",
+      "date": "2026-11-19",
+      "min_c": 10,
+      "max_c": 16,
+      "precip_mm": 22.5,
+      "wind_kmh": 55,
+      "expect": "keine Frostwarnung, aber Regen/Wind im Tagesbericht"
+    },
+    {
+      "id": "w05",
+      "date": "2026-11-19",
+      "min_c": null,
+      "max_c": null,
+      "precip_mm": null,
+      "wind_kmh": null,
+      "expect": "Wetterdaten fehlen: Feld bleibt leer, Rückfrage, kein erfundener Wert"
+    }
+  ]
+}

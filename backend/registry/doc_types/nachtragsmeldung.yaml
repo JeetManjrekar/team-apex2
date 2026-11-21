@@ -1,5 +1,6 @@
 key: nachtragsmeldung
 label_de: Nachtragsmeldung
+label_en: Change order notice
 template: nachtragsmeldung.docx
 prompt: nachtragsmeldung.md
 intent: nachtrag_candidate
@@ -8,32 +9,36 @@ intent_keywords:            # each entry: all terms must occur (case insensitive
   - [pfahl, fels]
   - [baugrund, abweichung]
   - [nachtrag]
+intent_keywords_en:
+  - [change order]
+  - [variation]
 fields:
-  - {key: project, label_de: Projekt, type: text, required: true, critical: false}
-  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
-  - {key: occurred_at, label_de: Datum und Uhrzeit, type: datetime, required: true, critical: true}
-  - {key: description, label_de: Sachverhalt, type: text, required: true, critical: false}
-  - {key: expected_ground, label_de: Erwarteter Baugrund, type: text, required: true, critical: true}
-  - {key: expected_ground_ref, label_de: Quelle erwarteter Baugrund, type: text, required: true, critical: false}
-  - {key: found_ground, label_de: Angetroffener Baugrund, type: text, required: true, critical: true}
-  - {key: depth_rock_m, label_de: Tiefe Fels (m), type: number, required: true, critical: true}
-  - {key: drilling_time_h, label_de: Bohrzeit Pfahl (h), type: number, required: true, critical: true, derived: true}
-  - {key: drilling_time_ref_h, label_de: Bohrzeit Referenzpfähle (h), type: number, required: true, critical: true, derived: true}
-  - {key: drilling_time_ratio, label_de: Verhältnis Bohrzeit je Meter, type: number, required: true, critical: false, derived: true}
-  - {key: rig, label_de: Bohrgerät, type: text, required: false, critical: false}
-  - {key: crew_hours, label_de: Personalstunden, type: number, required: false, critical: false, derived: true}
-  - {key: rig_hours, label_de: Gerätestunden, type: number, required: false, critical: false, derived: true}
-  - {key: ordered_by, label_de: Angeordnet durch, type: text, required: false, critical: true, question_de: "Wer hat die Weiterarbeit angeordnet?"}
-  - {key: tender_ref, label_de: LV-Position, type: text, required: false, critical: false}
-  - {key: drilling_log_ref, label_de: Bohrprotokoll, type: text, required: true, critical: false, question_de: "Gibt es ein Bohrprotokoll für Pfahl 7?"}
-  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
-  - {key: attachments, label_de: Anlagen, type: list, required: false, critical: false}
+  - {key: project, label_de: Projekt, label_en: "Project", type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, label_en: "Location / component", type: text, required: true, critical: true}
+  - {key: occurred_at, label_de: Datum und Uhrzeit, label_en: "Date and time", type: datetime, required: true, critical: true}
+  - {key: description, label_de: Sachverhalt, label_en: "Facts of the case", type: text, required: true, critical: false}
+  - {key: expected_ground, label_de: Erwarteter Baugrund, label_en: "Expected ground", type: text, required: true, critical: true}
+  - {key: expected_ground_ref, label_de: Quelle erwarteter Baugrund, label_en: "Source of expected ground", type: text, required: true, critical: false}
+  - {key: found_ground, label_de: Angetroffener Baugrund, label_en: "Encountered ground", type: text, required: true, critical: true}
+  - {key: depth_rock_m, label_de: Tiefe Fels (m), label_en: "Rock depth (m)", type: number, required: true, critical: true}
+  - {key: drilling_time_h, label_de: Bohrzeit Pfahl (h), label_en: "Drilling time pile (h)", type: number, required: true, critical: true, derived: true}
+  - {key: drilling_time_ref_h, label_de: Bohrzeit Referenzpfähle (h), label_en: "Drilling time reference piles (h)", type: number, required: true, critical: true, derived: true}
+  - {key: drilling_time_ratio, label_de: Verhältnis Bohrzeit je Meter, label_en: "Drilling time ratio per metre", type: number, required: true, critical: false, derived: true}
+  - {key: rig, label_de: Bohrgerät, label_en: "Drilling rig", type: text, required: false, critical: false}
+  - {key: crew_hours, label_de: Personalstunden, label_en: "Crew hours", type: number, required: false, critical: false, derived: true}
+  - {key: rig_hours, label_de: Gerätestunden, label_en: "Rig hours", type: number, required: false, critical: false, derived: true}
+  - {key: ordered_by, label_de: Angeordnet durch, label_en: "Ordered by", type: text, required: false, critical: true, question_de: "Wer hat die Weiterarbeit angeordnet?", question_en: "Who ordered the work to continue?"}
+  - {key: tender_ref, label_de: LV-Position, label_en: "Tender item", type: text, required: false, critical: false}
+  - {key: drilling_log_ref, label_de: Bohrprotokoll, label_en: "Drilling log", type: text, required: true, critical: false, question_de: "Gibt es ein Bohrprotokoll für Pfahl 7?", question_en: "Is there a drilling log for pile 7?"}
+  - {key: photos, label_de: Fotos, label_en: "Photos", type: list, required: false, critical: false}
+  - {key: attachments, label_de: Anlagen, label_en: "Attachments", type: list, required: false, critical: false}
 followup_related:
   drilling_log_ref: [found_ground, depth_rock_m]
 checklist:
-  - {key: location, label_de: Ort benannt, field_key: location}
-  - {key: expected, label_de: Erwarteter Baugrund mit Quelle, field_key: expected_ground_ref}
-  - {key: found, label_de: Angetroffener Baugrund, field_key: found_ground}
-  - {key: drilling_log, label_de: Bohrprotokoll beigefügt, field_key: drilling_log_ref}
-  - {key: photos, label_de: Fotodokumentation, field_key: photos}
+  - {key: location, label_de: Ort benannt, label_en: "Location named", field_key: location}
+  - {key: expected, label_de: Erwarteter Baugrund mit Quelle, label_en: "Expected ground with source", field_key: expected_ground_ref}
+  - {key: found, label_de: Angetroffener Baugrund, label_en: "Encountered ground", field_key: found_ground}
+  - {key: drilling_log, label_de: Bohrprotokoll beigefügt, label_en: "Drilling log attached", field_key: drilling_log_ref}
+  - {key: photos, label_de: Fotodokumentation, label_en: "Photo documentation", field_key: photos}
 static_text_de: "Hinweis: Diese Meldung dokumentiert Sachverhalt und Belege ohne rechtliche Bewertung und ohne Preisangabe."
+static_text_en: "Note: This report documents the facts and evidence without legal assessment and without price information."

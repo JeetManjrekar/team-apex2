@@ -21,7 +21,7 @@
   /* ------------------------------------------------------------------ shared state + bus */
   const bus = new EventTarget();
   const BB = window.BB = {
-    state: { ai: "idle", ctx: {}, incidents: [], highlights: [], focusZone: null, twin: null, last: null, lang: store.get("bb-lang") || (store.get("nw-lang") === "de" ? "de" : "en") },
+    state: { ai: "idle", ctx: {}, incidents: [], highlights: [], focusZone: null, twin: null, last: null, lang: store.get("nw-lang") === "de" ? "de" : "en" },
     on(ev, fn) { bus.addEventListener(ev, e => fn(e.detail)); },
     emit(ev, detail) { bus.dispatchEvent(new CustomEvent(ev, { detail })); },
   };
@@ -178,10 +178,7 @@
   const paintTts = () => { ttsBtn.innerHTML = ttsOn ? ICON.spk : ICON.mute; ttsBtn.classList.toggle("off", !ttsOn); };
   paintTts();
   ttsBtn.onclick = () => { ttsOn = !ttsOn; store.set("bb-tts", ttsOn ? "1" : "0"); paintTts(); if (!ttsOn) speechSynthesis?.cancel(); };
-  q("#bbLang").onclick = () => { S.lang = S.lang === "de" ? "en" : "de"; store.set("bb-lang", S.lang); q("#bbLang").textContent = S.lang.toUpperCase(); toast(L("Voice language: English", "Sprache: Deutsch"));
-    speechSynthesis?.cancel();       // the cached greeting is in the old language: refetch it so text and voice match
-    api("/api/agent/greeting?lang=" + S.lang).then(g => { greetText = g.text; if (S.ai === "idle") q("#bbSay").textContent = g.text; }).catch(() => {});
-  };
+  q("#bbLang").onclick = () => { store.set("nw-lang", S.lang === "de" ? "en" : "de"); location.reload(); };   // one language for the whole app
   function pickVoice(lang) {
     const vs = speechSynthesis.getVoices(), pre = lang === "de" ? "de" : "en";
     return vs.find(v => v.lang?.toLowerCase().startsWith(pre) && /natural|neural|premium|enhanced|google/i.test(v.name)) || vs.find(v => v.lang?.toLowerCase().startsWith(pre));
@@ -482,7 +479,7 @@
       setState("executing", L("Document assistant is drafting", "Dokumenten-Assistent erstellt Entwurf"));
       await showSteps([...r.steps, { key: "chat", label: L("Hand over to the document assistant", "An den Dokumenten-Assistenten übergeben"), ms: 0, ok: true }]);
       try {
-        const c = await api("/api/chat", { json: { text, voice } });
+        const c = await api("/api/chat", { json: { text, voice, lang: S.lang } });
         const replies = (c.replies || []).filter(m => m.role === "assistant");
         const doc = c.active || replies.find(m => m.doc)?.doc;
         q("#bbCards").innerHTML = card({ kind: "draft", replies, doc }); bindCards(q("#bbCards"));

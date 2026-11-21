@@ -1,0 +1,30 @@
+{
+  "_doc": "Ahead of plan: W1_BP complete, A1_BP already started. Expected: no alarm, 'ahead'.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 36,
+      "note": "3 piles"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": 36,
+      "note": "3 piles"
+    },
+    {
+      "date": "2026-11-16",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "2 piles"
+    },
+    {
+      "date": "2026-11-17",
+      "activity": "A1_BP",
+      "qty": 12,
+      "note": "Brought forward"
+    }
+  ]
+}

@@ -19,7 +19,8 @@ def chat(body: dict = Body(...)):
     if not text:
         raise ApiError(400, "empty message")
     ids = body.get("photo_ids")
-    return assistant.handle(text, voice=bool(body.get("voice")), photo_ids=ids if isinstance(ids, list) else None)
+    return assistant.handle(text, voice=bool(body.get("voice")), photo_ids=ids if isinstance(ids, list) else None,
+                            lang="de" if body.get("lang") == "de" else "en")
 
 
 def _doc(doc_id):

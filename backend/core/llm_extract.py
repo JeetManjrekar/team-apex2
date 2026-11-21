@@ -25,6 +25,8 @@ from pydantic import BaseModel
 from . import sanitizer
 from .llm_adapter import Usage, complete_json
 from .llm_settings import CFG, today as cfg_today
+from . import registry
+from .i18n import T
 from .registry import all_specs, doc_spec, prompt
 from .sources import SourceChunk
 
@@ -91,7 +93,7 @@ def rule_intent(text: str) -> Intent | None:
     """Registry `intent_keywords`: each entry is a list of terms that must all occur (case-insensitive)."""
     t = _norm(text or "")
     for spec in all_specs():
-        for group in spec.get("intent_keywords") or []:
+        for group in (spec.get("intent_keywords") or []) + (spec.get("intent_keywords_en") or []):
             terms = [group] if isinstance(group, str) else group
             if all(term.lower() in t for term in terms):
                 return Intent(intent=spec["intent"], doc_type=spec["key"], by="rule")
@@ -116,13 +118,14 @@ class _ChatOut(BaseModel):
     reply: str = ""
 
 
-def converse(text: str, context: str, run_id: str = "chat") -> str:
+def converse(text: str, context: str, run_id: str = "chat", lang: str | None = None) -> str:
     """Short conversational answer for messages that report no site incident (questions, tests, greetings).
     Same language as the user, max 3 sentences, steers back to the assistant's job; no project facts beyond `context`."""
     mapping: dict = {}
     masked = sanitizer.mask(text, mapping)[0]
-    p = (prompt("chat.md").replace("{project}", context.split("\n", 1)[0].removeprefix("Projekt: "))
-         .replace("{context}", context).replace("{text}", masked))
+    p = (prompt("chat.md").replace("{project}", context.split("\n", 1)[0].removeprefix("Projekt: ").removeprefix("Project: "))
+         .replace("{context}", context).replace("{text}", masked)
+         .replace("{lang}", {"de": "Deutsch", "en": "Englisch"}.get(lang, "der Sprache der Nachricht (Deutsch oder Englisch)")))
     with _timed("llm_chat", run_id, CFG.model_extract) as tm:
         out, usage = complete_json(p, _ChatOut, CFG.model_extract)
         tm.add_usage(usage)
@@ -278,7 +281,7 @@ def extract(doc_type: str, chunks: list[SourceChunk], only_fields: list[str] | N
             qs.setdefault(fu.field_key, sanitizer.unmask(fu.question_de.strip(), mapping))
     for f in fields:                                   # registry order = priority
         if out_fields[f["key"]].value is None and not f.get("derived") and (f.get("required") or f["key"] in dropped):
-            qs.setdefault(f["key"], f.get("question_de") or f"Bitte ergänzen: {f['label_de']}")
+            qs.setdefault(f["key"], registry.tr(f, "question") or (T("generic_q") + registry.tr(f, "label")))
     order = [f["key"] for f in fields]
     followups = [FollowUpOut(field_key=k, question_de=q) for k, q in sorted(qs.items(), key=lambda kv: order.index(kv[0]))]
 

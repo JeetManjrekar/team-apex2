@@ -54,7 +54,7 @@ def voice(audio: UploadFile = File(...), submit: bool = Form(True), language: st
     if len(raw) > MAX_UPLOAD:
         raise ApiError(413, "audio too large (max 50 MB)")
     aid = new_id()
-    with llm_bridge.Timer("voice_to_draft_end_to_end", f"voice-{aid}", source="upload"):
+    with llm_bridge.Timer("voice_to_draft_end_to_end" if submit else "voice_transcribe_only", f"voice-{aid}", source="upload"):
         name = f"{aid}{stt._ext(audio.content_type)}"
         (UPLOADS / name).write_bytes(raw)
         try:
@@ -115,7 +115,7 @@ async def voice_stream(ws: WebSocket):
                 if task:
                     task.cancel()
                 aid = new_id()
-                with llm_bridge.Timer("voice_to_draft_end_to_end", f"voice-{aid}", source="live", audio_s=round(sess.duration_s, 1)):
+                with llm_bridge.Timer("voice_to_draft_end_to_end" if submit else "voice_transcribe_only", f"voice-{aid}", source="live", audio_s=round(sess.duration_s, 1)):
                     tr, wav = await asyncio.to_thread(sess.final)
                     name = f"{aid}.wav"
                     (UPLOADS / name).write_bytes(wav)

@@ -5,6 +5,7 @@ With a configured model (LLM_MODEL_EXTRACT + key, or LLM_CACHE_MODE=replay) the 
 under the same gates: every value cites a source chunk, values below CONFIDENCE_THRESHOLD become follow-up questions,
 derived numbers come from Python only."""
 import re, datetime as dt
+from .i18n import fmt_date
 
 
 
@@ -68,11 +69,11 @@ def detect_intents(text):
 
 def _date_from_text(text, ts):
     if re.search(r"\byesterday\b|\bgestern\b", text, I):
-        return (ts.date() - dt.timedelta(days=1)).strftime("%d.%m.%Y"), re.search(r"\byesterday\b|\bgestern\b", text, I).group(0)
+        return fmt_date(ts.date() - dt.timedelta(days=1)), re.search(r"\byesterday\b|\bgestern\b", text, I).group(0)
     m = re.search(r"\b\d{1,2}\.\d{1,2}\.(?:\d{2,4})?", text)
     if m:
         return m.group(0), m.group(0)
-    return ts.date().strftime("%d.%m.%Y"), None
+    return fmt_date(ts.date()), None
 
 
 HEADER_RX = re.compile(r"^(?:von|an|cc|from|to|datum|date|betreff|subject|tel\.?|telefon)\s*:.*$|^(?:sehr geehrte\w*|hallo|liebe\w*|dear)\b.*$", I | re.M)

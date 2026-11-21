@@ -41,6 +41,13 @@ def api_error(request: Request, e: ApiError):
 
 
 @app.middleware("http")
+async def request_language(request: Request, call_next):
+    from core.i18n import set_lang
+    set_lang(request.headers.get("x-lang") or request.query_params.get("lang"))
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def no_stale_frontend(request: Request, call_next):
     """The frontend changes often during the hackathon: never let the browser run a cached HTML / JS / CSS."""
     resp = await call_next(request)

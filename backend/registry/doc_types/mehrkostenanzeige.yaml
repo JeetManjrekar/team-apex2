@@ -1,23 +1,28 @@
 key: mehrkostenanzeige
 label_de: Mehrkostenanzeige
+label_en: Additional cost notice
 template: mehrkostenanzeige.docx
 prompt: mehrkostenanzeige.md
 intent: mehrkosten
 intent_keywords:
   - [mehrkosten]
   - [zusätzlich, aufwand]
+intent_keywords_en:
+  - [additional cost]
+  - [extra cost]
 fields:
-  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
-  - {key: occurred_at, label_de: Datum, type: datetime, required: true, critical: true}
-  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
-  - {key: cause, label_de: Ursache, type: text, required: true, critical: false}
-  - {key: additional_effort, label_de: Zusätzlicher Aufwand, type: text, required: true, critical: false}
-  - {key: affected_work, label_de: Betroffene Leistungen, type: text, required: true, critical: false}
-  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
+  - {key: addressee, label_de: Empfänger (Bauherr), label_en: "Recipient (client)", type: text, required: true, critical: false}
+  - {key: occurred_at, label_de: Datum, label_en: "Date", type: datetime, required: true, critical: true}
+  - {key: location, label_de: Ort / Bauteil, label_en: "Location / component", type: text, required: true, critical: true}
+  - {key: cause, label_de: Ursache, label_en: "Cause", type: text, required: true, critical: false}
+  - {key: additional_effort, label_de: Zusätzlicher Aufwand, label_en: "Additional effort", type: text, required: true, critical: false}
+  - {key: affected_work, label_de: Betroffene Leistungen, label_en: "Affected work", type: text, required: true, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, label_en: "Contract reference", type: text, required: true, critical: false}
 checklist:
-  - {key: written_form, label_de: Schriftform, field_key: null}
-  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
-  - {key: cause, label_de: Ursache beschrieben, field_key: cause}
-  - {key: effort, label_de: Mehraufwand beschrieben, field_key: additional_effort}
-  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+  - {key: written_form, label_de: Schriftform, label_en: "Written form", field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, label_en: "Recipient named", field_key: addressee}
+  - {key: cause, label_de: Ursache beschrieben, label_en: "Cause described", field_key: cause}
+  - {key: effort, label_de: Mehraufwand beschrieben, label_en: "Additional effort described", field_key: additional_effort}
+  - {key: contract, label_de: Bezug zum Vertrag, label_en: "Contract reference", field_key: contract_ref}
 static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung und ohne Preisangabe."
+static_text_en: "Note: This notice is given without legal assessment and without price information."

@@ -3,19 +3,25 @@ import csv, datetime as dt, json, time
 import requests
 from .llm_settings import today as demo_today
 from .store import DATA, load, save, SITE
+from .i18n import T, get_lang
 
 WMO = {0: "klar", 1: "überwiegend klar", 2: "teilweise bewölkt", 3: "bedeckt", 45: "Nebel", 48: "Reifnebel",
        51: "leichter Niesel", 53: "Niesel", 55: "starker Niesel", 61: "leichter Regen", 63: "Regen", 65: "starker Regen",
        66: "gefrierender Regen", 67: "gefrierender Regen", 71: "leichter Schneefall", 73: "Schneefall", 75: "starker Schneefall",
        77: "Schneegriesel", 80: "Regenschauer", 81: "Regenschauer", 82: "starke Regenschauer", 85: "Schneeschauer",
        86: "Schneeschauer", 95: "Gewitter", 96: "Gewitter mit Hagel", 99: "Gewitter mit Hagel"}
+WMO_EN = {0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast", 45: "fog", 48: "rime fog",
+          51: "light drizzle", 53: "drizzle", 55: "heavy drizzle", 61: "light rain", 63: "rain", 65: "heavy rain",
+          66: "freezing rain", 67: "freezing rain", 71: "light snowfall", 73: "snowfall", 75: "heavy snowfall",
+          77: "snow grains", 80: "rain showers", 81: "rain showers", 82: "heavy rain showers", 85: "snow showers",
+          86: "snow showers", 95: "thunderstorm", 96: "thunderstorm with hail", 99: "thunderstorm with hail"}
 _cache = {"t": 0, "data": None}
 
 
 def weather():
     """Daily weather for the site (7 past + 7 forecast days), keyed by ISO date. None if offline."""
     if _cache["data"] and time.time() - _cache["t"] < 1800:
-        return _cache["data"]
+        return _localized(_cache["data"])
     try:
         r = requests.get("https://api.open-meteo.com/v1/forecast", timeout=8, params={
             "latitude": SITE["lat"], "longitude": SITE["lon"], "timezone": "Europe/Berlin", "past_days": 7, "forecast_days": 7,
@@ -26,15 +32,21 @@ def weather():
         for i, day in enumerate(d["time"]):
             out[day] = {"tmax": d["temperature_2m_max"][i], "tmin": d["temperature_2m_min"][i],
                         "rain": d["precipitation_sum"][i], "wind": d["wind_speed_10m_max"][i],
-                        "text": WMO.get(d["weather_code"][i], "?")}
+                        "code": d["weather_code"][i]}
         _cache.update(t=time.time(), data=out)
-        return out
+        return _localized(out)
     except Exception:
         return None
 
 
+def _localized(data):
+    """Weather rows with `text` in the current language (the cache keeps the language-free WMO code)."""
+    wmo = WMO if get_lang() == "de" else WMO_EN
+    return {day: dict(w, text=wmo.get(w["code"], "?")) for day, w in data.items()}
+
+
 def weather_text(w):
-    return f"{w['text']}, {w['tmin']:.0f} bis {w['tmax']:.0f} °C, Niederschlag {w['rain']:.1f} mm, Wind bis {w['wind']:.0f} km/h"
+    return T("v_weather_text", **w)
 
 
 # ---------------------------------------------------------------- demo data: BW 12 Mühlbach (backend/data/demo)
@@ -108,11 +120,11 @@ def status(as_of=None, with_weather=True):
         rows.append(row)
         if light == "red":
             alerts.append({"kind": "delay", "level": "red", "activity": s["id"],
-                           "text": f"{s['name']}: {delay} Arbeitstage Verzug (Soll {planned:g} {s['unit']}, Ist {actual:g} {s['unit']}).",
+                           "text": T("al_delay", name=s["name"], delay=delay, p=planned, a=actual, unit=s["unit"]),
                            "suggest": "behinderung", "suggest_label": "Draft Behinderungsanzeige"})
         elif light == "yellow":
             alerts.append({"kind": "delay", "level": "yellow", "activity": s["id"],
-                           "text": f"{s['name']}: {delay} Tage hinter Plan. Beobachten.", "suggest": None})
+                           "text": T("al_delay_watch", name=s["name"], delay=delay), "suggest": None})
     w = weather() if with_weather else None
     if w:
         for s in sched:
@@ -122,7 +134,7 @@ def status(as_of=None, with_weather=True):
             if cold:
                 d, v = min(cold, key=lambda x: x[1]["tmin"])
                 alerts.append({"kind": "frost", "level": "yellow", "activity": s["id"],
-                               "text": f"Frostgefahr: {s['name']} geplant {s['start']} bis {s['end']}, Prognose am {d} Tmin {v['tmin']:.0f} °C.",
+                               "text": T("al_frost", name=s["name"], start=s["start"], end=s["end"], d=d, tmin=v["tmin"]),
                                "suggest": "bedenken", "suggest_label": "Draft Bedenkenanzeige (winter measures)",
                                "weather_date": d, "tmin": v["tmin"]})
     return {"as_of": as_of, "activities": rows, "alerts": alerts, "weather_available": w is not None,

@@ -252,7 +252,7 @@ def test_bare_audio_ref_resolves_to_its_segments_only(monkeypatch):
 
 # ---------------------------------------------------------------- chat vs diary note
 def test_question_gets_help_not_diary_rules_mode():
-    r = assistant.handle("So we are testing if you are working properly or not. What is 2 plus 1?")
+    r = assistant.handle("So we are testing if you are working properly or not. What is 2 plus 1?", lang="en")
     txt = r["replies"][0]["text"]
     assert "Bautagebuch" not in txt and "site assistant" in txt and r["replies"][0]["kind"] == "chat"
     assert store.load("notes", []) == []
@@ -339,3 +339,30 @@ def test_daily_report_without_llm_is_rules_only(monkeypatch):
     monkeypatch.setattr(llm_extract, "complete_json", lambda *a, **k: calls.append(1))
     d = assistant.daily_report()
     assert not calls and d.get("extraction_mode") != "llm"
+
+
+# ---------------------------------------------------------------- reply language follows the UI
+def test_help_text_follows_lang_not_message():
+    assert "site assistant" in assistant._help_text("Hallo, wie geht's?", "en")
+    assert "Baustellen-Assistent" in assistant._help_text("hello", "de")
+
+
+def test_chat_passes_lang_to_llm(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(assistant.llm_bridge, "converse", lambda t, c, run_id="chat", lang=None: seen.setdefault("lang", lang) and "ok")
+    assistant.handle("What can you do?", lang="en")
+    assert seen["lang"] == "en"
+
+
+def test_timer_marks_failures_not_latency(isolated, monkeypatch):
+    from core import metrics
+    with pytest.raises(RuntimeError):
+        with llm_bridge.Timer("boom_stage"):
+            raise RuntimeError("nope")
+    with llm_bridge.Timer("boom_stage"):
+        pass
+    # the isolated fixture only redirects the writer; point the reader at the same file
+    import dataclasses as dc
+    monkeypatch.setattr(llm_bridge, "SETTINGS", dc.replace(llm_bridge.SETTINGS, metrics_file=llm_bridge.METRICS._path))
+    st = next(s for s in metrics.aggregate()["stages"] if s["stage"] == "boom_stage")
+    assert (st["count"], st["errors"]) == (1, 1)

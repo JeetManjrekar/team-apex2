@@ -12,6 +12,7 @@ Ref formats (APEX 2, section 8.2):
 """
 from __future__ import annotations
 
+from .i18n import T
 import csv
 import datetime as dt
 import json
@@ -66,11 +67,11 @@ def pile_id(s: str) -> str | None:
 # ---------------------------------------------------------------- primary sources (this turn)
 def message_chunk(msg_id: str, text: str, kind: str = "text", locator: str | None = None) -> SourceChunk:
     if kind == "email":
-        return SourceChunk(ref=f"mail:{msg_id}", kind="email", label_de="E-Mail", locator=locator or "E-Mail", text=text.strip())
+        return SourceChunk(ref=f"mail:{msg_id}", kind="email", label_de=T("lbl_email"), locator=locator or T("lbl_email"), text=text.strip())
     if kind == "document":      # one page / sheet block of an imported client document (outlook.import_document)
-        return SourceChunk(ref=f"msg:{msg_id}", kind="document", label_de="Dokument", locator=locator or "Dokument", text=text.strip())
-    return SourceChunk(ref=f"msg:{msg_id}", kind="text", label_de="Chatnachricht",
-                       locator=locator or f"Chat-Nachricht {dt.datetime.now():%H:%M}", text=text.strip())
+        return SourceChunk(ref=f"msg:{msg_id}", kind="document", label_de=T("lbl_document"), locator=locator or T("lbl_document"), text=text.strip())
+    return SourceChunk(ref=f"msg:{msg_id}", kind="text", label_de=T("lbl_chat"),
+                       locator=locator or T("loc_chat_msg", t=f"{dt.datetime.now():%H:%M}"), text=text.strip())
 
 
 def audio_chunks(audio_id: str, segments: list[dict], audio_file: str | None = None, transcript: str = "") -> list[SourceChunk]:
@@ -79,8 +80,8 @@ def audio_chunks(audio_id: str, segments: list[dict], audio_file: str | None = N
     if not segs and transcript.strip():
         segs = [{"start": 0.0, "end": 0.0, "text": transcript}]
     url = f"/data/{audio_file}" if audio_file else None
-    return [SourceChunk(ref=f"audio:{audio_id}@{float(s['start']):.1f}-{float(s['end']):.1f}", kind="audio", label_de="Sprachnachricht",
-                        locator=f"Diktat {mmss(float(s['start']))}–{mmss(float(s['end']))}", text=s["text"].strip(), url=url)
+    return [SourceChunk(ref=f"audio:{audio_id}@{float(s['start']):.1f}-{float(s['end']):.1f}", kind="audio", label_de=T("lbl_voice"),
+                        locator=T("loc_dictation", a=mmss(float(s["start"])), b=mmss(float(s["end"]))), text=s["text"].strip(), url=url)
             for s in segs]
 
 
@@ -106,7 +107,7 @@ def photo_chunks(day: str | None = None, ids: list[str] | None = None) -> list[S
         else:
             dets = ", ".join(sorted({d["class"] for d in p.get("detections", [])})) or "keine"
             text = f"Foto vom {taken}, Kategorie {p['category']}, erkannt: {dets}. {p.get('caption_de', '')}".strip()
-        out.append(SourceChunk(ref=f"photo:{p['id']}", kind="photo", label_de=f"Foto vom {taken}", locator=f"Foto {p['original_name']}",
+        out.append(SourceChunk(ref=f"photo:{p['id']}", kind="photo", label_de=T("lbl_photo", taken=taken), locator=T("loc_photo", name=p["original_name"]),
                                text=text, url=f"/data/{p['file']}"))
     return out
 
@@ -128,15 +129,15 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
         return chunks
     if proj:
         chunks.append(SourceChunk(
-            ref="doc:project@p1", kind="project", label_de="Projektstammdaten", locator="Seite 1",
+            ref="doc:project@p1", kind="project", label_de=T("c_project"), locator=T("c_page", n=1),
             text=(f"Projekt: {proj.get('name_de')}. Bauherr: {proj.get('bauherr')}. Auftragnehmer: {proj.get('contractor')}. "
                   f"Bauleiter: {proj.get('site_manager')}. Polier: {proj.get('polier')}. "
                   f"Nachtragsmanager: {proj.get('nachtragsmanager')}. Vertrag: {proj.get('contract_ref')}.")))
     f = _demo("source_documents", "baugrundgutachten_auszug.md")
     if f.exists():
         for n, page in pages(f.read_text(encoding="utf-8")):
-            chunks.append(SourceChunk(ref=f"doc:bgg@p{n}", kind="document", label_de=f"Baugrundgutachten, Seite {n}",
-                                      locator=f"Seite {n}", text=page))
+            chunks.append(SourceChunk(ref=f"doc:bgg@p{n}", kind="document", label_de=T("c_bgg", n=n),
+                                      locator=T("c_page", n=n), text=page))
     zf = _demo("site_plan", "zones.json")
     zones = {z["id"]: z["label_de"] for z in json.loads(zf.read_text(encoding="utf-8"))} if zf.exists() else {}
     f = _demo("drilling", "drilling_times.csv")
@@ -148,8 +149,8 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
             data = {**row, "end": end, "depth_reached_m": float(row["depth_reached_m"] or 0),
                     "target_depth_m": float(row["target_depth_m"] or 0), "crew_count": int(row["crew_count"] or 0)}
             chunks.append(SourceChunk(
-                ref=f"drill:{row['pile_id']}", kind="drilling", label_de=f"Bohrzeitenliste Polier, {row['pile_id']}",
-                locator=f"Zeile {row['pile_id']}",
+                ref=f"drill:{row['pile_id']}", kind="drilling", label_de=T("c_drill", id=row["pile_id"]),
+                locator=T("c_row", id=row["pile_id"]),
                 text=(f"Bohrzeitenliste des Poliers (kein förmliches Bohrprotokoll). {zones.get(row['pile_id'], row['pile_id'])} "
                       f"({row['pile_id']}), Bauteil {zones.get(row['zone_id'], row['zone_id'])}, {row['date']}, {row['start']} bis "
                       f"{end or 'laufend'} Uhr, erreicht {row['depth_reached_m']} m von {row['target_depth_m']} m, "
@@ -163,17 +164,17 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
                 continue
             if (s - today).days <= 2 and (today - e).days <= 2:
                 chunks.append(SourceChunk(
-                    ref=f"sched:{row['id']}", kind="schedule", label_de=f"Bauzeitenplan, {row['id']}", locator=row["id"],
+                    ref=f"sched:{row['id']}", kind="schedule", label_de=T("c_sched", id=row["id"]), locator=row["id"],
                     text=f"{row['name_de']} (Zone {row['zone_id']}), {row['start_planned']} bis {row['end_planned']}, "
                          f"Rolle {row.get('crew_role', '')}. {row.get('assumption_note_de', '')}"))
     reports = sorted(p for p in _demo("daily_reports").glob("*.json") if p.stem < today.isoformat()) if _demo("daily_reports").exists() else []
     if reports:
         dr = json.loads(reports[-1].read_text(encoding="utf-8"))
         staff = ", ".join(f"{k}: {v}" for k, v in dr.get("staff_by_company", {}).items())
-        chunks.append(SourceChunk(ref=f"dr:{dr['date']}#personal", kind="daily_report", label_de=f"Bautagesbericht {dr['date']}, Personal",
-                                  locator="Personal", text=f"Personal: {staff}"))
-        chunks.append(SourceChunk(ref=f"dr:{dr['date']}#geraete", kind="daily_report", label_de=f"Bautagesbericht {dr['date']}, Geräte",
-                                  locator="Geräte", text="Geräte: " + "; ".join(dr.get("equipment", []))))
+        chunks.append(SourceChunk(ref=f"dr:{dr['date']}#personal", kind="daily_report", label_de=T("c_dr_staff", date=dr["date"]),
+                                  locator=T("c_staff"), text=f"Personal: {staff}"))
+        chunks.append(SourceChunk(ref=f"dr:{dr['date']}#geraete", kind="daily_report", label_de=T("c_dr_equip", date=dr["date"]),
+                                  locator=T("c_equip"), text="Geräte: " + "; ".join(dr.get("equipment", []))))
     return chunks
 
 

@@ -272,7 +272,7 @@ def transcribe_samples(samples: np.ndarray, language: str | None = None, size: s
     size = size or _cfg()["model"]
     dur = len(samples) / SR
     _model(size)   # load outside the timer so `stt` measures inference, not the one-off model load
-    with llm_bridge.Timer("stt", "stt", provider="local", model=size, audio_s=round(dur, 2)):
+    with llm_bridge.Timer("stt", "stt", model=f"local:{size}", provider="local", audio_s=round(dur, 2)):
         segs = _local(samples, beam=5, language=language, size=size)
     return _result(segs, "local", f"faster-whisper-{size}", dur)
 

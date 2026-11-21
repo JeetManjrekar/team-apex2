@@ -1,0 +1,35 @@
+{
+  "_doc": "Fehlerhafte Eingaben: negative Menge, Datum in der Zukunft, unbekannte Aktivität, fehlendes Datum, qty als Text. Erwartung: Validierung/ignorieren, kein 500.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": -12,
+      "note": "negativ"
+    },
+    {
+      "date": "2027-01-01",
+      "activity": "W1_BP",
+      "qty": 12,
+      "note": "Zukunft"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "XX_UNKNOWN",
+      "qty": 5,
+      "note": "unbekannt"
+    },
+    {
+      "qty": 12,
+      "activity": "W1_BP",
+      "note": "ohne Datum"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": "zwölf",
+      "note": "qty als Text"
+    }
+  ]
+}

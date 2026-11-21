@@ -268,13 +268,14 @@
     const e2e = summary.e2e_voice_to_draft_p50_ms ?? summary.voice_to_draft_p50_ms ?? st("voice_to_draft_end_to_end")?.p50_ms;
     const acc = summary.extraction_accuracy ?? summary.accuracy;
     const cpd = summary.cost_per_document_eur ?? summary.cost_per_doc_eur;
-    const maxMs = Math.max(1, ...stages.map(s => s.avg_ms || 0));
+    const shown = ["stt", "llm_intent", "llm_extraction", "export_docx"].map(st).filter(Boolean);   // the AI pipeline, not the first 4 alphabetically
+    const maxMs = Math.max(1, ...shown.map(s => s.avg_ms || 0));
     const ms = v => (v || 0) < 1000 ? Math.round(v || 0) + " ms" : n1(v / 1000) + " s";
     const perf = `<div class="db-perf">
         <div><b>${e2e != null ? n1(e2e / 1000) + " s" : DASH}</b><span>${L("end to end", "Ende zu Ende")}</span></div>
         <div><b>${acc != null ? Math.round(acc * (acc <= 1 ? 100 : 1)) + " %" : DASH}</b><span>${L("fields correct", "Felder korrekt")}</span></div>
         <div><b>${cpd != null ? cpd.toLocaleString(DE ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " €" : DASH}</b><span>${L("per document", "pro Dokument")}</span></div></div>
-      ${stages.length ? `<div class="db-stages">${stages.slice(0, 4).map(s => `<div><span>${esc(s.stage.replace(/_/g, " "))}</span><div class="gl-progress"><i style="width:${(s.avg_ms || 0) / maxMs * 100}%"></i></div><b>${ms(s.avg_ms)}</b></div>`).join("")}</div>` : ""}`;
+      ${shown.length ? `<div class="db-stages">${shown.map(s => `<div><span>${esc(s.stage.replace(/_/g, " "))}</span><div class="gl-progress"><i style="width:${(s.avg_ms || 0) / maxMs * 100}%"></i></div><b>${ms(s.avg_ms)}</b></div>`).join("")}</div>` : ""}`;
 
     /* ---- 3 · History ---- */
     const hist = docs.slice().sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);

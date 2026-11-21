@@ -1,5 +1,6 @@
 key: maengelanzeige
 label_de: Mängelanzeige
+label_en: Defect notice
 template: maengelanzeige.docx
 prompt: maengelanzeige.md
 intent: mangel
@@ -8,18 +9,23 @@ intent_keywords:
   - [mängel]
   - [beschädigt]
   - [riss]
+intent_keywords_en:
+  - [defect]
+  - [damaged]
+  - [crack]
 fields:
-  - {key: addressee, label_de: Empfänger, type: text, required: true, critical: false}
-  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
-  - {key: defect_description, label_de: Beschreibung des Mangels, type: text, required: true, critical: false}
-  - {key: detected_at, label_de: Festgestellt am, type: datetime, required: true, critical: false}
-  - {key: detected_by, label_de: Festgestellt durch, type: text, required: false, critical: false}
-  - {key: responsible_company, label_de: Verantwortliches Unternehmen, type: text, required: true, critical: false, question_de: "Welches Unternehmen ist für den Mangel verantwortlich?"}
-  - {key: deadline, label_de: Frist zur Beseitigung, type: text, required: true, critical: false, question_de: "Bis wann soll der Mangel beseitigt werden?"}
-  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+  - {key: addressee, label_de: Empfänger, label_en: "Recipient", type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, label_en: "Location / component", type: text, required: true, critical: true}
+  - {key: defect_description, label_de: Beschreibung des Mangels, label_en: "Defect description", type: text, required: true, critical: false}
+  - {key: detected_at, label_de: Festgestellt am, label_en: "Detected on", type: datetime, required: true, critical: false}
+  - {key: detected_by, label_de: Festgestellt durch, label_en: "Detected by", type: text, required: false, critical: false}
+  - {key: responsible_company, label_de: Verantwortliches Unternehmen, label_en: "Responsible company", type: text, required: true, critical: false, question_de: "Welches Unternehmen ist für den Mangel verantwortlich?", question_en: "Which company is responsible for the defect?"}
+  - {key: deadline, label_de: Frist zur Beseitigung, label_en: "Deadline for remedy", type: text, required: true, critical: false, question_de: "Bis wann soll der Mangel beseitigt werden?", question_en: "By when should the defect be remedied?"}
+  - {key: photos, label_de: Fotos, label_en: "Photos", type: list, required: false, critical: false}
 checklist:
-  - {key: written_form, label_de: Schriftform, field_key: null}
-  - {key: description, label_de: Mangel beschrieben, field_key: defect_description}
-  - {key: responsible, label_de: Verantwortlicher benannt, field_key: responsible_company}
-  - {key: deadline, label_de: Frist gesetzt, field_key: deadline}
+  - {key: written_form, label_de: Schriftform, label_en: "Written form", field_key: null}
+  - {key: description, label_de: Mangel beschrieben, label_en: "Defect described", field_key: defect_description}
+  - {key: responsible, label_de: Verantwortlicher benannt, label_en: "Responsible party named", field_key: responsible_company}
+  - {key: deadline, label_de: Frist gesetzt, label_en: "Deadline set", field_key: deadline}
 static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung."
+static_text_en: "Note: This notice is given without legal assessment."

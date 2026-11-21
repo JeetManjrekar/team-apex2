@@ -1,5 +1,6 @@
 key: bedenkenanmeldung
 label_de: Bedenkenanmeldung
+label_en: Notice of concern
 template: bedenkenanmeldung.docx
 prompt: bedenkenanmeldung.md
 intent: bedenken
@@ -7,18 +8,22 @@ intent: bedenken
 intent_keywords:
   - [bedenken]
   - [nicht ausführbar]
+intent_keywords_en:
+  - [concern]
+  - [not executable]
 fields:
-  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
-  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true, question_de: "Auf welchen Ort oder welches Bauteil beziehen sich die Bedenken?"}
-  - {key: occurred_at, label_de: Datum, type: datetime, required: true, critical: true, question_de: "Wann wurden die Bedenken festgestellt?"}
-  - {key: concern_description, label_de: Bedenken, type: text, required: true, critical: false, question_de: "Welche konkreten Bedenken bestehen?"}
-  - {key: technical_basis, label_de: Technische Grundlage, type: text, required: false, critical: false}
-  - {key: proposed_clarification, label_de: Offene Klärung, type: text, required: false, critical: false}
-  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
-  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+  - {key: addressee, label_de: Empfänger (Bauherr), label_en: "Recipient (client)", type: text, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauteil, label_en: "Location / component", type: text, required: true, critical: true, question_de: "Auf welchen Ort oder welches Bauteil beziehen sich die Bedenken?", question_en: "Which location or component do the concerns relate to?"}
+  - {key: occurred_at, label_de: Datum, label_en: "Date", type: datetime, required: true, critical: true, question_de: "Wann wurden die Bedenken festgestellt?", question_en: "When were the concerns identified?"}
+  - {key: concern_description, label_de: Bedenken, label_en: "Concerns", type: text, required: true, critical: false, question_de: "Welche konkreten Bedenken bestehen?", question_en: "What are the specific concerns?"}
+  - {key: technical_basis, label_de: Technische Grundlage, label_en: "Technical basis", type: text, required: false, critical: false}
+  - {key: proposed_clarification, label_de: Offene Klärung, label_en: "Open clarification", type: text, required: false, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, label_en: "Contract reference", type: text, required: true, critical: false}
+  - {key: photos, label_de: Fotos, label_en: "Photos", type: list, required: false, critical: false}
 checklist:
-  - {key: written_form, label_de: Schriftform, field_key: null}
-  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
-  - {key: concern, label_de: Bedenken beschrieben, field_key: concern_description}
-  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+  - {key: written_form, label_de: Schriftform, label_en: "Written form", field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, label_en: "Recipient named", field_key: addressee}
+  - {key: concern, label_de: Bedenken beschrieben, label_en: "Concerns described", field_key: concern_description}
+  - {key: contract, label_de: Bezug zum Vertrag, label_en: "Contract reference", field_key: contract_ref}
 static_text_de: "Hinweis: Diese Anmeldung erfolgt ohne rechtliche Bewertung."
+static_text_en: "Note: This notice is given without legal assessment."
