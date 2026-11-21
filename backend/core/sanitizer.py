@@ -1,4 +1,5 @@
 """Masks private data before any LLM call. Placeholders are reversible and restored afterwards."""
+import os
 import re
 
 PATTERNS = [
@@ -8,10 +9,17 @@ PATTERNS = [
 ]
 
 
+def enabled() -> bool:
+    """ENABLE_PII_MASKING (default true). Read per call so .env / test changes apply without reimport."""
+    return os.environ.get("ENABLE_PII_MASKING", "true").strip().lower() not in {"0", "false", "no", "off"}
+
+
 def mask(text: str, mapping: dict | None = None):
     """Returns (masked_text, mapping). Pass the same `mapping` for several texts of one prompt so a value gets the same
     placeholder everywhere (it is extended in place)."""
     mapping = {} if mapping is None else mapping
+    if not enabled():
+        return text, mapping
     counters = {}
     for k in mapping:
         label, _, n = k.rpartition("_")
