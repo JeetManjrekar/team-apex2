@@ -56,6 +56,29 @@ def read_exif(raw: bytes):
     return lat, lon, taken, heading
 
 
+def read_gps_meta(raw: bytes) -> dict:
+    """GPS extras: horizontal accuracy (m) and whether GPSImgDirection is true (T) or magnetic (M) north."""
+    tags = exifread.process_file(io.BytesIO(raw), details=False)
+    out = {"gps_accuracy_m": None, "heading_ref": None}
+    try:
+        v = tags.get("GPS GPSHPositioningError") or tags.get("GPS Tag 0x001F")   # older exifread has no name for tag 31
+        if v is not None:
+            r = v.values[0]
+            out["gps_accuracy_m"] = round(float(r.num) / float(r.den), 1) if getattr(r, "den", 1) else None
+    except Exception:
+        pass
+    ref = str(tags.get("GPS GPSImgDirectionRef") or "").strip().upper()
+    out["heading_ref"] = ref if ref in ("T", "M") else None
+    return out
+
+
+def true_heading(heading, ref):
+    """Magnetic -> true north with MAGNETIC_DECLINATION_DEG (≈ +3.5° in Bavaria, 2026). True / unknown stays as is."""
+    if heading is None or ref != "M":
+        return heading
+    return round((heading + float(env("MAGNETIC_DECLINATION_DEG", "3.5") or 3.5)) % 360, 1)
+
+
 def detect(raw: bytes):
     """Roboflow hosted inference. None = mock mode (no key configured)."""
     key, model = env("ROBOFLOW_API_KEY"), env("ROBOFLOW_MODEL")
@@ -92,6 +115,8 @@ def ingest(files):
         pid = new_id()
         (UPLOADS / f"{pid}.jpg").write_bytes(raw)
         lat, lon, taken, heading = read_exif(raw)
+        gmeta = read_gps_meta(raw)
+        heading = true_heading(heading, gmeta["heading_ref"])
         try:
             img_w, img_h = Image.open(io.BytesIO(raw)).size
         except Exception:
@@ -112,6 +137,8 @@ def ingest(files):
                "taken_at": taken or dt.datetime.now().isoformat(timespec="seconds"),
                "uploaded_at": dt.datetime.now().isoformat(timespec="seconds"), "note": "",
                "heading": heading, "heading_source": "exif" if heading is not None else None, "img_w": img_w, "img_h": img_h,
+               "heading_ref": gmeta["heading_ref"] if heading is not None else None,
+               "gps_accuracy_m": gmeta["gps_accuracy_m"] if lat is not None else None,
                "detector": {"name": site_twin.detector_name(), "endpoint": env("ROBOFLOW_MODEL"), "recorded": True} if dets is not None else None,
                "caption_model": site_twin.vision_model_name() if caption else None}
         rows.append(rec)

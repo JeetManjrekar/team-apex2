@@ -1,0 +1,238 @@
+{
+  "name": "Ersatzneubau Brücke BW 27 über den Erlbach (fiktiv)",
+  "origin": {
+    "lat": 48.2935,
+    "lon": 11.889
+  },
+  "rotation_deg": 0.0,
+  "boundary": [
+    [
+      -75.003,
+      -49.997
+    ],
+    [
+      75.003,
+      -49.997
+    ],
+    [
+      75.003,
+      40.004
+    ],
+    [
+      59.998,
+      49.997
+    ],
+    [
+      -75.003,
+      49.997
+    ]
+  ],
+  "zones": [
+    {
+      "id": "a1",
+      "name": "Achse 1",
+      "polygon": [
+        [
+          -19.997,
+          -12.005
+        ],
+        [
+          -9.998,
+          -12.005
+        ],
+        [
+          -9.998,
+          12.005
+        ],
+        [
+          -19.997,
+          12.005
+        ]
+      ],
+      "color": "#3f88c5",
+      "kind": "work",
+      "activities": [
+        "A1_BET",
+        "A1_BP"
+      ],
+      "source": "8 corner points from lageplan.geojson, vermessung_punkte.csv",
+      "estimated": true
+    },
+    {
+      "id": "a2",
+      "name": "Achse 2",
+      "polygon": [
+        [
+          9.998,
+          -12.005
+        ],
+        [
+          19.997,
+          -12.005
+        ],
+        [
+          19.997,
+          12.005
+        ],
+        [
+          9.998,
+          12.005
+        ]
+      ],
+      "color": "#e07a1f",
+      "kind": "work",
+      "activities": [
+        "A2_BET",
+        "A2_BP"
+      ],
+      "source": "8 corner points from lageplan.geojson, vermessung_punkte.csv",
+      "estimated": true
+    },
+    {
+      "id": "be",
+      "name": "Baustelleneinrichtung",
+      "polygon": [
+        [
+          -69.997,
+          -45.001
+        ],
+        [
+          -40.001,
+          -45.001
+        ],
+        [
+          -40.001,
+          -21.997
+        ],
+        [
+          -69.997,
+          -21.997
+        ]
+      ],
+      "color": "#2a9d8f",
+      "kind": "facilities",
+      "activities": [],
+      "source": "8 corner points from lageplan.geojson, vermessung_punkte.csv",
+      "estimated": true
+    },
+    {
+      "id": "w1",
+      "name": "Widerlager 1",
+      "polygon": [
+        [
+          -57.999,
+          -15.0
+        ],
+        [
+          -30.003,
+          -15.0
+        ],
+        [
+          -30.003,
+          15.0
+        ],
+        [
+          -57.999,
+          15.0
+        ]
+      ],
+      "color": "#9b5de5",
+      "kind": "work",
+      "activities": [
+        "W1_BET",
+        "W1_BP"
+      ],
+      "source": "8 corner points from lageplan.geojson, vermessung_punkte.csv",
+      "estimated": true
+    },
+    {
+      "id": "w2",
+      "name": "Widerlager 2",
+      "polygon": [
+        [
+          30.003,
+          -15.0
+        ],
+        [
+          57.999,
+          -15.0
+        ],
+        [
+          57.999,
+          15.0
+        ],
+        [
+          30.003,
+          15.0
+        ]
+      ],
+      "color": "#d1495b",
+      "kind": "work",
+      "activities": [
+        "W2_BET",
+        "W2_BP"
+      ],
+      "source": "8 corner points from lageplan.geojson, vermessung_punkte.csv",
+      "estimated": true
+    }
+  ],
+  "roads": [],
+  "gates": [],
+  "structures": [
+    {
+      "id": "bk1",
+      "kind": "marker",
+      "name": "BK1",
+      "x": -43.993,
+      "y": 0.0,
+      "note": "BK1 (Widerlager 1): RW 32 714 226,8 HW 5 352 955,3",
+      "source": "baugrundgutachten.pdf (Seite 1)",
+      "estimated": true
+    },
+    {
+      "id": "bk2",
+      "kind": "marker",
+      "name": "BK2",
+      "x": -14.961,
+      "y": 0.0,
+      "note": "BK2 (Achse 1): RW 32 714 255,9 HW 5 352 956,4",
+      "source": "baugrundgutachten.pdf (Seite 1)",
+      "estimated": true
+    },
+    {
+      "id": "bk3",
+      "kind": "marker",
+      "name": "BK3",
+      "x": 15.01,
+      "y": -0.018,
+      "note": "BK3 (Achse 2)",
+      "source": "baugrundgutachten.pdf (Seite 1)",
+      "estimated": true
+    },
+    {
+      "id": "bk4",
+      "kind": "marker",
+      "name": "BK4",
+      "x": 43.972,
+      "y": -0.01,
+      "note": "BK4 (Widerlager 2)",
+      "source": "baugrundgutachten.pdf (Seite 1)",
+      "estimated": true
+    },
+    {
+      "id": "kr_01",
+      "kind": "marker",
+      "name": "KR-01",
+      "x": -57.999,
+      "y": -38.004,
+      "source": "lageplan.geojson (Feature 6)",
+      "estimated": true
+    }
+  ],
+  "generated": {
+    "at": "2026-11-22T00:22:33",
+    "by": "layout_suggest",
+    "origin_source": "anchor point “Bezugspunkt BP0 – Brückenachse / Erlbach-Mitte” in project_reference.json (anchor)",
+    "boundary_source": "5 boundary points from vermessung_punkte.csv"
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "_doc": "Ground truth in plan metres (x east, y north, origin = anchor). Tolerances used by the tests: origin 1 m, zone centroid 3 m, distances 0.5 m.",
+  "origin": {
+    "lat": 48.2935,
+    "lon": 11.889
+  },
+  "rotation_deg": 0,
+  "boundary": [
+    [
+      -75,
+      -50
+    ],
+    [
+      75,
+      -50
+    ],
+    [
+      75,
+      40
+    ],
+    [
+      60,
+      50
+    ],
+    [
+      -75,
+      50
+    ]
+  ],
+  "zones": {
+    "w1": {
+      "name": "Widerlager 1",
+      "polygon": [
+        [
+          -58,
+          -15
+        ],
+        [
+          -30,
+          -15
+        ],
+        [
+          -30,
+          15
+        ],
+        [
+          -58,
+          15
+        ]
+      ],
+      "centroid": [
+        -44.0,
+        0.0
+      ],
+      "activities": [
+        "W1_BET",
+        "W1_BP"
+      ]
+    },
+    "a1": {
+      "name": "Achse 1",
+      "polygon": [
+        [
+          -20,
+          -12
+        ],
+        [
+          -10,
+          -12
+        ],
+        [
+          -10,
+          12
+        ],
+        [
+          -20,
+          12
+        ]
+      ],
+      "centroid": [
+        -15.0,
+        0.0
+      ],
+      "activities": [
+        "A1_BET",
+        "A1_BP"
+      ]
+    },
+    "a2": {
+      "name": "Achse 2",
+      "polygon": [
+        [
+          10,
+          -12
+        ],
+        [
+          20,
+          -12
+        ],
+        [
+          20,
+          12
+        ],
+        [
+          10,
+          12
+        ]
+      ],
+      "centroid": [
+        15.0,
+        0.0
+      ],
+      "activities": [
+        "A2_BET",
+        "A2_BP"
+      ]
+    },
+    "w2": {
+      "name": "Widerlager 2",
+      "polygon": [
+        [
+          30,
+          -15
+        ],
+        [
+          58,
+          -15
+        ],
+        [
+          58,
+          15
+        ],
+        [
+          30,
+          15
+        ]
+      ],
+      "centroid": [
+        44.0,
+        0.0
+      ],
+      "activities": [
+        "W2_BET",
+        "W2_BP"
+      ]
+    },
+    "be": {
+      "name": "Baustelleneinrichtung",
+      "polygon": [
+        [
+          -70,
+          -45
+        ],
+        [
+          -40,
+          -45
+        ],
+        [
+          -40,
+          -22
+        ],
+        [
+          -70,
+          -22
+        ]
+      ],
+      "centroid": [
+        -55.0,
+        -33.5
+      ],
+      "activities": []
+    }
+  },
+  "markers": {
+    "BK1": [
+      -44,
+      0
+    ],
+    "BK2": [
+      -15,
+      0
+    ],
+    "BK3": [
+      15,
+      0
+    ],
+    "BK4": [
+      44,
+      0
+    ],
+    "KR-01": [
+      -58,
+      -38
+    ]
+  },
+  "photos": {
+    "ecae8902": {
+      "zone": "w1",
+      "xy": [
+        -44.0,
+        2.0
+      ],
+      "outlier": false
+    },
+    "8d694186": {
+      "zone": "w1",
+      "xy": [
+        -42.8,
+        3.6
+      ],
+      "outlier": false
+    },
+    "07179547": {
+      "zone": "a1",
+      "xy": [
+        -12.5,
+        4.0
+      ],
+      "outlier": false
+    },
+    "a7b1a4f1": {
+      "zone": "a2",
+      "xy": [
+        12.5,
+        4.0
+      ],
+      "outlier": false
+    },
+    "1c92357b": {
+      "zone": "w2",
+      "xy": [
+        44.0,
+        1.0
+      ],
+      "outlier": false
+    },
+    "6342cd1c": {
+      "zone": "be",
+      "xy": [
+        -52.0,
+        -30.0
+      ],
+      "outlier": false
+    },
+    "4d007fe8": {
+      "zone": null,
+      "xy": null,
+      "outlier": true
+    }
+  },
+  "distances": [
+    {
+      "a": "07179547",
+      "b": "a7b1a4f1",
+      "m": 25.0,
+      "within_accuracy": false
+    },
+    {
+      "a": "ecae8902",
+      "b": "8d694186",
+      "m": 2.0,
+      "within_accuracy": true
+    }
+  ],
+  "unmatched_activities": [
+    "UB1_MONT"
+  ]
+}

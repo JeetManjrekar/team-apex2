@@ -73,7 +73,10 @@
   <aside class="tw-side card" id="twSide"><div class="pad mut">Loading site plan…</div></aside>
 </div>
 <dialog id="twDlg"><b>Site layout (JSON)</b>
-  <p class="mut">Coordinates in metres (x = east, y = north).</p>
+  <p class="mut">Coordinates in metres (x = east, y = north). Or build a draft from site documents with coordinates (survey CSV/XLSX, reports as PDF/DOCX, GeoJSON) and the GPS of uploaded photos.</p>
+  <div class="tw-gen"><label class="s" for="twSrcFiles">Add site documents…</label><input type="file" id="twSrcFiles" multiple accept=".csv,.xlsx,.docx,.pdf,.geojson,.json" hidden>
+    <button class="s" id="twSuggest">Suggest layout from data</button><button class="s" id="twSrcClear" title="Forget all uploaded site documents">Clear documents</button><span id="twSrcInfo" class="mut"></span></div>
+  <div id="twGenRep" class="tw-genrep" hidden></div>
   <textarea id="twLayTxt" spellcheck="false"></textarea><p id="twLayErr" style="color:var(--bad)"></p>
   <div class="row" style="display:flex;gap:8px;justify-content:flex-end"><button id="twLayReset">Reset to default</button><button id="twLayCancel">Cancel</button><button class="p" id="twLaySave">Save layout</button></div>
 </dialog></section>

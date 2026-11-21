@@ -1,0 +1,11 @@
+{
+  "name": "Ersatzneubau Brücke BW 27 über den Erlbach (fiktiv)",
+  "crs": "EPSG:4326 (WGS84)",
+  "rotation_deg": 0,
+  "anchor": {
+    "label": "Bezugspunkt BP0 – Brückenachse / Erlbach-Mitte",
+    "lat": 48.2935,
+    "lon": 11.889
+  },
+  "note": "Fiktive Baustelle. Lageplan nach Norden ausgerichtet."
+}

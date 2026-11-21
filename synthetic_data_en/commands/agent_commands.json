@@ -583,6 +583,53 @@
         "no-verbal-report"
       ],
       "expect_note": "Negated 'Unfall' must not create a verbal_report incident"
+    },
+    {
+      "id": "l01",
+      "text": "Generate the site layout from the uploaded documents",
+      "lang": "en",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "happy",
+        "layout"
+      ]
+    },
+    {
+      "id": "l02",
+      "text": "Suggest a site layout",
+      "lang": "en",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "happy",
+        "layout"
+      ]
+    },
+    {
+      "id": "l03",
+      "text": "Create the site plan from my photos",
+      "lang": "en",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "layout"
+      ]
+    },
+    {
+      "id": "l04",
+      "text": "Show me the site plan",
+      "lang": "en",
+      "intended": [
+        "focus"
+      ],
+      "tags": [
+        "layout",
+        "negative"
+      ]
     }
   ]
 }

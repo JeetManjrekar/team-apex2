@@ -34,6 +34,8 @@ HFOV_DEG = float(os.environ.get("CAMERA_HFOV_DEG", "65"))      # typical phone m
 # typical object heights (m) used for the pinhole distance estimate
 OBJECT_HEIGHT_M = {"excavator": 3.2, "bulldozer": 3.0, "dump_truck": 3.5, "car": 1.5, "person": 1.75, "tractor": 2.8}
 MIN_DIST_M, MAX_DIST_M = 3.0, 80.0
+OUTSIDE_SITE_M = float(os.environ.get("OUTSIDE_SITE_M", "1000"))   # GPS farther than this from the origin is not on this site
+DEFAULT_GPS_ACCURACY_M = 5.0                                     # typical phone GPS when the photo records no accuracy
 
 
 def detector_name():
@@ -154,6 +156,8 @@ def photo_position(p, layout):
     if p.get("location_source") in ("exif", "user") and p.get("lat") is not None:
         xy = gps_to_xy(p["lat"], p["lon"], layout)
         if xy:
+            if math.hypot(xy[0], xy[1]) > OUTSIDE_SITE_M:
+                return None, "outside_site"       # real GPS, but another place: never drawn kilometres away
             return xy, "gps"
     return None, "unplaced"
 
@@ -170,7 +174,8 @@ def place_detections(p, pos, layout):
             if heading is not None and size:
                 w, h = size
                 f_px = (w / 2) / math.tan(math.radians(HFOV_DEG / 2))
-                bearing = heading + math.degrees(math.atan(((d["x"] - w / 2)) / f_px))
+                # heading is clockwise from true north; the plan is rotated clockwise by rotation_deg
+                bearing = heading - layout.get("rotation_deg", 0) + math.degrees(math.atan(((d["x"] - w / 2)) / f_px))
                 obj_h = OBJECT_HEIGHT_M.get(d["class"].lower(), 2.5)
                 dist = max(MIN_DIST_M, min(MAX_DIST_M, obj_h * f_px / max(d["height"], 1)))
                 # bearing is clockwise from plan-north
@@ -198,6 +203,27 @@ def zone_of(xy, layout):
     return None
 
 
+def _neighbours(placed, k=3):
+    """Nearest placed photos with distance, bearing (clockwise from plan north) and whether GPS error could explain it."""
+    on = [p for p in placed if p["plan_xy"]]
+    for p in placed:
+        p["neighbours"] = []
+        if not p["plan_xy"]:
+            continue
+        acc_p = p.get("gps_accuracy_m") or (DEFAULT_GPS_ACCURACY_M if p["position_method"] == "gps" else 0.0)
+        rows = []
+        for q in on:
+            if q is p:
+                continue
+            dx, dy = q["plan_xy"][0] - p["plan_xy"][0], q["plan_xy"][1] - p["plan_xy"][1]
+            d = math.hypot(dx, dy)
+            acc_q = q.get("gps_accuracy_m") or (DEFAULT_GPS_ACCURACY_M if q["position_method"] == "gps" else 0.0)
+            rows.append({"id": q["id"], "name": q.get("original_name"), "distance_m": round(d, 1),
+                         "bearing_deg": round(math.degrees(math.atan2(dx, dy)) % 360, 1),
+                         "accuracy_m": round(math.hypot(acc_p, acc_q), 1), "within_accuracy": d <= math.hypot(acc_p, acc_q)})
+        p["neighbours"] = sorted(rows, key=lambda r: r["distance_m"])[:k]
+
+
 def twin():
     layout = normalise(get_layout())
     photos = load("photos", [])
@@ -223,6 +249,7 @@ def twin():
             "mock": bool(p.get("mock")),
             "detector": p.get("detector") or {"name": det_default, "recorded": False},
             "caption": p.get("caption_de") or "", "caption_model": p.get("caption_model") if p.get("caption_de") else None,
+            "gps_accuracy_m": p.get("gps_accuracy_m"),
             "plan_xy": pos, "position_method": method, "zone": zone, "zone_source": "user" if p.get("zone") in zone_ids else ("auto" if zone else None),
             "plan_gps": xy_to_gps(pos[0], pos[1], layout) if pos and layout.get("origin") else None,
             "detections": place_detections(p, pos, layout),
@@ -230,6 +257,7 @@ def twin():
                      for d in docs if p["id"] in (d.get("photos") or [])],
         }
         placed.append(rec)
+    _neighbours(placed)
 
     zones = []
     for z in layout["zones"]:

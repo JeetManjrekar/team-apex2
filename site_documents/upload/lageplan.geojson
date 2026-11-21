@@ -1,0 +1,196 @@
+{
+ "type": "FeatureCollection",
+ "name": "Lageplan BW 27 (fiktiv)",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "W1",
+    "name": "Widerlager 1",
+    "kind": "zone"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.8882169,
+       48.2933643
+      ],
+      [
+       11.8885949,
+       48.2933643
+      ],
+      [
+       11.8885949,
+       48.2936357
+      ],
+      [
+       11.8882169,
+       48.2936357
+      ],
+      [
+       11.8882169,
+       48.2933643
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "A1",
+    "name": "Achse 1",
+    "kind": "zone"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.88873,
+       48.2933914
+      ],
+      [
+       11.888865,
+       48.2933914
+      ],
+      [
+       11.888865,
+       48.2936086
+      ],
+      [
+       11.88873,
+       48.2936086
+      ],
+      [
+       11.88873,
+       48.2933914
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "A2",
+    "name": "Achse 2",
+    "kind": "zone"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.889135,
+       48.2933914
+      ],
+      [
+       11.88927,
+       48.2933914
+      ],
+      [
+       11.88927,
+       48.2936086
+      ],
+      [
+       11.889135,
+       48.2936086
+      ],
+      [
+       11.889135,
+       48.2933914
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "W2",
+    "name": "Widerlager 2",
+    "kind": "zone"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.8894051,
+       48.2933643
+      ],
+      [
+       11.8897831,
+       48.2933643
+      ],
+      [
+       11.8897831,
+       48.2936357
+      ],
+      [
+       11.8894051,
+       48.2936357
+      ],
+      [
+       11.8894051,
+       48.2933643
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "BE",
+    "name": "Baustelleneinrichtung",
+    "kind": "zone"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       11.8880549,
+       48.2930929
+      ],
+      [
+       11.8884599,
+       48.2930929
+      ],
+      [
+       11.8884599,
+       48.293301
+      ],
+      [
+       11.8880549,
+       48.293301
+      ],
+      [
+       11.8880549,
+       48.2930929
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "KR-01",
+    "name": "Turmdrehkran KR-01",
+    "kind": "marker"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     11.8882169,
+     48.2931562
+    ]
+   }
+  }
+ ]
+}

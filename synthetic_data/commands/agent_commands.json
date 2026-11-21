@@ -583,6 +583,53 @@
         "no-verbal-report"
       ],
       "expect_note": "Negated 'Unfall' must not create a verbal_report incident"
+    },
+    {
+      "id": "l01",
+      "text": "Erstelle den Lageplan aus den Dokumenten",
+      "lang": "de",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "happy",
+        "layout"
+      ]
+    },
+    {
+      "id": "l02",
+      "text": "Schlag mir einen Lageplan vor",
+      "lang": "de",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "happy",
+        "layout"
+      ]
+    },
+    {
+      "id": "l03",
+      "text": "Lageplan aus den Fotos erzeugen",
+      "lang": "de",
+      "intended": [
+        "layout"
+      ],
+      "tags": [
+        "layout"
+      ]
+    },
+    {
+      "id": "l04",
+      "text": "Zeig mir den Lageplan",
+      "lang": "de",
+      "intended": [
+        "focus"
+      ],
+      "tags": [
+        "layout",
+        "negative"
+      ]
     }
   ]
 }
