@@ -1,5 +1,5 @@
 /* BauBuddy · AI Site Manager (command centre).
-   The assistant is the main interface: one command -> backend orchestrator (POST /api/agent) -> real tools
+   The one assistant interface (voice, chat, photo/file upload, command palette): one command -> backend orchestrator (POST /api/agent) -> real tools
    (plan, twin, photos, detections, incidents) -> evidence cards + 2D plan + 3D twin actions -> spoken answer.
    Drafting commands (rock at pile 7, excavator idle, ...) are handed to the existing chat pipeline (/api/chat).
 
@@ -35,6 +35,9 @@
     send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     spk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
     mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8 8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 17.2a1.7 1.7 0 0 1-2.4-2.4L15 7"/></svg>',
     core: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>',
   };
   const STATES = [["idle", L("Idle", "Bereit")], ["listening", L("Listening", "Hört zu")], ["processing", L("Processing", "Verarbeitet")],
@@ -66,30 +69,34 @@
   <div class="bb-grid">
     <div class="bb-core card">
       <div class="bb-orb-wrap"><canvas id="bbOrb" width="560" height="560" aria-hidden="true"></canvas>
-        <div class="bb-orb-label"><b id="bbStateTxt">${L("Idle", "Bereit")}</b><span id="bbStateSub">${L("AI Site Manager", "KI-Bauleiter")}</span></div></div>
+        <div class="bb-orb-label"><b id="bbStateTxt">${L("Idle", "Bereit")}</b><span id="bbStateSub">${L("AI Site Manager", "KI-Bauleiter")}</span></div>
+        <div class="bb-orbtools"><button class="bb-ico" id="bbTts" title="${L("Voice answers on/off", "Sprachausgabe an/aus")}"></button>
+          <button class="bb-ico bb-lang" id="bbLang" title="${L("Language for voice", "Sprache")}">${S.lang.toUpperCase()}</button></div></div>
       <ol class="bb-rail" id="bbRail">${STATES.map(([k, t]) => `<li data-s="${k}"><i></i>${esc(t)}</li>`).join("")}</ol>
-      <div class="bb-say" id="bbSay" aria-live="polite"></div>
+      <div class="bb-hist"><div id="bbHist" class="bb-histlist" aria-live="polite"></div></div>
       <div class="bb-live" id="bbLive" hidden></div>
-      <div class="bb-in">
-        <button class="bb-mic" id="bbMic" title="${L("Speak a command", "Befehl sprechen")}" aria-label="${L("Speak a command", "Befehl sprechen")}">${ICON.mic}<span class="bb-ring"></span><span class="bb-ring r2"></span></button>
-        <div class="bb-field"><input id="bbInp" autocomplete="off" placeholder="${L("Ask or command… e.g. “Check progress and safety”", "Frage oder Befehl … z. B. „Fortschritt und Sicherheit prüfen“")}">
-          <button class="bb-send" id="bbSend" aria-label="Send">${ICON.send}</button></div>
-        <div class="bb-tools"><button class="bb-ico" id="bbTts" title="${L("Voice answers on/off", "Sprachausgabe an/aus")}"></button>
-          <button class="bb-ico bb-lang" id="bbLang" title="${L("Language for voice", "Sprache")}">${S.lang.toUpperCase()}</button></div>
+      <div class="bb-compose">
+        <div class="bb-pal" id="bbPal" role="menu" hidden>${CHIPS.map(([l, t]) => `<button class="bb-chip" role="menuitem" data-cmd="${esc(t)}">${esc(l)}</button>`).join("")}</div>
+        <div class="bb-in">
+          <button class="bb-mic" id="bbMic" title="${L("Speak a command", "Befehl sprechen")}" aria-label="${L("Speak a command", "Befehl sprechen")}">${ICON.mic}<span class="bb-ring"></span><span class="bb-ring r2"></span></button>
+          <div class="bb-field"><input id="bbInp" autocomplete="off" placeholder="${L("Ask or command…", "Frage oder Befehl …")}">
+            <button class="bb-send" id="bbSend" aria-label="${L("Send", "Senden")}">${ICON.send}</button></div>
+        </div>
+        <div class="bb-tools">
+          <button class="bb-tool" id="bbPalBtn" aria-expanded="false" aria-controls="bbPal" title="${L("Commands", "Befehle")}">${ICON.grid}<span>${L("Commands", "Befehle")}</span></button>
+          <button class="bb-tool" id="bbPhotoBtn" title="${L("Upload photos", "Fotos hochladen")}">${ICON.camera}<span>${L("Photos", "Fotos")}</span></button>
+          <button class="bb-tool" id="bbFileBtn" title="${L("Upload files", "Dateien hochladen")}">${ICON.clip}<span>${L("Files", "Dateien")}</span></button>
+        </div>
+        <input type="file" id="bbPhotoIn" accept="image/*" multiple hidden>
+        <input type="file" id="bbFileIn" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv" multiple hidden>
       </div>
-      <div class="bb-chips" id="bbChips">${CHIPS.map(([l, t]) => `<button class="bb-chip" data-cmd="${esc(t)}">${esc(l)}</button>`).join("")}</div>
     </div>
-    <div class="bb-work">
-      <div class="card bb-exec" id="bbExec"><div class="bb-h"><b>${L("Workflow", "Ablauf")}</b><span class="mut" id="bbExecMeta">${L("Waiting for a command", "Wartet auf einen Befehl")}</span></div>
-        <ol class="bb-steps" id="bbSteps"><li class="mut">${L("Voice → intent → data → analysis → evidence → views → answer → report", "Sprache → Absicht → Daten → Analyse → Belege → Ansichten → Antwort → Bericht")}</li></ol></div>
-      <div id="bbCards" class="bb-cards"></div>
-    </div>
+    <div class="bb-work"><div id="bbCards" class="bb-cards"></div></div>
     <div class="bb-side">
       <div class="card bb-plan"><div class="bb-h"><b>${L("Site plan", "Lageplan")}</b><button class="s" id="bbTo3d">${L("Open 3D twin", "3D-Zwilling öffnen")}</button></div>
         <div id="bbPlan" class="bb-plansvg"><div class="mut pad">${L("Loading plan…", "Plan wird geladen …")}</div></div>
         <div class="bb-legend"><span><i class="r"></i>${L("incident / critical", "Vorfall / kritisch")}</span><span><i class="a"></i>${L("behind plan / check", "Verzug / prüfen")}</span><span><i class="p"></i>${L("photo", "Foto")}</span></div></div>
       <div class="card bb-feed"><div class="bb-h"><b>${L("Incident feed", "Vorfälle")}</b><span class="bb-livedot" title="${L("Polling every 5 s", "Abfrage alle 5 s")}"></span></div><div id="bbFeed"></div></div>
-      <div class="card bb-hist"><div class="bb-h"><b>${L("Conversation", "Verlauf")}</b></div><div id="bbHist" class="bb-histlist"></div></div>
     </div>
   </div>`;
   main.insertBefore(sec, main.firstElementChild);
@@ -184,7 +191,6 @@
     return vs.find(v => v.lang?.toLowerCase().startsWith(pre) && /natural|neural|premium|enhanced|google/i.test(v.name)) || vs.find(v => v.lang?.toLowerCase().startsWith(pre));
   }
   function speak(text, lang) {
-    q("#bbSay").textContent = text;
     if (!ttsOn || !("speechSynthesis" in window) || !text) { setState("idle"); return Promise.resolve(); }
     return new Promise(res => {
       speechSynthesis.cancel();
@@ -258,11 +264,28 @@
   const sevTxt = s => ({ high: L("High", "Hoch"), medium: L("Medium", "Mittel"), low: L("Low", "Niedrig") }[s] || s);
   const pct = c => c == null ? "—" : Math.round(c * 100) + "%";
   const cls = c => (c || "").replace(/_/g, " ");
-  function hist(role, text, extra = "") {
+  let pendingPhotos = [];                                   // photo ids added in the chat, sent with the next drafting message
+  function hist(role, text, o = {}) {
     const el = document.createElement("div"); el.className = "bb-msg " + role;
-    el.innerHTML = `<div>${esc(text)}</div>${extra}<span>${new Date().toTimeString().slice(0, 5)}</span>`;
-    q("#bbHist").appendChild(el); q("#bbHist").scrollTop = 1e9;
+    const docs = (o.docs || []).concat(o.doc ? [{ id: o.doc }] : []);
+    const btns = docs.map(d => `<button class="s" data-open="${esc(d.id)}">${L("Open draft", "Entwurf öffnen")}${d.title ? ": " + esc(d.title) : ""}</button>`)
+      .concat((o.actions || []).map(a => `<button class="s" data-act='${esc(JSON.stringify(a))}'>${esc(a.label)}</button>`)).join("");
+    el.innerHTML = `<div>${esc(text)}</div>${btns ? `<div class="bb-macts">${btns}</div>` : ""}${o.masked?.length ? `<small class="bb-mask">${L("Masked before AI", "Vor KI-Aufruf maskiert")}: ${esc(o.masked.join(", "))}</small>` : ""}<span>${esc((o.at || "").slice(11, 16) || new Date().toTimeString().slice(0, 5))}</span>`;
+    qa("[data-open]", el).forEach(b => b.onclick = () => NW.openDocInTab(b.dataset.open));
+    qa("[data-act]", el).forEach(b => b.onclick = async () => {
+      const a = JSON.parse(b.dataset.act); b.disabled = true;
+      try { const d = await api("/api/docs", { json: { type: a.type, text: a.text, source: "message" } }); NW.openDocInTab(d.id); } catch (e) { b.disabled = false; toast(e.message, "bad"); }
+    });
+    const list = q("#bbHist"); list.appendChild(el); list.scrollTop = list.scrollHeight;
   }
+  async function loadHistory() {                            // the same conversation the document pipeline keeps on the server
+    try {
+      const r = await api("/api/messages"); q("#bbHist").innerHTML = "";
+      r.messages.forEach(m => hist(m.role === "user" ? "user" : "ai", m.text, { doc: m.doc, actions: m.actions, masked: m.masked, at: m.at }));
+    } catch {}
+    if (!q("#bbHist").children.length && greetText) hist("ai", greetText);
+  }
+  NW.loadMsgs = loadHistory;
 
   async function loadTwin() { try { S.twin = await api("/api/site/twin"); renderPlan(); } catch (e) { q("#bbPlan").innerHTML = `<div class="mut pad">${esc(e.message)}</div>`; } }
 
@@ -329,8 +352,6 @@
       ${c.activities.map(a => `<div class="bb-prog ${a.light}"><div class="bb-pl"><span>${esc(a.name)}</span><b>${a.actual}/${a.total} ${esc(a.unit)}</b></div><div class="bb-bar"><i style="--w:${a.total ? Math.min(100, a.actual / a.total * 100) : 0}%"></i></div></div>`).join("") || `<p class="mut">${L("No scheduled activity in this zone.", "Kein geplanter Vorgang in dieser Zone.")}</p>`}
       ${c.machinery.length ? `<p>${L("Detected", "Erkannt")}: ${c.machinery.map(m => `${m.count}× ${esc(cls(m.class))} (${L("max", "max.")} ${pct(m.max_confidence)})`).join(", ")}</p>` : ""}</div>`;
     if (c.kind === "notice") return `<div class="card bb-card bb-notice">${esc(c.text)}</div>`;
-    if (c.kind === "draft") return `<div class="card bb-card"><div class="bb-h"><b>${L("Document assistant", "Dokumenten-Assistent")}</b></div>${c.replies.map(r => `<p>${esc(r.text)}</p>`).join("")}
-      ${c.doc ? `<button class="p s" data-doc="${esc(c.doc)}">${L("Open draft", "Entwurf öffnen")}</button>` : ""}</div>`;
     if (c.kind === "report") return `<div class="card bb-card bb-report"><div class="bb-h"><b>${esc(c.title)}</b><span class="mut">${c.incidents} ${L("findings", "Befunde")} · ${c.photos} ${L("photos", "Fotos")}</span></div>
       <p>${L("Compiled from the data in this conversation. Open it and use “Save as PDF”.", "Aus den Daten dieses Gesprächs erstellt. Öffnen und „Als PDF speichern“ wählen.")}</p>
       <a class="p s bb-btn" href="${API}${esc(c.url)}" target="_blank" rel="noopener">${L("Open report (PDF)", "Bericht öffnen (PDF)")}</a></div>`;
@@ -339,7 +360,6 @@
   function bindCards(root) {
     qa("[data-inc]", root).forEach(el => el.onclick = () => openIncident(el.dataset.inc));
     qa("[data-fly]", root).forEach(b => b.onclick = () => flyZone(b.dataset.fly));
-    qa("[data-doc]", root).forEach(b => b.onclick = () => { NW.TAB("assist"); NW.showAssistDoc(b.dataset.doc); });
     qa("[data-photo]", root).forEach(f => f.onclick = () => openPhoto(f.dataset.photo));
     qa(".bb-prog[data-zone]", root).forEach(r => r.dataset.zone && (r.onclick = () => flyZone(r.dataset.zone)));
   }
@@ -465,31 +485,26 @@
   async function command(text, { voice = false, silent = false } = {}) {
     text = (text || "").trim(); if (!text) return;
     speechSynthesis?.cancel();
+    closePal();
     q("#bbInp").value = ""; if (!silent) hist("user", text);
     setState("processing");
-    q("#bbExecMeta").textContent = text.length > 60 ? text.slice(0, 57) + "…" : text;
-    q("#bbSteps").innerHTML = `<li class="run">${L("Understanding the request…", "Anfrage wird verstanden …")}</li>`;
-    const t0 = performance.now();
     let r;
     try { r = await api("/api/agent", { json: { text, ctx: S.ctx, lang: S.lang } }); }
-    catch (e) { q("#bbSteps").innerHTML = `<li class="err">${esc(e.message)}</li>`; setState("idle"); return speak(L("Sorry, the request failed: ", "Die Anfrage ist fehlgeschlagen: ") + e.message); }
+    catch (e) { setState("idle"); const m = L("Sorry, the request failed: ", "Die Anfrage ist fehlgeschlagen: ") + e.message; if (!silent) hist("ai", m); return speak(m); }
     const lang = r.lang || S.lang;
 
     if (r.handoff === "chat") {                         // drafting / diary: the existing evidence-gated document pipeline
-      setState("executing", L("Document assistant is drafting", "Dokumenten-Assistent erstellt Entwurf"));
-      await showSteps([...r.steps, { key: "chat", label: L("Hand over to the document assistant", "An den Dokumenten-Assistenten übergeben"), ms: 0, ok: true }]);
+      setState("executing", L("Drafting the document", "Dokument-Entwurf wird erstellt"));
+      await showSteps(r.steps);
       try {
-        const c = await api("/api/chat", { json: { text, voice, lang: S.lang } });
+        const photo_ids = pendingPhotos; pendingPhotos = [];
+        const c = await api("/api/chat", { json: { text, voice, photo_ids, lang: S.lang } });
         const replies = (c.replies || []).filter(m => m.role === "assistant");
         const doc = c.active || replies.find(m => m.doc)?.doc;
-        q("#bbCards").innerHTML = card({ kind: "draft", replies, doc }); bindCards(q("#bbCards"));
-        NW.loadMsgs?.();
-        if (doc) NW.showAssistDoc?.(doc);
+        replies.forEach((m, i) => hist("ai", m.text, { doc: m.doc || (i === replies.length - 1 ? doc : null), actions: m.actions, masked: m.masked, at: m.at }));
         const say = replies.map(m => m.text).join(" ");
-        hist("ai", say);
-        markDone(t0);
         return speak(say.length > 420 ? say.slice(0, 400) + " …" : say, lang);
-      } catch (e) { setState("idle"); return speak(e.message); }
+      } catch (e) { setState("idle"); hist("ai", e.message); return speak(e.message); }
     }
 
     setState("analysing");
@@ -524,8 +539,7 @@
         if (b.dataset.x === "cam") { NW.TAB("live"); q("#camBtn")?.classList.add("bb-pulse"); }
       });
     }
-    markDone(t0);
-    if (silent) { q("#bbExecMeta").textContent = L("Briefing from the latest site data", "Lagebild aus den aktuellen Baustellendaten"); setState("idle"); return; }
+    if (silent) { setState("idle"); return; }
     hist("ai", r.speech || "");
     if (wants3d && S.focusZone) flyZone(S.focusZone);
     if (reportAction) await makeReport(reportAction.scope, reportAction.incident);
@@ -533,21 +547,57 @@
     if (openInc && !reportAction) setTimeout(() => openIncident(openInc), wants3d ? 1800 : 600);
     return spoken;
   }
-  async function showSteps(steps) {
-    const ol = q("#bbSteps");
-    ol.innerHTML = steps.map(s => `<li class="wait" data-k="${esc(s.key)}"><i></i><span>${esc(s.label)}</span><small>${s.ms ? s.ms + " ms" : ""}</small></li>`).join("");
-    const lis = qa("li", ol);
-    for (let i = 0; i < lis.length; i++) {
-      lis[i].classList.replace("wait", steps[i].ok ? "done" : "err");
-      if (steps[i].error) lis[i].title = steps[i].error;
-      if (!RM) await sleep(110);                       // reveal pacing only; the timings shown are the measured ones
+  async function showSteps(steps) {                      // the real backend steps, shown in the orb label as they complete
+    for (const st of steps || []) {
+      q("#bbStateSub").textContent = st.label;
+      if (!RM) await sleep(110);
     }
   }
-  function markDone(t0) { q("#bbExecMeta").textContent = `${L("done in", "fertig in")} ${Math.round(performance.now() - t0)} ms`; }
+
+  /* ------------------------------------------------------------------ command palette */
+  const pal = q("#bbPal"), palBtn = q("#bbPalBtn");
+  function openPal(on) { pal.hidden = !on; palBtn.setAttribute("aria-expanded", on); palBtn.classList.toggle("on", on); if (on) q(".bb-chip", pal)?.focus(); }
+  function closePal() { if (!pal.hidden) openPal(false); }
+  palBtn.onclick = e => { e.stopPropagation(); openPal(pal.hidden); };
+  pal.onclick = e => { const b = e.target.closest("[data-cmd]"); if (b) command(b.dataset.cmd); };
+  document.addEventListener("click", e => { if (!pal.hidden && !e.target.closest("#bbPal,#bbPalBtn")) closePal(); });
+  addEventListener("keydown", e => { if (e.key === "Escape" && !pal.hidden) { closePal(); palBtn.focus(); } });
+
+  /* ------------------------------------------------------------------ uploads: photos (evidence for drafts) and files (e-mail, calendar, documents) */
+  const photoIn = q("#bbPhotoIn"), fileIn = q("#bbFileIn");
+  q("#bbPhotoBtn").onclick = () => photoIn.click();
+  q("#bbFileBtn").onclick = () => fileIn.click();
+  photoIn.onchange = async () => {
+    const fd = new FormData(); [...photoIn.files].forEach(f => fd.append("files", f));
+    if (![...fd.keys()].length) return;
+    try {
+      const r = await api("/api/photos", { method: "POST", body: fd });
+      pendingPhotos.push(...r.map(p => p.id));
+      const what = r.map(p => p.category + (p.detections?.length ? " (" + p.detections.map(d => d.class).join(", ") + ")" : "")).join("; ");
+      hist("ai", L(`Added ${r.length} photo(s): ${what}. They will be attached to matching drafts and today's daily report.`, `${r.length} Foto(s) hinzugefügt: ${what}. Sie werden passenden Entwürfen und dem Tagesbericht beigefügt.`));
+      window.loadPhotos?.(); loadTwin(); poll(true);
+    } catch (e) { toast(e.message, "bad"); }
+    photoIn.value = "";
+  };
+  fileIn.onchange = async () => {
+    const files = [...fileIn.files]; if (!files.length) return;
+    const fd = new FormData(); files.forEach(f => fd.append("files", f));
+    hist("user", files.map(f => f.name).join(", "));
+    setState("processing", L("Importing files", "Dateien werden importiert"));
+    try {
+      const r = await api("/api/inbox/import", { method: "POST", body: fd });
+      const items = [...(r.emails || []), ...(r.documents || [])], docs = new Map();
+      items.forEach(m => (m.drafts || []).forEach(d => docs.set(d.id, { id: d.id, title: d.title })));
+      const lines = items.map(m => `• ${m.subject || m.file}${m.duplicate ? " (" + L("already imported", "bereits importiert") + ")" : ""}${(m.open_items || []).length ? " · " + m.open_items.length + " " + L("open items", "offene Punkte") : ""}`)
+        .concat((r.reminders || []).map(x => "• " + x.message), (r.skipped || []).map(x => `• ${x.file}: ${x.reason}`));
+      hist("ai", lines.join("\n") || L("Nothing imported.", "Nichts importiert."), { docs: [...docs.values()] });
+      poll(true);
+    } catch (e) { hist("ai", e.message); toast(e.message, "bad"); }
+    fileIn.value = ""; setState("idle");
+  };
 
   q("#bbSend").onclick = () => command(q("#bbInp").value);
   q("#bbInp").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); command(q("#bbInp").value); } };
-  q("#bbChips").onclick = e => { const b = e.target.closest("[data-cmd]"); if (b) command(b.dataset.cmd); };
   BB.command = command; BB.report = makeReport; BB.openIncident = openIncident; BB.flyZone = flyZone;
 
   /* ------------------------------------------------------------------ boot */
@@ -555,14 +605,15 @@
   async function boot() {
     setState("idle");
     loadTwin(); poll(true);
-    try { const g = await api("/api/agent/greeting?lang=" + S.lang); greetText = g.text; q("#bbSay").textContent = g.text; hist("ai", g.text); } catch {}
+    try { const g = await api("/api/agent/greeting?lang=" + S.lang); greetText = g.text; } catch {}
+    await loadHistory();
     // ?ask=… runs a command on load (demo links); otherwise a silent briefing fills the work area with real data
     const ask = new URLSearchParams(location.search).get("ask");
     if (ask) { greeted = true; command(ask); }
-    else command(L("Check today's progress and safety", "Fortschritt und Sicherheit heute prüfen"), { silent: true }).then(() => { q("#bbSay").textContent = greetText; });
+    else command(L("Check today's progress and safety", "Fortschritt und Sicherheit heute prüfen"), { silent: true }).catch(() => {});
     // browsers allow speech only after a user gesture: greet on the first interaction
     const once = () => { if (greeted) return; greeted = true; if (greetText && sec.classList.contains("on") && S.ai === "idle") speak(greetText); };
-    addEventListener("pointerdown", e => { if (!e.target.closest("#bbMic,#bbChips,#bbSend,#bbInp,#bbTts")) once(); else greeted = true; }, { once: true, capture: true });
+    addEventListener("pointerdown", e => { if (!e.target.closest("#bbMic,.bb-compose")) once(); else greeted = true; }, { once: true, capture: true });
   }
   showDock(); orbKick();
   boot();

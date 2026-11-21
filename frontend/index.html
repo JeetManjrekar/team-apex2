@@ -22,29 +22,11 @@
   <button class="s" id="resetBtn" title="Resets everything (chat, documents, notes, photos, schedule, site layout) to an empty state.">Reset demo</button>
 </header>
 <nav id="nav"><span class="ind"></span>
-  <button data-t="assist" class="on">Assistant<kbd>1</kbd></button><button data-t="docs">Documents<kbd>2</kbd></button><button data-t="plan">Plan vs actual<kbd>3</kbd></button>
-  <button data-t="sum">Summaries<kbd>4</kbd></button><button data-t="photos">Photos<kbd>5</kbd></button><button data-t="twin">Site twin<kbd>6</kbd></button><button data-t="mapt">Map<kbd>7</kbd></button><button data-t="live">Live camera<kbd>8</kbd></button><button data-t="metrics">Metrics<kbd>9</kbd></button>
+  <button data-t="docs">Documents<kbd>1</kbd></button><button data-t="plan">Plan vs actual<kbd>2</kbd></button>
+  <button data-t="sum">Summaries<kbd>3</kbd></button><button data-t="photos">Photos<kbd>4</kbd></button><button data-t="twin">Site twin<kbd>5</kbd></button><button data-t="mapt">Map<kbd>6</kbd></button><button data-t="live">Live camera<kbd>7</kbd></button><button data-t="metrics">Metrics<kbd>8</kbd></button>
 </nav>
 <main>
-<div id="inboxSlot"></div>
 <div id="metricsTile"></div>
-<section id="assist" class="tab on"><div class="two">
-  <div class="card" id="chat">
-    <div id="msgs"></div>
-    <div id="replanSlot"></div>
-    <div class="chips" id="demoChips"></div>
-    <div class="inbar">
-      <input type="file" id="chatPhotos" accept="image/*" multiple hidden>
-      <button title="Add photos" onclick="chatPhotos.click()">📷</button>
-      <span id="voiceSlot"></span><button id="mic" title="Dictate (Chrome speech recognition)">🎤</button>
-      <select id="lang" title="Dictation language"><option value="de-DE">DE</option><option value="en-US">EN</option></select>
-      <textarea id="inp" placeholder="Type or dictate, e.g. „Bagger steht seit 10 Uhr an Widerlager Süd, weil Bewehrungspläne fehlen“"></textarea>
-      <button class="p" id="send">Send</button>
-    </div>
-  </div>
-  <div class="card pad" id="assistDoc"><div class="empty">Drafts appear here. Every field shows where it came from. Nothing is sent without your click.</div></div>
-</div></section>
-
 <section id="docs" class="tab"><div class="two">
   <div class="card"><div class="pad row" style="align-items:center"><b style="flex:0">Documents</b>
     <select id="newType" style="flex:1"></select><button id="newDoc" style="flex:0">New</button><button id="dailyBtn" style="flex:0" class="p">Daily report</button></div>
@@ -64,8 +46,8 @@
   <div class="card pad"><b>Minutes, diary or email</b>
     <textarea id="sumText" style="height:340px;margin:8px 0" placeholder="Paste meeting minutes, site diary entries or an email"></textarea>
     <div class="row"><button id="sMin">Sample minutes</button><button id="sMail">Sample email</button><button class="p" id="sGo">Summarize</button></div>
-    <p class="mut">E-mail addresses, phone numbers and IBANs are masked before any AI call.</p></div>
-  <div class="card pad" id="sumOut"><div class="empty">Open items with owner and deadline appear here.</div></div>
+</div>
+  <div class="card pad" id="sumOut"><div class="empty">Results appear here.</div></div>
 </div></section>
 
 <section id="photos" class="tab">
@@ -80,7 +62,7 @@
       <div class="seg" id="twMode"><button data-mode="2d" class="on">2D plan</button><button data-mode="3d">3D isometric</button></div>
       <label><input type="checkbox" id="twDet" checked>AI detections</label><label class="opt"><input type="checkbox" id="twLbl" checked>Labels</label>
       <label><input type="checkbox" id="twPho" checked>Photos</label><label class="opt"><input type="checkbox" id="twZon" checked>Zones</label>
-      <label class="opt" title="Hide detections below this model confidence">Min conf <input type="range" id="twConf" min="0" max="100" value="0"><span id="twConfV">0%</span></label>
+      <label class="opt" title="Hide detections below this confidence">Min conf <input type="range" id="twConf" min="0" max="100" value="0"><span id="twConfV">0%</span></label>
       <button class="s tour" id="twTour" title="Automated camera tour of the site from the live data">▶ Tour</button><button class="s" id="twReset">Reset</button><button class="s" id="twLayout">Layout</button>
     </div>
         <svg class="tw-north" id="twNorth" viewBox="0 0 40 52"><polygon points="20,4 30,32 20,26 10,32" fill="#22d3ee"/><polygon points="20,4 10,32 20,26" fill="#0b1630" stroke="#22d3ee" stroke-width="1.2"/><text x="20" y="48" text-anchor="middle" font-size="13" font-weight="800" fill="#e9edf5">N</text></svg>
@@ -91,25 +73,20 @@
   <aside class="tw-side card" id="twSide"><div class="pad mut">Loading site plan…</div></aside>
 </div>
 <dialog id="twDlg"><b>Site layout (JSON)</b>
-  <p class="mut">Coordinates in metres: x = east, y = north, relative to <code>origin</code>. Any point may instead be written as <code>{"lat": 48.1501, "lon": 11.5802}</code> when an origin is set.
-  Set <code>origin</code> to <code>null</code> for a site without GPS/survey data. Zones: <code>polygon</code>, <code>activities</code> (schedule IDs). Structure kinds: container, stockpile, crane, pile_row, beam, abutment, deck, heap, box.</p>
+  <p class="mut">Coordinates in metres (x = east, y = north).</p>
   <textarea id="twLayTxt" spellcheck="false"></textarea><p id="twLayErr" style="color:var(--bad)"></p>
   <div class="row" style="display:flex;gap:8px;justify-content:flex-end"><button id="twLayReset">Reset to default</button><button id="twLayCancel">Cancel</button><button class="p" id="twLaySave">Save layout</button></div>
 </dialog></section>
-<section id="mapt" class="tab"><p class="mut" id="siteinfo"></p><div id="mapbox"></div></section>
-<section id="live" class="tab"><p class="mut">Webcam frames go to the Roboflow model about once a second. Nothing is saved unless you press save.</p>
-  <button id="camBtn" class="p">Start camera</button> <button id="snap" disabled>Save frame to inbox</button> <span id="liveinfo" class="mut"></span>
+<section id="mapt" class="tab"><div id="mapbox"></div></section>
+<section id="live" class="tab"><button id="camBtn" class="p">Start camera</button> <button id="snap" disabled>Save frame</button> <span id="liveinfo" class="mut"></span>
   <div class="live" style="margin-top:10px"><video id="vid" playsinline muted></video><canvas id="ov"></canvas></div></section>
-<section id="metrics" class="tab"><div class="card pad"><div class="row" style="align-items:center"><b style="flex:3">Measured pipeline metrics</b>
-  <span class="mut" id="mfile" style="flex:4"></span><button id="mRefresh" style="flex:0">Refresh</button></div>
-  <p class="mut">One JSON line per stage (LLM package MetricsRecorder). Only these measured numbers belong in the pitch.</p>
-  <table class="t" id="mTable"></table><details><summary>Last 20 entries</summary><div class="log" id="mRecent" style="max-height:320px"></div></details></div></section>
+<section id="metrics" class="tab"><div class="card pad" id="mPerfCard"><div class="row" style="align-items:center"><b style="flex:1">AI performance</b></div><div id="mPerf"></div></div>
+  <div class="card pad" style="margin-top:12px"><div class="row" style="align-items:center"><b style="flex:1">Pipeline metrics</b><button id="mRefresh" style="flex:0">Refresh</button></div>
+  <span id="mfile" hidden></span><div class="tscroll"><table class="t" id="mTable"></table></div><details><summary>Last 20 entries</summary><div class="log" id="mRecent" style="max-height:320px"></div></details></div></section>
 </main>
 <dialog id="dlg"><div class="dr"><img id="dimg"><canvas id="dcv"></canvas></div><div style="padding:14px" id="dinfo"></div></dialog>
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="js/app.js"></script>
-<script src="js/voice.js"></script>
-<script src="js/inbox.js"></script>
 <script src="js/replan.js"></script>
 <script src="js/tile.js"></script>
 <script src="js/fx.js"></script>

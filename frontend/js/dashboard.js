@@ -1,7 +1,8 @@
 /* Team Apex UI layer, additive only.
    Dashboard tab: three questions, read top to bottom (UI_STYLE §7, docs/ui/reference/dashboard_concept.html).
    Kept deliberately sparse: numbers, titles and actions; detail lives one click away.
-   Reads only existing endpoints: GET /api/docs, /api/plan, /api/replan/proposals, /api/metrics/summary, /api/metrics.
+   Reads only existing endpoints: GET /api/docs, /api/plan, /api/replan/proposals, /api/site/twin.
+   The AI performance block lives on the Metrics tab (loadPerf below).
    Actions call existing endpoints (POST /api/plan/propose, /api/replan/{id}/accept|reject, /api/reports/daily).
    A number that is not available shows "––", never a made-up value. */
 (() => {
@@ -36,14 +37,14 @@
   q("#nav")?.appendChild(btn);
 
   /* ---------------- data ---------------- */
-  let data = null, loading = false, lastAt = null, showSrc = !!store.get("nw-dash-src");
+  let data = null, loading = false, lastAt = null;
   async function load() {
     if (loading) return; loading = true;
     const get = u => NW.api(u).catch(e => ({ __err: e.message || String(e) }));
-    const [docs, plan, replan, summary, metrics, twin] = await Promise.all([
-      get("/api/docs"), get("/api/plan"), get("/api/replan/proposals"), get("/api/metrics/summary"), get("/api/metrics"), get("/api/site/twin")]);
+    const [docs, plan, replan, summary, twin] = await Promise.all([
+      get("/api/docs"), get("/api/plan"), get("/api/replan/proposals"), get("/api/metrics/summary"), get("/api/site/twin")]);
     data = { docs: Array.isArray(docs) ? docs : [], plan: plan.__err ? null : plan, replan: replan.__err ? [] : (replan.proposals || replan || []),
-      summary: summary.__err ? {} : summary, metrics: metrics.__err ? null : metrics, zones: twin.__err ? [] : (twin.layout?.zones || []) };
+      summary: summary.__err ? {} : summary, zones: twin.__err ? [] : (twin.layout?.zones || []) };
     lastAt = new Date(); loading = false;
     render();
   }
@@ -61,7 +62,7 @@
     if (typeof openDocInTab === "function") openDocInTab(id); else NW.TAB("docs");
     window.NWGlass?.openSheet?.("docs");
   }
-  function askInChat(id) { NW.TAB("assist"); NW.showAssistDoc(id); window.NWGlass?.openSheet?.("assist"); }
+  function askInChat(id) { NW.TAB("command"); setTimeout(() => document.getElementById("bbInp")?.focus(), 150); }
   async function propose(a, b) {
     if (b) b.disabled = true;
     try { const d = await NW.api("/api/plan/propose", { json: { kind: a.kind, activity: a.activity } }); openDoc(d.id); }
@@ -172,13 +173,12 @@
   }
 
   /* ---------------- render ---------------- */
-  const src = s => `<div class="db-src">${L("Source", "Quelle")}: ${esc(s)}</div>`;
-  const kpi = (title, value, unit, extra = "", cls = "") =>
+    const kpi = (title, value, unit, extra = "", cls = "") =>
     `<div class="card db-kpi ${cls}"><div class="db-kpi-t">${title}</div><div class="db-kpi-v"><b>${value}</b>${unit ? `<span>${unit}</span>` : ""}</div>${extra}</div>`;
 
   function render() {
     const root = q("#db"); if (!root || !data) return;
-    const { docs, plan, replan, summary, metrics } = data;
+    const { docs, plan, replan, summary } = data;
     const alerts = (plan?.alerts || []).filter(a => !dismissed().includes(alertKey(a)));
     const acts = plan?.activities || [];
     const drafts = docs.filter(d => d.status === "draft"), checked = docs.filter(d => d.status === "checked");
@@ -262,21 +262,6 @@
         }).join("")}</ul>`;
     }
 
-    /* ---- 3 · AI performance ---- */
-    const stages = metrics?.stages || [];
-    const st = name => stages.find(s => s.stage === name);
-    const e2e = summary.e2e_voice_to_draft_p50_ms ?? summary.voice_to_draft_p50_ms ?? st("voice_to_draft_end_to_end")?.p50_ms;
-    const acc = summary.extraction_accuracy ?? summary.accuracy;
-    const cpd = summary.cost_per_document_eur ?? summary.cost_per_doc_eur;
-    const shown = ["stt", "llm_intent", "llm_extraction", "export_docx"].map(st).filter(Boolean);   // the AI pipeline, not the first 4 alphabetically
-    const maxMs = Math.max(1, ...shown.map(s => s.avg_ms || 0));
-    const ms = v => (v || 0) < 1000 ? Math.round(v || 0) + " ms" : n1(v / 1000) + " s";
-    const perf = `<div class="db-perf">
-        <div><b>${e2e != null ? n1(e2e / 1000) + " s" : DASH}</b><span>${L("end to end", "Ende zu Ende")}</span></div>
-        <div><b>${acc != null ? Math.round(acc * (acc <= 1 ? 100 : 1)) + " %" : DASH}</b><span>${L("fields correct", "Felder korrekt")}</span></div>
-        <div><b>${cpd != null ? cpd.toLocaleString(DE ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " €" : DASH}</b><span>${L("per document", "pro Dokument")}</span></div></div>
-      ${shown.length ? `<div class="db-stages">${shown.map(s => `<div><span>${esc(s.stage.replace(/_/g, " "))}</span><div class="gl-progress"><i style="width:${(s.avg_ms || 0) / maxMs * 100}%"></i></div><b>${ms(s.avg_ms)}</b></div>`).join("")}</div>` : ""}`;
-
     /* ---- 3 · History ---- */
     const hist = docs.slice().sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5);
     const histHtml = hist.length ? `<ul class="db-hist">${hist.map(d => {
@@ -285,16 +270,12 @@
       }).join("")}</ul>` : `<div class="mut">${DASH}</div>`;
 
     const nProj = projects(plan, data.zones).length;
-    root.classList.toggle("show-src", showSrc);
     const html = `
       <div class="card db-head db-proj"><div class="db-proj-h"><span class="gl-logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="d1" d="M12 17C12 10.4 17.4 6 24 6s12 4.4 12 11M7 17h34M24 6v5" stroke-width="3.4"/><path class="d2" d="M9 22h30a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H20l-7 6v-6H9a3 3 0 0 1-3-3V25a3 3 0 0 1 3-3z" stroke-width="2.6"/><polyline class="d3" points="17,30 22,34.5 31,26" stroke-width="3.4"/></svg></span><b class="db-proj-title">${L("Project progress", "Projektfortschritt")}</b><span class="sp"></span>
         ${nProj > 1 ? `<div class="db-pmode" role="tablist"><button data-pmode="one" class="${pMode === "one" ? "on" : ""}">${L("One", "Eins")}</button><button data-pmode="all" class="${pMode === "all" ? "on" : ""}">${L("All", "Alle")} ${nProj}</button></div>` : ""}
         <span class="db-pill db-live"><i></i>${lastAt.toLocaleTimeString(DE ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
-        <button class="s" data-db="refresh" title="${L("Refresh", "Aktualisieren")}" aria-label="${L("Refresh", "Aktualisieren")}">↻</button>
-        <label class="db-srcsw" title="${L("Show data sources", "Datenquellen anzeigen")}"><input type="checkbox" data-db="src" ${showSrc ? "checked" : ""}> ${L("Sources", "Quellen")}</label></div>
-        ${projHtml(plan, data.zones)}
-        ${src(L("GET /api/plan (actual / total per activity, weighted by planned duration) · sections from GET /api/site/twin zones",
-                "GET /api/plan (Ist / Gesamt je Vorgang, gewichtet nach geplanter Dauer) · Abschnitte aus GET /api/site/twin")) }</div>
+        <button class="s" data-db="refresh" title="${L("Refresh", "Aktualisieren")}" aria-label="${L("Refresh", "Aktualisieren")}">↻</button></div>
+        ${projHtml(plan, data.zones)}</div>
       <div class="db-toast" id="dbToast" role="status" hidden></div>
 
       <h3 class="db-q"><span>1</span>${L("What needs me?", "Was braucht mich?")}</h3>
@@ -302,22 +283,19 @@
       <div class="card pad db-today"><div class="db-ct"><b>${L("Decide today", "Heute zu entscheiden")}</b>${rows.length ? `<span class="db-count">${rows.length}</span>` : ""}</div>
         ${rows.length ? `<div class="db-rows">${rows.map((r, i) => `<div class="db-row ${r.cls}"><span class="db-ic">${r.ic}</span><div class="db-row-t"><b>${r.t}</b></div>${r.tag ? `<span class="db-tag">${r.tag}</span>` : ""}
           <div class="db-row-b">${r.b.map((b, k) => `<button class="${b[1]}" data-db-row="${i}:${k}">${b[0]}</button>`).join("")}</div></div>`).join("")}</div>`
-          : `<div class="mut">${L("Nothing to decide.", "Nichts zu entscheiden.")}</div>`}
-        ${src("GET /api/docs · /api/replan/proposals · /api/plan")}</div>
+          : `<div class="mut">${L("Nothing to decide.", "Nichts zu entscheiden.")}</div>`}</div>
 
       <h3 class="db-q"><span>2</span>${L("What is the risk?", "Was ist das Risiko?")}</h3>
       <div class="db-grid2">
-        <div class="card pad db-warn ${top ? top.level : ""}"><div class="db-ct"><b>⚠ ${L("Top warning", "Wichtigste Warnung")}</b><span class="sp"></span><button class="s" data-db="twin">${L("Site", "Baustelle")} →</button></div>${warnHtml}
-          ${src("GET /api/plan · POST /api/plan/propose")}</div>
-        <div class="card pad"><div class="db-ct"><b>${L("Schedule · critical activities", "Bauzeitenplan · kritische Vorgänge")}</b></div>${gantt}${src("GET /api/plan")}</div>
+        <div class="card pad db-warn ${top ? top.level : ""}"><div class="db-ct"><b>⚠ ${L("Top warning", "Wichtigste Warnung")}</b><span class="sp"></span><button class="s" data-db="twin">${L("Site", "Baustelle")} →</button></div>${warnHtml}</div>
+        <div class="card pad"><div class="db-ct"><b>${L("Schedule · critical activities", "Bauzeitenplan · kritische Vorgänge")}</b></div>${gantt}</div>
       </div>
 
       <h3 class="db-q"><span>3</span>${L("Is it documented?", "Ist es belegt?")}</h3>
-      <div class="db-grid3">
-        <div class="card pad"><div class="db-ct"><b>${L("Claim evidence", "Nachtrag · Belege")}</b></div>${ev}${src("GET /api/docs")}</div>
-        <div class="card pad"><div class="db-ct"><b>${L("AI performance", "KI-Leistung")}</b></div>${perf}${src("GET /api/metrics/summary · GET /api/metrics")}</div>
+      <div class="db-grid2">
+        <div class="card pad"><div class="db-ct"><b>${L("Claim evidence", "Nachtrag · Belege")}</b></div>${ev}</div>
         <div class="card pad"><div class="db-ct"><b>${L("History", "Verlauf")}</b></div>${histHtml}
-          <button class="db-daily" data-db="daily">${L("Create today's daily report", "Tagesbericht heute erstellen")}</button>${src("GET /api/docs · POST /api/reports/daily")}</div>
+          <button class="db-daily" data-db="daily">${L("Create today's daily report", "Tagesbericht heute erstellen")}</button></div>
       </div>`;
     // only touch the DOM when something changed: no flicker, and the progress bars animate only on real progress
     if (root._html !== html) { root._html = html; root.innerHTML = html; bindProjSwipe(root); if (sec.classList.contains("on")) animateBars(root); }
@@ -340,7 +318,30 @@
       else if (a === "twin") NW.TAB("twin");
       else if (a === "daily") daily(b);
     };
-    root.onchange = e => { if (e.target.dataset.db === "src") { showSrc = e.target.checked; store.set("nw-dash-src", showSrc); root.classList.toggle("show-src", showSrc); } };
+  }
+
+
+  /* ---------------- AI performance (Metrics tab) ---------------- */
+  async function loadPerf() {
+    const box = q("#mPerf"); if (!box) return;
+    const get = u => NW.api(u).catch(() => null);
+    const [summary0, metrics] = await Promise.all([get("/api/metrics/summary"), get("/api/metrics")]);
+    const summary = summary0 || {};
+    const stages = metrics?.stages || [];
+    const st = name => stages.find(s => s.stage === name);
+    const e2e = summary.e2e_voice_to_draft_p50_ms ?? summary.voice_to_draft_p50_ms ?? st("voice_to_draft_end_to_end")?.p50_ms;
+    const acc = summary.extraction_accuracy ?? summary.accuracy;
+    const cpd = summary.cost_per_document_eur ?? summary.cost_per_doc_eur;
+    const shown = ["stt", "llm_intent", "llm_extraction", "export_docx"].map(st).filter(Boolean);   // the AI pipeline, not the first 4 alphabetically
+    const maxMs = Math.max(1, ...shown.map(s => s.avg_ms || 0));
+    const ms = v => (v || 0) < 1000 ? Math.round(v || 0) + " ms" : n1(v / 1000) + " s";
+    const html = `<div class="db-perf">
+        <div><b>${e2e != null ? n1(e2e / 1000) + " s" : DASH}</b><span>${L("end to end", "Ende zu Ende")}</span></div>
+        <div><b>${acc != null ? Math.round(acc * (acc <= 1 ? 100 : 1)) + " %" : DASH}</b><span>${L("fields correct", "Felder korrekt")}</span></div>
+        <div><b>${cpd != null ? cpd.toLocaleString(DE ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " €" : DASH}</b><span>${L("per document", "pro Dokument")}</span></div></div>
+      ${shown.length ? `<div class="db-stages">${shown.map(s => `<div><span>${esc(s.stage.replace(/_/g, " "))}</span><div class="gl-progress"><i style="width:${(s.avg_ms || 0) / maxMs * 100}%"></i></div><b>${ms(s.avg_ms)}</b></div>`).join("")}</div>` : ""}`;
+
+    box.innerHTML = html;
   }
 
   /* ---------------- refresh when shown, every 30 s while visible, after demo actions ---------------- */
@@ -350,5 +351,7 @@
   setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 300)))(() => load()), 1200);   // warm cache: the first visit renders instantly
   setInterval(() => { if (sec.classList.contains("on") && !document.hidden) load(); }, 30000);
   ["#demoBtn", "#resetBtn"].forEach(s => q(s)?.addEventListener("click", () => setTimeout(() => sec.classList.contains("on") && load(), 1200)));
-  window.NWDash = { load };
+  const metricsSec = q("#metrics");
+  if (metricsSec) new MutationObserver(() => { if (metricsSec.classList.contains("on")) loadPerf(); }).observe(metricsSec, { attributes: true, attributeFilter: ["class"] });
+  window.NWDash = { load, loadPerf };
 })();

@@ -19,46 +19,18 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>TAB(b.dataset.
 
 async function init(){cfg=await api("/api/config");$("#reportLink").href=API+"/api/report";
   $("#site").textContent=cfg.site.name;
-  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?`BauBuddy AI: ${L.model}${L.reviewer?" + reviewer":""}`:"Extraction: rules fallback";
+  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?"BauBuddy AI":"Rules only";
   $("#b-llm").title=L.mode=="llm"?`Confidence threshold ${L.threshold}. Critical fields: ${L.critical_fields.join(", ")}`:`LLM off (${L.error||"no key"}). Rules run under the same evidence and confidence gates.`;
   $("#b-llm").classList.toggle("g",L.mode=="llm");
-  $("#b-rf").textContent=cfg.mock_mode?"Photos: mock mode":"Roboflow live";$("#b-rf").classList.toggle("g",!cfg.mock_mode);
+  $("#b-rf").textContent=cfg.mock_mode?"Demo photos":"Photo AI live";$("#b-rf").classList.toggle("g",!cfg.mock_mode);
   $("#newType").innerHTML=Object.entries(cfg.doc_types).map(([k,v])=>`<option value="${k}">${esc(v.title)}</option>`).join("");
   $("#pDate").value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
-  renderChips();await loadMsgs();await loadPhotos();}
+  await loadPhotos();}
 
-/* ---------- chat ---------- */
-const DEMO=[
- ["Rock at pile 7",L("Bored pile 7: hit rock at 4 m, the ground report only expected it from 9 m. Drilling time 6 hours instead of 2, drilling rig stands still.","Bohrpfahl 7: bei 4 m auf Fels gestoßen, laut Baugrundgutachten erst ab 9 m erwartet. Bohrzeit 6 Stunden statt 2, Bohrgerät steht still.")],
- ["Excavator idle","Excavator idle since 10 am at abutment south because the client has not released the reinforcement plans"],
- ["Defect","Crack in the formwork at pier 2, subcontractor Müller Bau, please fix by 24.11.2026"],
- ["Diary note",L("Concrete delivery for the blinding layer arrived at 7:30, 12 m3, 8 workers on site","Betonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle")],
- ["Edit by chat","change duration to 3 days"],
- ["File note",L("Phone call with Mr. Weber: chiselling at pile 7 approved, written confirmation to follow by Monday","Telefonat mit Hr. Weber: Meißeleinsatz an Pfahl 7 freigegeben, schriftliche Bestätigung folgt bis Montag")],
- ["Daily report",L("daily report","Tagesbericht")]];
-function renderChips(){$("#demoChips").innerHTML=DEMO.map((d,i)=>`<span class="chip" data-i="${i}">${esc(d[0])}</span>`).join("");
-  $("#demoChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{$("#inp").value=DEMO[c.dataset.i][1];$("#inp").focus()});}
-function msgHtml(m){const acts=(m.actions||[]).map((a,i)=>`<button class="s" data-act='${esc(JSON.stringify(a))}'>${esc(a.label)}</button>`).join("");
-  const open=m.doc?`<button class="s" data-open="${m.doc}">Open draft</button>`:"";
-  const mask=m.masked?.length?`<div class="t">Masked before AI: ${esc(m.masked.join(", "))}</div>`:"";
-  return `<div class="m ${m.role}">${esc(m.text)}${(acts||open)?`<div class="acts">${open}${acts}</div>`:""}${mask}<div class="t">${esc((m.at||"").slice(11,16))}</div></div>`;}
-function bindMsgs(){$("#msgs").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>showAssistDoc(b.dataset.open));
-  $("#msgs").querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const a=JSON.parse(b.dataset.act);b.disabled=true;
-    const d=await api("/api/docs",{json:{type:a.type,text:a.text,source:"message"}});showAssistDoc(d.id);});}
-window.NW={dictated:false};let pendingPhotos=[];   // ids of photos added in the chat, sent with the next message
-async function loadMsgs(){const r=await api("/api/messages");
-  $("#msgs").innerHTML=r.messages.length?r.messages.map(msgHtml).join(""):`<div class="empty">Tell me what happened on site. Type, dictate with 🎤, or tap an example below.<br><br>Try: rock at pile 7 → I draft a Mehrkostenanzeige and ask for what is missing.</div>`;
-  bindMsgs();$("#msgs").scrollTop=1e9;if(r.active)showAssistDoc(r.active);}
-async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=NW.dictated;NW.dictated=false;const photo_ids=pendingPhotos;pendingPhotos=[];
-  try{const r=await api("/api/chat",{json:{text,voice,photo_ids,lang:LANG}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
-  catch(e){$("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant err">${esc(e.message)}</div>`)}$("#send").disabled=false;}
-$("#send").onclick=send;$("#inp").onkeydown=e=>{if(e.key=="Enter"&&!e.shiftKey){e.preventDefault();send()}};
-chatPhotos.onchange=async()=>{const fd=new FormData();[...chatPhotos.files].forEach(f=>fd.append("files",f));
-  try{const r=await api("/api/photos",{method:"POST",body:fd});pendingPhotos.push(...r.map(p=>p.id));
-    $("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant">Added ${r.length} photo(s): ${esc(r.map(p=>p.category+(p.detections.length?" ("+p.detections.map(d=>d.class).join(", ")+")":"")).join("; "))}. They will be attached to matching drafts and today's daily report.</div>`);
-    $("#msgs").scrollTop=1e9;loadPhotos();}catch(e){alert(e.message)}chatPhotos.value="";};
+/* ---------- chat lives in the AI Manager tab (js/command.js) ---------- */
+window.NW={dictated:false};
 /* ---------- document view ---------- */
-async function showAssistDoc(id){activeDoc=id;const d=await api("/api/docs/"+id);renderDoc($("#assistDoc"),d);}
+function showAssistDoc(id){openDocInTab(id);}
 function renderDoc(el,d){
   const st=d.status,ro=st=="sent";
   const finds={};(d.review?.findings||[]).forEach(x=>(finds[x.field_name]=finds[x.field_name]||[]).push(x));
@@ -78,9 +50,7 @@ function renderDoc(el,d){
     ${e.kind=="edit"&&!e.undone&&!ro?`<button class="s" data-undo="${i}">Undo</button>`:e.undone?"<i>undone</i>":""}</div>`).join("")||"No edits yet.";
   const rv=d.review?.status;
   el.innerHTML=`<div class="dh"><h2>${esc(d.title)}</h2><span class="pill ${st}">${st}</span>${d.proposal_from?'<span class="badge">proposal from alert</span>':""}
-    ${d.extraction_mode?`<span class="badge ${d.extraction_mode=="llm"?"g":""}">${d.extraction_mode=="llm"?"extracted by BauBuddy AI":"extracted by rules"}</span>`:""}
-    ${rv=="running"?'<span class="badge">critical fields being verified…</span>':rv=="completed"?`<span class="badge ${(d.review.findings||[]).length?"":"g"}">reviewer: ${(d.review.findings||[]).length} finding(s)</span>`:""}
-    <span class="mut">${esc(d.meta.en)} ${esc(d.meta.basis)}</span></div>
+    ${rv=="running"?'<span class="badge">critical fields being verified…</span>':rv=="completed"?`<span class="badge ${(d.review.findings||[]).length?"":"g"}">reviewer: ${(d.review.findings||[]).length} finding(s)</span>`:""}</div>
     <div class="row" style="margin-bottom:6px">
       ${st=="draft"?`<button class="p" data-st="checked" ${d.missing.length?"title='Fill required fields first'":""}>Mark as checked</button>`:""}
       ${st=="checked"?`<button class="p" data-st="sent">Approve & mark as sent</button>`:""}
@@ -124,10 +94,10 @@ $("#newDoc").onclick=async()=>{const d=await api("/api/docs",{json:{type:$("#new
 $("#dailyBtn").onclick=async()=>{const d=await api("/api/reports/daily",{json:{}});openDocInTab(d.id)};
 
 /* ---------- plan ---------- */
-async function loadPlan(){const p=await api("/api/plan");$("#asof").textContent=`as of ${p.as_of}`;
-  const w=p.weather_today;$("#wx").textContent=p.weather_available?(w?`Weather today: ${w.text}, ${Math.round(w.tmin)} to ${Math.round(w.tmax)} °C, rain ${w.rain} mm`:""):"Weather service unreachable";
+async function loadPlan(){const p=await api("/api/plan");$("#asof").textContent=p.as_of;
+  const w=p.weather_today;$("#wx").textContent=p.weather_available?(w?`${w.text}, ${Math.round(w.tmin)} to ${Math.round(w.tmax)} °C, rain ${w.rain} mm`:""):"";
   $("#alerts").innerHTML=p.alerts.map((a,i)=>`<div class="alert ${a.level}"><span class="dot ${a.level}"></span><span style="flex:1">${esc(a.text)}</span>
-    ${a.suggest?`<button class="s p" data-al="${i}">${esc(a.suggest_label)}</button>`:""}</div>`).join("")||(p.activities.length?'<div class="mut">No deviations.</div>':'<div class="mut">No schedule loaded. Click "Load demo data".</div>');
+    ${a.suggest?`<button class="s p" data-al="${i}">${esc(a.suggest_label)}</button>`:""}</div>`).join("")||(p.activities.length?'<div class="mut">No deviations.</div>':'<div class="mut">No schedule loaded.</div>');
   $("#alerts").querySelectorAll("[data-al]").forEach(b=>b.onclick=async()=>{const a=p.alerts[b.dataset.al];b.disabled=true;
     const d=await api("/api/plan/propose",{json:{kind:a.kind,activity:a.activity}});openDocInTab(d.id)});
   $("#actTable").innerHTML=p.activities.length?`<tr><th></th><th>Activity</th><th>Period</th><th>Actual / planned</th><th style="width:28%">Progress</th><th>Delay</th></tr>`+p.activities.map(a=>`<tr><td><span class="dot ${a.light}"></span></td>
@@ -169,8 +139,7 @@ function drawBoxes(cv,w,h,dets){cv.width=w;cv.height=h;const c=cv.getContext("2d
 function openP(id){const p=photos.find(x=>x.id==id);dimg.onload=()=>drawBoxes(dcv,dimg.naturalWidth,dimg.naturalHeight,p.detections);dimg.src=API+"/data/"+p.file;
   dinfo.innerHTML=`<b>${esc(p.category)}</b> (${esc(p.category_source)}) · ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} (${esc(p.location_source)})<br><span class="mut">Detections: ${esc(p.detections.map(d=>d.class+" "+Math.round(d.confidence*100)+"%").join(", ")||(p.mock?"mock mode":"none"))}</span>`;dlg.showModal();}
 dlg.onclick=e=>{if(e.target==dlg)dlg.close()};
-function drawMap(){$("#siteinfo").textContent=`Site: ${cfg.site.name} (${cfg.site.lat}, ${cfg.site.lon}). Orange = GPS from photo, grey = site location (no GPS in photo).`;
-  if(!map){map=L.map("mapbox").setView([cfg.site.lat,cfg.site.lon],16);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);layer=L.layerGroup().addTo(map)}
+function drawMap(){if(!map){map=L.map("mapbox").setView([cfg.site.lat,cfg.site.lon],16);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);layer=L.layerGroup().addTo(map)}
   layer.clearLayers();L.marker([cfg.site.lat,cfg.site.lon]).addTo(layer).bindPopup("Site");
   photos.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:7,color:p.location_source=="exif"?"#c8501e":"#888"}).addTo(layer).bindPopup(`<img src="${API}/data/${p.file}" width="160"><br>${esc(p.category)}`));
   setTimeout(()=>map.invalidateSize(),50);}
@@ -184,19 +153,19 @@ snap.onclick=async()=>{const c=document.createElement("canvas");c.width=vid.vide
   const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9));const fd=new FormData();fd.append("files",blob,"live_"+Date.now()+".jpg");await api("/api/photos",{method:"POST",body:fd});loadPhotos()};
 
 /* ---------- metrics ---------- */
-async function loadMetrics(){const m=await api("/api/metrics");$("#mfile").textContent=m.file;
+async function loadMetrics(){const m=await api("/api/metrics");
   $("#mTable").innerHTML=m.stages.length?`<tr><th>Stage</th><th>Runs</th><th>Avg ms</th><th>Median ms</th><th>Max ms</th><th>Tokens in/out</th><th>Cost €</th><th>Model</th></tr>`+
-    m.stages.map(a=>`<tr><td>${esc(a.stage)}</td><td>${a.count}</td><td>${a.avg_ms}</td><td>${a.p50_ms}</td><td>${a.max_ms}</td><td>${a.tokens_in} / ${a.tokens_out}</td><td>${a.cost_eur}</td><td>${esc(a.model||"—")}</td></tr>`).join(""):'<tr><td class="mut">No measurements yet. Use the assistant first.</td></tr>';
+    m.stages.map(a=>`<tr><td>${esc(a.stage)}</td><td>${a.count}</td><td>${a.avg_ms}</td><td>${a.p50_ms}</td><td>${a.max_ms}</td><td>${a.tokens_in} / ${a.tokens_out}</td><td>${a.cost_eur}</td><td>${esc(a.model||"—")}</td></tr>`).join(""):'<tr><td class="mut">No measurements yet.</td></tr>';
   $("#mRecent").innerHTML=m.recent.map(r=>`<div><span>${esc(r.started_at.slice(11,19))}</span><span style="flex:1">${esc(r.stage)} · ${esc(r.run_id)}</span><span>${r.duration_ms} ms</span></div>`).join("");}
-$("#mRefresh").onclick=loadMetrics;
+$("#mRefresh").onclick=()=>{loadMetrics();window.NWDash?.loadPerf?.()};
 
 /* ---------- demo controls (no browser dialogs) ---------- */
 $("#demoBtn").onclick=async()=>{await api("/api/demo/load",{json:{}});$("#demoBtn").textContent="Demo data loaded ✓";loadPlan()};
 let armed=false;$("#resetBtn").onclick=async()=>{if(!armed){armed=true;$("#resetBtn").textContent="Click again to reset";setTimeout(()=>{armed=false;$("#resetBtn").textContent="Reset demo"},3000);return}
-  await api("/api/demo/reset",{json:{}});armed=false;$("#resetBtn").textContent="Reset demo";$("#assistDoc").innerHTML='<div class="empty">Drafts appear here.</div>';docsSel=null;loadMsgs();};
+  await api("/api/demo/reset",{json:{}});armed=false;$("#resetBtn").textContent="Reset demo";docsSel=null;NW.loadMsgs?.();};
 init();
 // slots for the other workstreams (js/voice.js, inbox.js, replan.js, tile.js)
-Object.assign(window.NW,{api,esc,$,loadMsgs,showAssistDoc,TAB});
+Object.assign(window.NW,{api,esc,$,showAssistDoc,openDocInTab,TAB});
 
 // PDF: headless-LibreOffice export (with ENTWURF watermark); 503/any failure falls back to the browser print view.
 // The tab is opened synchronously (inside the click) so popup blockers allow it; it is then pointed at the PDF blob or the print view.
