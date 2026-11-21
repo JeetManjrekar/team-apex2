@@ -347,6 +347,13 @@ def test_help_text_follows_lang_not_message():
     assert "Baustellen-Assistent" in assistant._help_text("hello", "de")
 
 
+def test_chat_fallback_has_no_example_sentences():
+    for t in ("hi how are you", "what can you do?"):
+        for lang in ("en", "de"):
+            out = assistant._help_text(t, lang)
+            assert not any(w in out for w in ("Excavator", "Bagger", "for example", "zum Beispiel"))
+
+
 def test_chat_passes_lang_to_llm(monkeypatch):
     seen = {}
     monkeypatch.setattr(assistant.llm_bridge, "converse", lambda t, c, run_id="chat", lang=None: seen.setdefault("lang", lang) and "ok")
