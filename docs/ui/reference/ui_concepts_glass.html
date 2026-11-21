@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundtruth · UI Konzepte (Glass)</title>
+<style>
+:root{--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:#0e0f13;color:#eef0f4;-webkit-font-smoothing:antialiased}
+.top{max-width:1360px;margin:0 auto;padding:26px 24px 10px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.top small{color:#9aa3b2;letter-spacing:.14em;text-transform:uppercase;font-size:11px;font-weight:600}
+.top h1{margin:4px 0 0;font-size:26px;letter-spacing:-.02em}
+.top h1 b{color:#ffd60a}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1px solid #2a2e38;background:#171a21;color:#dfe3ea;border-radius:99px;padding:9px 16px;font-size:13.5px;cursor:pointer;font-family:var(--font)}
+.tab.on{background:#ffd60a;color:#111;border-color:#ffd60a;font-weight:650}
+.desc{max-width:1360px;margin:0 auto;padding:0 24px 14px;color:#aeb6c4;font-size:14px}
+
+/* ===== THEMES ===== */
+.stage{--accent:#ffcc00;--accentText:#1b1b1b;--radius:22px;--blur:26px;
+  max-width:1360px;margin:0 auto 26px;border-radius:28px;padding:34px;position:relative;overflow:hidden;
+  display:grid;grid-template-columns:330px 1fr;gap:26px;min-height:860px}
+.stage::before,.stage::after{content:"";position:absolute;border-radius:50%;filter:blur(70px);z-index:0;pointer-events:none}
+.stage>*{position:relative;z-index:1}
+
+/* A: Frost (light) */
+.stage[data-theme="frost"]{background:linear-gradient(140deg,#e9eef5 0%,#dfe6ef 45%,#eef1f4 100%);color:#16181d;
+  --glass:rgba(255,255,255,.55);--glass2:rgba(255,255,255,.72);--stroke:rgba(255,255,255,.75);--hair:rgba(20,24,33,.08);
+  --text:#16181d;--muted:#5d6575;--paper:#ffffff;--shadow:0 10px 30px rgba(30,40,60,.10),0 1px 0 rgba(255,255,255,.9) inset;
+  --me:rgba(255,214,10,.85);--chip:rgba(255,255,255,.7);--ok:#1f9d55;--warn:#d97706;--bad:#d93848}
+.stage[data-theme="frost"]::before{width:520px;height:520px;left:-120px;top:-80px;background:#c9d8ec}
+.stage[data-theme="frost"]::after{width:460px;height:460px;right:-80px;bottom:-120px;background:#f7e7a6;opacity:.7}
+
+/* B: Graphite Glass (dark) */
+.stage[data-theme="graphite"]{background:radial-gradient(1200px 700px at 20% 0%,#2a2f3a 0%,#14161c 55%,#0d0e12 100%);color:#f2f4f8;
+  --glass:rgba(40,44,54,.55);--glass2:rgba(52,57,69,.62);--stroke:rgba(255,255,255,.12);--hair:rgba(255,255,255,.08);
+  --text:#f2f4f8;--muted:#9aa3b3;--paper:#f7f7f5;--shadow:0 16px 40px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.08) inset;
+  --me:rgba(255,204,0,.92);--chip:rgba(255,255,255,.08);--ok:#3ddc84;--warn:#ffb020;--bad:#ff5a6e}
+.stage[data-theme="graphite"]::before{width:520px;height:520px;left:-140px;top:-120px;background:#ffcc00;opacity:.12}
+.stage[data-theme="graphite"]::after{width:520px;height:520px;right:-120px;bottom:-160px;background:#00b8d9;opacity:.10}
+
+/* C: Liquid (vivid light, iOS 26 feel) */
+.stage[data-theme="liquid"]{background:linear-gradient(135deg,#fdf3d6 0%,#e6eefb 40%,#dfe9f7 70%,#f6efe6 100%);color:#14161b;
+  --glass:rgba(255,255,255,.38);--glass2:rgba(255,255,255,.55);--stroke:rgba(255,255,255,.9);--hair:rgba(20,24,33,.07);
+  --text:#14161b;--muted:#596173;--paper:#ffffff;
+  --shadow:0 18px 40px rgba(40,60,100,.14),inset 0 1px 1px rgba(255,255,255,.95),inset 0 -1px 1px rgba(255,255,255,.35);
+  --me:linear-gradient(135deg,#ffd60a,#ffb300);--chip:rgba(255,255,255,.6);--ok:#1f9d55;--warn:#d97706;--bad:#d93848;--radius:26px}
+.stage[data-theme="liquid"]::before{width:560px;height:560px;left:-100px;top:-120px;background:#ffd84d;opacity:.55}
+.stage[data-theme="liquid"]::after{width:600px;height:600px;right:-140px;bottom:-180px;background:#7fb2ff;opacity:.45}
+
+/* ===== GLASS PRIMITIVE ===== */
+.glass{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(170%);-webkit-backdrop-filter:blur(var(--blur)) saturate(170%);
+  border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:var(--shadow)}
+.glass2{background:var(--glass2);backdrop-filter:blur(var(--blur)) saturate(170%);-webkit-backdrop-filter:blur(var(--blur)) saturate(170%);
+  border:1px solid var(--stroke);border-radius:16px}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:4px 10px;border-radius:99px;background:var(--chip);border:1px solid var(--hair);color:var(--text);white-space:nowrap}
+.pill{font-size:12px;font-weight:650;padding:3px 10px;border-radius:99px}
+.p-draft{background:rgba(120,128,140,.18);color:var(--muted)}
+.p-checked{background:rgba(31,157,85,.16);color:var(--ok)}
+.p-sent{background:rgba(20,22,28,.85);color:#fff}
+.stage[data-theme="graphite"] .p-sent{background:#f2f4f8;color:#111}
+.btn{border:0;border-radius:14px;padding:11px 16px;font-weight:650;font-size:14.5px;font-family:var(--font);cursor:pointer}
+.btn-primary{background:var(--accent);color:var(--accentText);box-shadow:0 6px 18px rgba(255,190,0,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+.btn-ghost{background:var(--chip);color:var(--text);border:1px solid var(--hair)}
+
+/* ===== PHONE / CHAT ===== */
+.phone{width:330px;height:790px;border-radius:46px;padding:10px;background:rgba(0,0,0,.85);box-shadow:0 30px 60px rgba(0,0,0,.25)}
+.screen{height:100%;border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.screen-bg{position:absolute;inset:0;z-index:0}
+.stage[data-theme="frost"] .screen-bg{background:linear-gradient(180deg,#eef2f7,#e5ebf3)}
+.stage[data-theme="graphite"] .screen-bg{background:radial-gradient(500px 400px at 20% 10%,#2b303c,#121419)}
+.stage[data-theme="liquid"] .screen-bg{background:linear-gradient(160deg,#fff4cf,#e6efff 60%,#f4efe8)}
+.screen>*:not(.screen-bg){position:relative}
+.nav{margin:10px 10px 0;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:11px;background:var(--accent);display:grid;place-items:center;font-weight:800;color:#111;font-size:15px}
+.nav b{display:block;font-size:15px}.nav span{font-size:12px;color:var(--muted)}
+.nav .dot{margin-left:auto;font-size:12px;color:var(--muted)}
+.msgs{flex:1;padding:12px 12px 6px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.bubble{max-width:86%;padding:10px 12px;border-radius:20px;font-size:14px;line-height:1.38}
+.me{align-self:flex-end;background:var(--me);color:#1b1b1b;border-bottom-right-radius:6px}
+.ai{align-self:flex-start;border-bottom-left-radius:6px}
+.wave{display:flex;align-items:center;gap:2px;height:20px;margin:2px 0 4px}
+.wave i{display:block;width:3px;border-radius:2px;background:rgba(0,0,0,.55)}
+.thumbs{display:flex;gap:5px;margin-top:6px}
+.thumbs span{width:56px;height:42px;border-radius:9px;background:linear-gradient(135deg,#a39f95,#6f6a60)}
+.doccard{margin-top:8px;padding:10px 11px;display:flex;flex-direction:column;gap:6px}
+.doccard .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.doccard b{font-size:13.5px}
+.meter{height:6px;border-radius:9px;background:var(--hair);overflow:hidden}.meter i{display:block;height:100%;width:88%;background:var(--accent)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.quick span{font-size:12.5px;padding:6px 10px;border-radius:99px;background:var(--chip);border:1px solid var(--hair)}
+.timing{font-size:11px;color:var(--muted);margin-top:6px}
+.composer{margin:0 10px 12px;padding:8px;display:flex;align-items:center;gap:8px}
+.ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:var(--chip);border:1px solid var(--hair);font-size:16px}
+.field{flex:1;font-size:14px;color:var(--muted);padding:0 4px}
+.mic{width:46px;height:46px;border-radius:16px;background:var(--accent);display:grid;place-items:center;font-size:19px;box-shadow:0 8px 18px rgba(255,190,0,.4)}
+
+/* ===== RIGHT COLUMN ===== */
+.right{display:flex;flex-direction:column;gap:22px;min-width:0}
+.win{padding:0;overflow:hidden}
+.winbar{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--hair)}
+.winbar h3{margin:0;font-size:17px;letter-spacing:-.01em}
+.winbar .sub{color:var(--muted);font-size:13.5px}
+.seg{margin-left:auto;display:flex;padding:3px;border-radius:12px;background:var(--chip);border:1px solid var(--hair)}
+.seg span{font-size:12.5px;padding:6px 11px;border-radius:9px;color:var(--muted);font-weight:600}
+.seg .on{background:var(--paper);color:#111;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.review{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;padding:16px}
+.paper{background:var(--paper);color:#1c1e22;border-radius:14px;padding:18px 20px;box-shadow:0 6px 18px rgba(0,0,0,.08);font-size:12.5px}
+.paper h4{margin:0 0 2px;font-size:14px;letter-spacing:.06em}
+.paper .meta{color:#6a7180;font-size:11.5px;margin-bottom:10px}
+.paper .l{height:8px;border-radius:5px;background:#eceef1;margin:7px 0}
+.paper .imgs{display:flex;gap:7px;margin:12px 0}.paper .imgs span{flex:1;height:58px;border-radius:7px;background:linear-gradient(135deg,#b9b4a8,#7b766b)}
+.paper .foot{margin-top:12px;font-size:10.5px;color:#7b8190;border-top:1px solid #eee;padding-top:8px}
+.fields{display:flex;flex-direction:column;gap:8px}
+.f{padding:10px 12px;display:flex;align-items:center;gap:10px}
+.f .k{font-size:11.5px;color:var(--muted)}.f .v{font-size:14px;font-weight:600}
+.f .grow{flex:1;min-width:0}
+.f.amber{outline:2px solid rgba(217,119,6,.55)}
+.f.miss{outline:2px solid rgba(217,56,72,.5)}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--warn);border-right-color:transparent;display:inline-block}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;align-items:center}
+.check{font-size:12.5px;color:var(--muted);margin-left:auto}
+.bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:122px;gap:14px;padding:16px}
+.tile{padding:13px 15px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.tile h5{margin:0;font-size:13px;color:var(--muted);font-weight:650}
+.tile .big{font-size:30px;font-weight:750;letter-spacing:-.02em}
+.tile .big small{font-size:14px;color:var(--muted);font-weight:600}
+.span2{grid-column:span 2}.row2{grid-row:span 2}
+.warnTile{border-color:rgba(255,176,32,.55)}
+.list{font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.list div{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.lights{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.lights div{display:flex;align-items:center;gap:8px}
+.lights i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.assume{font-size:11px;color:var(--muted)}
+.notes{max-width:1360px;margin:0 auto 40px;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.note{background:#171a21;border:1px solid #262a33;border-radius:16px;padding:14px 16px;font-size:13.5px;color:#cfd5df}
+.note h4{margin:0 0 6px;color:#ffd60a;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.note ul{margin:0;padding-left:18px}.note li{margin:3px 0}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><small>Team Apex · Groundtruth · UI Konzepte zur Abstimmung</small><h1><b>Glass</b> UI · 3 Varianten</h1></div>
+  <div class="tabs">
+    <button class="tab on" data-t="frost">A · Frost (hell)</button>
+    <button class="tab" data-t="graphite">B · Graphite Glass (dunkel)</button>
+    <button class="tab" data-t="liquid">C · Liquid (lebendig)</button>
+  </div>
+</div>
+<p class="desc" id="desc"></p>
+
+<div class="stage" id="stage" data-theme="frost">
+  <!-- PHONE CHAT -->
+  <div class="phone"><div class="screen"><div class="screen-bg"></div>
+    <div class="nav glass"><div class="avatar">G</div><div><b>BW 12 Mühlbach</b><span>Assistent</span></div><span class="dot">● 2</span></div>
+    <div class="msgs">
+      <div class="bubble me"><div class="wave"><i style="height:6px"></i><i style="height:14px"></i><i style="height:9px"></i><i style="height:18px"></i><i style="height:11px"></i><i style="height:16px"></i><i style="height:7px"></i><i style="height:13px"></i><i style="height:5px"></i><i style="height:15px"></i><i style="height:9px"></i><i style="height:12px"></i></div>„Pfahl 7, ab 4 Meter Fels…“ · 0:08<div class="thumbs"><span></span><span></span></div></div>
+      <div class="bubble ai glass2">Laut Baugrundgutachten S. 14 waren hier Sand und Kies bis ca. 9 m erwartet. Pfahl 7 dauert bisher deutlich länger als P01 bis P06.
+        <div class="doccard glass2"><div class="row"><b>Nachtragsmeldung Pfahl 7</b><span class="pill p-draft">Entwurf</span></div><div class="meter"><i></i></div><span style="font-size:12px;color:var(--muted)">7 von 8 Pflichtfeldern · 2 Fotos</span></div>
+        <div style="margin-top:8px">Gibt es ein Bohrprotokoll für Pfahl 7?</div>
+        <div class="quick"><span>📎 Datei senden</span><span>Kommt später</span><span>Nein</span></div>
+        <div class="timing">verarbeitet in 6,2 s</div>
+      </div>
+      <div class="bubble me">📎 pfahl7_bohrprotokoll.pdf</div>
+      <div class="bubble ai glass2">Danke. Entwurf vollständig.<div class="quick"><span>Öffnen</span><span>Prüfen</span></div></div>
+    </div>
+    <div class="composer glass"><div class="ic">📷</div><div class="ic">📎</div><div class="field">Nachricht…</div><div class="mic">🎙</div></div>
+  </div></div>
+
+  <div class="right">
+    <!-- REVIEW -->
+    <div class="win glass">
+      <div class="winbar"><h3>Nachtragsmeldung · Pfahl 7</h3><span class="sub">Widerlager 1 · 17.11.2026</span>
+        <div class="seg"><span class="on">Entwurf</span><span>Geprüft</span><span>Weitergegeben</span></div></div>
+      <div class="review">
+        <div class="paper"><h4>NACHTRAGSMELDUNG</h4><div class="meta">BW 12 Mühlbach · an Nachtragsmanagement · Version 3</div>
+          <div class="l" style="width:92%"></div><div class="l" style="width:78%"></div><div class="l" style="width:86%"></div>
+          <div class="imgs"><span></span><span></span><span></span></div>
+          <div class="l" style="width:70%"></div><div class="l" style="width:58%"></div>
+          <div class="foot">Entwurf mit KI-Unterstützung erstellt, geprüft von [Name], [Datum]</div></div>
+        <div class="fields">
+          <div class="label">Felder und Belege</div>
+          <div class="f glass2"><div class="grow"><div class="k">Erwarteter Baugrund</div><div class="v">Sand/Kies bis ca. 9 m</div></div><span class="chip">📄 Gutachten S. 14</span></div>
+          <div class="f glass2"><div class="grow"><div class="k">Angetroffen</div><div class="v">Fels ab 4,0 m</div></div><span class="chip">🎙 0:02</span></div>
+          <div class="f glass2 amber"><div class="grow"><div class="k">Bohrzeit Pfahl 7</div><div class="v">seit 06:45, Stand 4,6 m</div></div><span class="chip"><span class="spin"></span> wird geprüft</span></div>
+          <div class="f glass2"><div class="grow"><div class="k">Fotobelege</div><div class="v">Bohrgut, Bohrloch</div></div><span class="chip">📷 2</span></div>
+          <div class="f glass2 miss"><div class="grow"><div class="k">Anordnung Bauherr</div><div class="v" style="color:var(--bad)">fehlt · Rückfrage offen</div></div><span class="chip">❓</span></div>
+          <div class="actions"><button class="btn btn-primary">Prüfen</button><button class="btn btn-ghost">Word</button><button class="btn btn-ghost">PDF</button><span class="check">Checkliste 7/8</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- DASHBOARD -->
+    <div class="win glass">
+      <div class="winbar"><h3>Dashboard</h3><span class="sub">Heute · Di 17.11.</span><div class="seg"><span class="on">Heute</span><span>Woche</span><span>Verlauf</span></div></div>
+      <div class="bento">
+        <div class="tile glass2 span2"><h5>Dokumente</h5><div class="list">
+          <div><span>Nachtragsmeldung Pfahl 7</span><span class="pill p-draft">Entwurf</span></div>
+          <div><span>Behinderungsanzeige Bagger</span><span class="pill p-checked">Geprüft</span></div>
+          <div><span>Bautagesbericht 16.11.</span><span class="pill p-sent">Weitergegeben</span></div></div></div>
+        <div class="tile glass2 span2 warnTile"><h5>⚠ Warnung</h5><div style="font-size:14px;font-weight:600">Widerlager 1: 3 Arbeitstage Verzug · Frost Do.</div>
+          <div class="actions"><button class="btn btn-primary" style="padding:7px 12px;font-size:13px">Brief übernehmen</button><button class="btn btn-ghost" style="padding:7px 12px;font-size:13px">Verwerfen</button></div></div>
+        <div class="tile glass2"><h5>Ende zu Ende</h5><div class="big">6,2 <small>s</small></div><span class="assume">Median, Sprachnotiz bis Entwurf</span></div>
+        <div class="tile glass2"><h5>Extraktion korrekt</h5><div class="big">–– <small>%</small></div><span class="assume">nach Eval-Lauf</span></div>
+        <div class="tile glass2 span2"><h5>Bauzeitenplan</h5><div class="lights">
+          <div><i style="background:var(--ok)"></i>Baustelleneinrichtung · im Plan</div>
+          <div><i style="background:var(--warn)"></i>Bohrpfähle W1 · 2 AT Verzug</div>
+          <div><i style="background:var(--bad)"></i>Betonage Fundament W1 · Frostrisiko</div></div></div>
+        <div class="tile glass2 span2"><h5>Zeitersparnis</h5><div class="big">−78 <small>min / Tag</small></div><span class="assume">Annahme bis Partnerwert vorliegt</span></div>
+        <div class="tile glass2 span2"><h5>Verlauf</h5><div class="list"><div><span>Bautagesbericht 16.11.</span><span class="chip">Final (korrigiert)</span></div><div><span>Bautagesbericht 13.11.</span><span class="chip">v2</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note"><h4>Feedback bitte</h4><ul><li>Welche Variante: A, B oder C?</li><li>Glas überall oder nur für Navigation und Karten?</li><li>Was fehlt oder stört dich?</li></ul></div>
+  <div class="note"><h4>Feste Regeln (alle Varianten)</h4><ul><li>Dokument bleibt weißes Papier, kein Glas: Lesbarkeit und Vertrauen</li><li>Gelb nur für Hauptaktion und eigene Nachrichten</li><li>Text min. 16 px Handy, 18 px Kachel-Titel</li><li>Statusfarben: Entwurf grau, Geprüft grün, Weitergegeben graphit</li></ul></div>
+  <div class="note"><h4>Next.js Umsetzung</h4><ul><li>Tailwind: <code>backdrop-blur</code>, <code>bg-white/50</code>, <code>border-white/70</code></li><li>shadcn/ui als Basis, Magic UI (Bento Grid, Number Ticker, Shimmer Button) über die shadcn CLI</li><li>Icons: lucide-react, Animation: motion</li><li>Platzhalter: Zahlen und Fotos sind Beispiele</li></ul></div>
+</div>
+
+<script>
+const D={frost:"A · Frost: helles iOS-Milchglas über ruhigem Hintergrund. Seriös, sehr gut lesbar, Dokumente wirken wie Papier. Sicherste Wahl für Baufachleute und Bildschirmaufnahme.",
+graphite:"B · Graphite Glass: dunkles Glas mit gelben Akzenten. Modern und markant (leichter Cyberpunk-Touch), wirkt im Video hochwertig. Risiko: dunkle Oberflächen wirken auf Praktiker weniger nach Büro-Werkzeug.",
+liquid:"C · Liquid: helles, transparenteres Glas mit Lichtkanten und farbigem Hintergrund, nah an Apples aktuellem Glas-Look. Am auffälligsten. Risiko: Kontrast und Lesbarkeit genau prüfen."};
+const st=document.getElementById('stage'),de=document.getElementById('desc');
+function setT(t){st.dataset.theme=t;de.textContent=D[t];document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setT(b.dataset.t));
+const q=new URLSearchParams(location.search).get('t');setT(q&&D[q]?q:'frost');
+</script>
+</body>
+</html>

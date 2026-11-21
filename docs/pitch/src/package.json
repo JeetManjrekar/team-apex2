@@ -1,0 +1,17 @@
+{
+  "name": "baubuddy-pitch-deck",
+  "private": true,
+  "description": "Builds docs/pitch/BauBuddy_Pitch.pptx (pptxgenjs + Morph/animation post-processing)",
+  "scripts": {
+    "assets": "node assets.js",
+    "deck": "node deck.js && python3 fx.py ../BauBuddy_Pitch.raw.pptx anim.json ../BauBuddy_Pitch.pptx && node -e \"require('fs').unlinkSync('../BauBuddy_Pitch.raw.pptx')\"",
+    "build": "npm run assets && npm run deck"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-icons": "5.7.0",
+    "sharp": "0.35.5"
+  }
+}

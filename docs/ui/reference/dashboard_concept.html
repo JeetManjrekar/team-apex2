@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundtruth · Dashboard Konzept</title>
+<style>
+:root{--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:#0e0f13;color:#eef0f4;-webkit-font-smoothing:antialiased}
+.top{max-width:1420px;margin:0 auto;padding:24px 24px 12px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between}
+.top small{color:#9aa3b2;letter-spacing:.14em;text-transform:uppercase;font-size:11px;font-weight:600}
+.top h1{margin:4px 0 0;font-size:24px}.top h1 b{color:#ffd60a}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tab{border:1px solid #2a2e38;background:#171a21;color:#dfe3ea;border-radius:99px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:var(--font)}
+.tab.on{background:#ffd60a;color:#111;border-color:#ffd60a;font-weight:650}
+.src-toggle{font-size:13px;color:#cfd5df;display:flex;gap:6px;align-items:center;margin-left:8px}
+
+.stage{--accent:#ffcc00;--radius:22px;--blur:26px;max-width:1420px;margin:0 auto 22px;border-radius:28px;padding:26px;position:relative;overflow:hidden}
+.stage::before,.stage::after{content:"";position:absolute;border-radius:50%;filter:blur(80px);z-index:0;pointer-events:none}
+.stage>*{position:relative;z-index:1}
+.stage[data-theme="frost"]{background:linear-gradient(140deg,#e9eef5,#dfe6ef 45%,#eef1f4);color:#16181d;
+ --glass:rgba(255,255,255,.58);--glass2:rgba(255,255,255,.74);--stroke:rgba(255,255,255,.8);--hair:rgba(20,24,33,.08);--text:#16181d;--muted:#5d6575;
+ --shadow:0 10px 30px rgba(30,40,60,.10),inset 0 1px 0 rgba(255,255,255,.9);--chip:rgba(255,255,255,.75);--ok:#1f9d55;--warn:#d97706;--bad:#d93848;--track:rgba(20,24,33,.07)}
+.stage[data-theme="frost"]::before{width:560px;height:560px;left:-140px;top:-100px;background:#c9d8ec}
+.stage[data-theme="frost"]::after{width:520px;height:520px;right:-100px;bottom:-160px;background:#f7e7a6;opacity:.7}
+.stage[data-theme="graphite"]{background:radial-gradient(1300px 800px at 15% 0%,#2a2f3a,#14161c 55%,#0d0e12);color:#f2f4f8;
+ --glass:rgba(40,44,54,.58);--glass2:rgba(52,57,69,.64);--stroke:rgba(255,255,255,.12);--hair:rgba(255,255,255,.09);--text:#f2f4f8;--muted:#9aa3b3;
+ --shadow:0 16px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);--chip:rgba(255,255,255,.08);--ok:#3ddc84;--warn:#ffb020;--bad:#ff5a6e;--track:rgba(255,255,255,.08)}
+.stage[data-theme="graphite"]::before{width:560px;height:560px;left:-160px;top:-140px;background:#ffcc00;opacity:.12}
+.stage[data-theme="graphite"]::after{width:560px;height:560px;right:-140px;bottom:-180px;background:#00b8d9;opacity:.1}
+.stage[data-theme="liquid"]{background:linear-gradient(135deg,#fdf3d6,#e6eefb 40%,#dfe9f7 70%,#f6efe6);color:#14161b;
+ --glass:rgba(255,255,255,.42);--glass2:rgba(255,255,255,.6);--stroke:rgba(255,255,255,.92);--hair:rgba(20,24,33,.07);--text:#14161b;--muted:#596173;
+ --shadow:0 18px 40px rgba(40,60,100,.14),inset 0 1px 1px rgba(255,255,255,.95);--chip:rgba(255,255,255,.65);--ok:#1f9d55;--warn:#d97706;--bad:#d93848;--track:rgba(20,24,33,.07);--radius:26px}
+.stage[data-theme="liquid"]::before{width:600px;height:600px;left:-120px;top:-140px;background:#ffd84d;opacity:.5}
+.stage[data-theme="liquid"]::after{width:620px;height:620px;right:-160px;bottom:-200px;background:#7fb2ff;opacity:.42}
+
+.glass{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(170%);-webkit-backdrop-filter:blur(var(--blur)) saturate(170%);border:1px solid var(--stroke);border-radius:var(--radius);box-shadow:var(--shadow)}
+.muted{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:4px 10px;border-radius:99px;background:var(--chip);border:1px solid var(--hair);white-space:nowrap}
+.pill{font-size:12px;font-weight:650;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.p-draft{background:rgba(120,128,140,.18);color:var(--muted)}.p-checked{background:rgba(31,157,85,.16);color:var(--ok)}
+.p-warn{background:rgba(217,119,6,.16);color:var(--warn)}.p-bad{background:rgba(217,56,72,.14);color:var(--bad)}
+.btn{border:0;border-radius:12px;padding:8px 13px;font-weight:650;font-size:13.5px;font-family:var(--font);cursor:pointer;white-space:nowrap}
+.btn-p{background:var(--accent);color:#1b1b1b;box-shadow:0 5px 14px rgba(255,190,0,.32),inset 0 1px 0 rgba(255,255,255,.6)}
+.btn-g{background:var(--chip);color:var(--text);border:1px solid var(--hair)}
+
+/* header */
+.head{display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:16px}
+.logo{width:40px;height:40px;border-radius:13px;background:var(--accent);display:grid;place-items:center;font-weight:800;color:#111;font-size:17px}
+.head h2{margin:0;font-size:19px;letter-spacing:-.01em}.head .sub{font-size:13px;color:var(--muted)}
+.head .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(31,157,85,.15)}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.t{padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.t h3{margin:0;font-size:15px;letter-spacing:-.005em;display:flex;align-items:center;gap:8px}
+.t h3 .count{font-size:12px;font-weight:700;background:var(--accent);color:#111;border-radius:99px;padding:1px 8px}
+.t h3 .hint{margin-left:auto;font-size:12px;color:var(--muted);font-weight:500}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c12{grid-column:span 12}
+.src{display:none;font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);border-top:1px dashed var(--hair);padding-top:6px;margin-top:auto}
+.showsrc .src{display:block}
+
+/* KPI */
+.kpi{padding:14px 18px;display:flex;flex-direction:column;gap:4px}
+.kpi .lbl{font-size:12.5px;color:var(--muted);font-weight:600}
+.kpi .val{font-size:34px;font-weight:760;letter-spacing:-.02em;line-height:1.05}
+.kpi .val small{font-size:15px;color:var(--muted);font-weight:600}
+.kpi .foot{font-size:12.5px;color:var(--muted)}
+.kpi.alert .val{color:var(--warn)}
+.kpi .bar{height:6px;border-radius:9px;background:var(--track);overflow:hidden;margin-top:2px}.kpi .bar i{display:block;height:100%;background:var(--accent)}
+
+/* inbox */
+.inbox{display:flex;flex-direction:column;gap:8px}
+.item{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--chip);border:1px solid var(--hair)}
+.ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:16px;background:var(--glass2);border:1px solid var(--hair)}
+.item b{font-size:14.5px;display:block}.item span{font-size:12.5px;color:var(--muted)}
+.item .acts{display:flex;gap:6px}
+.prio{border-left:4px solid var(--warn)}.prio-bad{border-left:4px solid var(--bad)}
+
+/* warning */
+.warnbox{border:1px solid rgba(217,119,6,.45)}
+.warnbox .title{font-size:16px;font-weight:700}
+.wx{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.wx div{text-align:center;padding:7px 4px;border-radius:12px;background:var(--chip);border:1px solid var(--hair);font-size:12px}
+.wx b{display:block;font-size:14px}.wx .frost{border-color:rgba(217,56,72,.5);background:rgba(217,56,72,.08)}
+.letter{padding:10px 12px;border-radius:14px;background:var(--chip);border:1px dashed var(--hair);font-size:13px}
+
+/* gantt */
+.gantt{display:flex;flex-direction:column;gap:12px;position:relative}
+.gantt{margin-top:14px}.gr{display:grid;grid-template-columns:190px 1fr 74px;gap:10px;align-items:center;font-size:13px}
+.track{position:relative;height:16px;border-radius:8px;background:var(--track)}
+.seg{position:absolute;top:0;height:100%;border-radius:8px}
+.s-ok{background:rgba(31,157,85,.55)}.s-warn{background:rgba(217,119,6,.7)}.s-bad{background:rgba(217,56,72,.7)}.s-plan{background:rgba(120,128,140,.28)}
+.s-late{background:repeating-linear-gradient(45deg,rgba(217,56,72,.55) 0 5px,rgba(217,56,72,.2) 5px 10px)}
+.today{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text);opacity:.6}
+.today.lbl::after{content:"heute";position:absolute;top:-16px;left:-14px;font-size:10.5px;color:var(--muted)}
+.days{display:grid;grid-template-columns:190px 1fr 74px;gap:10px;font-size:11px;color:var(--muted)}
+.days .scale{display:flex;justify-content:space-between}
+
+/* map */
+.map{position:relative;height:230px;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,rgba(140,170,200,.25),rgba(140,170,200,.12));border:1px solid var(--hair)}
+.river{position:absolute;left:44%;top:0;bottom:0;width:12%;background:linear-gradient(180deg,rgba(80,140,210,.35),rgba(80,140,210,.22))}
+.zone{position:absolute;border:1.5px dashed var(--muted);border-radius:10px;font-size:11px;color:var(--muted);padding:3px 6px}
+.pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center}
+.pin i{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.pin span{margin-top:3px;font-size:11px;background:var(--glass2);border:1px solid var(--hair);padding:1px 6px;border-radius:8px;white-space:nowrap}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+
+/* nachtraege */
+.nt{display:flex;flex-direction:column;gap:8px}
+.ev{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-size:13.5px}
+.ev .ok{color:var(--ok);font-weight:800}.ev .no{color:var(--bad);font-weight:800}
+.meter{height:7px;border-radius:9px;background:var(--track);overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+
+/* metrics */
+.mrow{display:grid;grid-template-columns:118px 1fr 58px;gap:8px;align-items:center;font-size:12.5px}
+.mbar{height:8px;border-radius:9px;background:var(--track);overflow:hidden}.mbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#ffb300)}
+.mbig{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mbig div{padding:9px 10px;border-radius:14px;background:var(--chip);border:1px solid var(--hair)}
+.mbig b{display:block;font-size:20px;letter-spacing:-.01em}.mbig span{font-size:11.5px;color:var(--muted)}
+.assume{font-size:11.5px;color:var(--muted)}
+
+/* history */
+.hist{display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.hist div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-radius:12px;background:var(--chip);border:1px solid var(--hair)}
+
+.notes{max-width:1420px;margin:0 auto 40px;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.note{background:#171a21;border:1px solid #262a33;border-radius:16px;padding:14px 16px;font-size:13.5px;color:#cfd5df}
+.note h4{margin:0 0 6px;color:#ffd60a;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.note ul,.note ol{margin:0;padding-left:18px}.note li{margin:3px 0}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><small>Team Apex · Groundtruth · Dashboard Konzept v2</small><h1>Dashboard · <b>auf einen Blick</b></h1></div>
+  <div class="ctrl">
+    <button class="tab on" data-t="frost">A · Frost</button><button class="tab" data-t="graphite">B · Graphite</button><button class="tab" data-t="liquid">C · Liquid</button>
+    <label class="src-toggle"><input type="checkbox" id="srcT"> Datenquellen anzeigen</label>
+  </div>
+</div>
+
+<div class="stage" id="stage" data-theme="frost">
+  <div class="head glass">
+    <div class="logo">G</div>
+    <div><h2>BW 12 Mühlbach · Brücke</h2><div class="sub">Gründung und Widerlager · Bauleitung</div></div>
+    <div class="right"><span class="chip">📅 Di 17.11.2026</span><span class="chip">🌥 3 °C · Frost ab Do</span><span class="live"><i></i>live · vor 5 s</span></div>
+  </div>
+
+  <div class="grid">
+    <!-- KPI ROW -->
+    <div class="glass kpi c3"><div class="lbl">Warten auf deine Entscheidung</div><div class="val">4</div><div class="foot">2 Entwürfe · 2 Vorschläge · 1 Rückfrage offen</div><div class="src">/documents?status=draft · /proposals?status=open · open_followups</div></div>
+    <div class="glass kpi c3"><div class="lbl">Nachträge in Vorbereitung</div><div class="val">1 <small>Belege 7/8</small></div><div class="bar"><i style="width:88%"></i></div><div class="foot">Pfahl 7 · Bohrprotokoll fehlt</div><div class="src">/documents?type=nachtragsmeldung · open_followups</div></div>
+    <div class="glass kpi c3 alert"><div class="lbl">Größter Verzug</div><div class="val">3 <small>Arbeitstage</small></div><div class="foot">Bohrpfähle Widerlager 1 · Meilenstein gefährdet</div><div class="src">/schedule · max(delay_days)</div></div>
+    <div class="glass kpi c3"><div class="lbl">Schreibzeit gespart</div><div class="val">78 <small>min heute</small></div><div class="foot">Annahme bis Partnerwert vorliegt</div><div class="src">/metrics/summary · time_saved_pct · baseline_is_assumption</div></div>
+
+    <!-- INBOX -->
+    <div class="glass t c7">
+      <h3>Heute zu entscheiden <span class="count">4</span><span class="hint">sortiert nach Dringlichkeit</span></h3>
+      <div class="inbox">
+        <div class="item prio-bad"><div class="ico">📄</div><div><b>Nachtragsmeldung Pfahl 7</b><span>Fels ab 4 m statt Sand/Kies · 7/8 Belege · Rückfrage Bohrprotokoll offen</span></div><div class="acts"><button class="btn btn-p">Öffnen</button></div></div>
+        <div class="item prio"><div class="ico">✉️</div><div><b>Brief vorgeschlagen: Behinderungsanzeige Frost</b><span>aus Warnung Widerlager 1 · Entwurf, wird nicht versendet</span></div><div class="acts"><button class="btn btn-p">Übernehmen</button><button class="btn btn-g">Verwerfen</button></div></div>
+        <div class="item prio"><div class="ico">👷</div><div><b>Einsatzvorschlag: Schalungstrupp Achse 1</b><span>Bagger W2 seit 10:00 defekt · Achse 1 nicht blockiert</span></div><div class="acts"><button class="btn btn-p">Übernehmen</button><button class="btn btn-g">Verwerfen</button></div></div>
+        <div class="item"><div class="ico">📝</div><div><b>Behinderungsanzeige Bagger</b><span>Entwurf vollständig · Checkliste 6/6</span></div><div class="acts"><button class="btn btn-g">Prüfen</button></div></div>
+      </div>
+      <div class="src">/documents · /proposals · /alerts (merged client side, no new endpoint)</div>
+    </div>
+
+    <!-- WARNING -->
+    <div class="glass t c5 warnbox">
+      <h3>⚠ Wichtigste Warnung<span class="hint">vor 12 min</span></h3>
+      <div class="title">Widerlager 1: 3 AT Verzug, Betonage Do. bei Frost</div>
+      <div class="muted" style="font-size:13.5px">Pfahl 7 im Fels, Bagger W2 defekt, Bewehrung halb geliefert. Fundament W1 rutscht hinter den Frosttag.</div>
+      <div class="wx"><div>Di<b>3°</b></div><div>Mi<b>1°</b></div><div class="frost">Do<b>−4°</b>Frost</div><div>Fr<b>0°</b></div><div>Mo<b>4°</b></div></div>
+      <div class="letter">✉️ Vorschlag: <b>Behinderungsanzeige</b> wegen Baugrund und Witterung, als Entwurf</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-p">Brief übernehmen</button><button class="btn btn-g">Verwerfen</button><span class="chip" style="margin-left:auto">2 weitere Warnungen</span></div>
+      <div class="src">/alerts (severity desc) · proposal_ids → /proposals · weather from alert body / fixture</div>
+    </div>
+
+    <!-- GANTT -->
+    <div class="glass t c7">
+      <h3>Bauzeitenplan · kritische Vorgänge<span class="hint">Arbeitstage, Plan vs. Prognose</span></h3>
+      <div class="days"><span></span><div class="scale"><span>Mo 16.</span><span>Di 17.</span><span>Mi 18.</span><span>Do 19.</span><span>Fr 20.</span><span>Mo 23.</span><span>Di 24.</span></div><span></span></div>
+      <div class="gantt">
+        <div class="gr"><span>Bohrpfähle W1 (P01–P08)</span><div class="track"><div class="seg s-warn" style="left:0;width:43%"></div><div class="seg s-late" style="left:43%;width:28%"></div><div class="today lbl" style="left:18%"></div></div><span class="pill p-warn">+3 AT</span></div>
+        <div class="gr"><span>Aushub Fundament W2</span><div class="track"><div class="seg s-bad" style="left:5%;width:30%"></div><div class="today" style="left:18%"></div></div><span class="pill p-bad">Bagger</span></div>
+        <div class="gr"><span>Bewehrung Fundament W1</span><div class="track"><div class="seg s-plan" style="left:28%;width:30%"></div><div class="seg s-late" style="left:58%;width:14%"></div><div class="today" style="left:18%"></div></div><span class="pill p-warn">½ Stahl</span></div>
+        <div class="gr"><span>Betonage Fundament W1 ❄</span><div class="track"><div class="seg s-plan" style="left:43%;width:14%"></div><div class="seg s-late" style="left:72%;width:14%"></div><div class="today" style="left:18%"></div></div><span class="pill p-bad">Frost</span></div>
+        <div class="gr"><span>Baustelleneinrichtung</span><div class="track"><div class="seg s-ok" style="left:0;width:12%"></div><div class="today" style="left:18%"></div></div><span class="pill p-checked">fertig</span></div>
+      </div>
+      <div class="src">/schedule · status, delay_days, projected_end, weather_sensitive</div>
+    </div>
+
+    <!-- MAP -->
+    <div class="glass t c5">
+      <h3>Lageplan<span class="hint">Schätzung, intern</span></h3>
+      <div class="map">
+        <div class="river"></div>
+        <div class="zone" style="left:6%;top:18%;width:32%;height:62%">Widerlager 1</div>
+        <div class="zone" style="left:62%;top:18%;width:32%;height:62%">Widerlager 2</div>
+        <div class="pin" style="left:22%;top:56%"><i style="background:var(--bad)"></i><span>Pfahl 7 · Fels</span></div>
+        <div class="pin" style="left:30%;top:36%"><i style="background:var(--warn)"></i><span>Bewehrung ½</span></div>
+        <div class="pin" style="left:78%;top:52%"><i style="background:var(--bad)"></i><span>Bagger defekt</span></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--bad)"></i>hoch</span><span><i style="background:var(--warn)"></i>mittel</span><span><i style="background:var(--ok)"></i>erledigt</span><span>Kostenband nur intern, nie im Dokument</span></div>
+      <div class="src">/map · pins(severity, cost_band)</div>
+    </div>
+
+    <!-- NACHTRAG -->
+    <div class="glass t c4">
+      <h3>Nachtrag Pfahl 7 · Belege</h3>
+      <div class="meter"><i style="width:88%"></i></div>
+      <div class="nt">
+        <div class="ev"><span class="ok">✓</span><span>Baugrundgutachten S. 14</span><span class="chip">📄</span></div>
+        <div class="ev"><span class="ok">✓</span><span>Sprachnotiz Polier</span><span class="chip">🎙 0:08</span></div>
+        <div class="ev"><span class="ok">✓</span><span>Fotos Bohrgut, Bohrloch</span><span class="chip">📷 2</span></div>
+        <div class="ev"><span class="ok">✓</span><span>Bohrzeiten P01–P06 als Vergleich</span><span class="chip">📊</span></div>
+        <div class="ev"><span class="no">!</span><span>Bohrprotokoll Pfahl 7</span><button class="btn btn-g" style="padding:5px 10px;font-size:12.5px">Anfordern</button></div>
+      </div>
+      <div class="src">/documents/{id} · fields + evidence · open_followups</div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="glass t c4">
+      <h3>KI-Leistung<span class="hint">gemessen am Prototyp</span></h3>
+      <div class="mbig"><div><b>6,2 s</b><span>Sprachnotiz bis Entwurf</span></div><div><b>–– %</b><span>Felder korrekt (Eval)</span></div><div><b>0,04 €</b><span>pro Dokument</span></div></div>
+      <div class="mrow"><span>Spracherkennung</span><div class="mbar"><i style="width:30%"></i></div><span>1,9 s</span></div>
+      <div class="mrow"><span>Extraktion</span><div class="mbar"><i style="width:55%"></i></div><span>3,4 s</span></div>
+      <div class="mrow"><span>Dokument + Export</span><div class="mbar"><i style="width:15%"></i></div><span>0,9 s</span></div>
+      <div class="assume">Werte sind Platzhalter bis zum Eval-Lauf · Prüfer läuft im Hintergrund</div>
+      <div class="src">/metrics/summary · stages p50, end_to_end_p50_ms, extraction_accuracy, cost_per_document_eur</div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="glass t c4">
+      <h3>Verlauf und Berichte</h3>
+      <div class="hist">
+        <div><span>Bautagesbericht 17.11.</span><span class="pill p-draft">Entwurf</span></div>
+        <div><span>Bautagesbericht 16.11.</span><span class="chip">Final (korrigiert)</span></div>
+        <div><span>Bautagesbericht 13.11.</span><span class="chip">v2</span></div>
+        <div><span>Bautagesbericht 12.11.</span><span class="pill p-checked">Geprüft</span></div>
+      </div>
+      <button class="btn btn-g" style="align-self:flex-start">Tagesbericht heute erstellen</button>
+      <div class="src">/documents?type=bautagesbericht · has_final_version · /documents/{id}/versions</div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note"><h4>Logik von oben nach unten</h4><ol><li><b>Was braucht mich?</b> 4 Kennzahlen + Entscheidungsliste</li><li><b>Was ist das Risiko?</b> Warnung, Bauzeitenplan, Lageplan</li><li><b>Ist es belegt?</b> Belege Nachtrag, KI-Leistung, Verlauf</li></ol></div>
+  <div class="note"><h4>Keine neuen Endpunkte</h4><ul><li>Alle Kacheln nutzen die bestehende API (Haken „Datenquellen anzeigen“)</li><li>Entscheidungsliste = Dokumente + Vorschläge + Warnungen, im Frontend zusammengeführt</li><li>Wetter kommt aus Warnung bzw. Fixture</li></ul></div>
+  <div class="note"><h4>Feedback bitte</h4><ul><li>Fehlt eine Info, die ein Bauleiter morgens zuerst sehen will?</li><li>Ist die Reihenfolge richtig?</li><li>Was kann weg, damit es ruhiger wird?</li></ul></div>
+</div>
+
+<script>
+const st=document.getElementById('stage');
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{st.dataset.theme=b.dataset.t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b))});
+document.getElementById('srcT').onchange=e=>st.classList.toggle('showsrc',e.target.checked);
+const q=new URLSearchParams(location.search);if(q.get('t')){st.dataset.theme=q.get('t');document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===q.get('t')))}
+if(q.get('src'))st.classList.add('showsrc');
+</script>
+</body>
+</html>
