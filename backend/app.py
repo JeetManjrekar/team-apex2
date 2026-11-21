@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles                        # noqa: E402
 
 from core.errors import ApiError                                   # noqa: E402
 from core.store import DATA                                        # noqa: E402
-from routes import documents, inbox, metrics, photos, plan, replan, site, system, voice          # noqa: E402
+from routes import agent, documents, inbox, metrics, photos, plan, replan, site, system, voice          # noqa: E402
 
 FRONTEND = Path(os.environ.get("FRONTEND_DIR", BACKEND.parent / "frontend")).resolve()
 # Origins allowed to call the API when the frontend is hosted separately ("*" = any; fine for a local demo).
@@ -30,7 +30,7 @@ app = FastAPI(title="BauBuddy – AI Site Manager Assistant")
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 for r in (system.router, photos.router, documents.router, plan.router, site.router,
-          voice.router, inbox.router, replan.router, metrics.router):
+          voice.router, inbox.router, replan.router, metrics.router, agent.router):
     app.include_router(r)
 
 

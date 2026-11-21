@@ -16,7 +16,13 @@ def list_photos():
 @router.post("/photos")
 def upload(files: list[UploadFile] = File(...)):
     # sync endpoint: runs in the threadpool, so Roboflow / vision calls don't block the event loop
-    return pipeline.ingest((f.filename, f.content_type, f.file.read()) for f in files)
+    rows = pipeline.ingest((f.filename, f.content_type, f.file.read()) for f in files)
+    try:                     # new photos feed the AI Site Manager's incident rules right away
+        from core import agent
+        agent.scan()
+    except Exception:        # incident scanning must never break an upload
+        pass
+    return rows
 
 
 @router.patch("/photos/{pid}")

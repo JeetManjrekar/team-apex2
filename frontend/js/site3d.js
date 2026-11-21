@@ -425,6 +425,7 @@ function build() {
 
   renderLegend();
   applyVisibility();
+  applyHighlights();
 }
 
 function centroid(pts) {
@@ -1139,8 +1140,55 @@ async function tour({ isCancelled = () => false } = {}) {
   }
 }
 
+/* ------------------------------------------------------------------ AI control (driven by js/command.js through the BB bus) */
+const HL_COLOR = { red: 0xff3b30, amber: 0xffa500, green: 0x2ecc71, blue: 0x4cc9ff };
+S.hl = {};
+function applyHighlights() {
+  if (!root || !S.data) return;
+  for (const o of S.pickables) {
+    if (o.userData.pick.type !== "zone") continue;
+    const id = o.userData.pick.id, lvl = S.hl[id], z = zone(id);
+    if (lvl) { o.material.color.setHex(HL_COLOR[lvl] || HL_COLOR.amber); o.userData.baseOpacity = 0.28; o.userData.hl = true; }
+    else { o.material.color.set(z?.color || "#888"); o.userData.baseOpacity = 0.09; o.userData.hl = false; }
+    o.material.opacity = o.userData.baseOpacity;
+  }
+  if (!S.anims.includes(pulseHighlights)) S.anims.push(pulseHighlights);
+}
+function pulseHighlights(t) {
+  for (const o of S.pickables) if (o.userData.hl && !(S.sel?.type === "zone" && S.sel.id === o.userData.pick.id)) o.material.opacity = 0.18 + 0.14 * (0.5 + 0.5 * Math.sin(t * 3));
+}
+const waitData = async () => { for (let i = 0; i < 100 && !(S.data && root); i++) await sleep(80); return !!(S.data && root); };
+async function focusZone(id, { mode = "3d" } = {}) {
+  if (!(await waitData())) return false;
+  const z = zone(id); if (!z) return false;
+  stopTour();
+  if (mode && S.mode !== mode) { setMode(mode); await sleep(500); }
+  select({ type: "zone", id });
+  const c = centroid(z.polygon), xs = z.polygon.map(q => q[0]), ys = z.polygon.map(q => q[1]);
+  const zoom = Math.max(1, Math.min(3.4, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.62)));
+  await flyTo({ target: P(c[0], c[1]), zoom, ...(S.mode === "3d" ? { theta: Math.PI / 5, phi: 0.9 } : {}), dur: 1400 });
+  return true;
+}
+async function focusPhoto(id) {
+  if (!(await waitData())) return false;
+  const p = photo(id); if (!p) return false;
+  select({ type: "photo", id }, { focus: !!p.plan_xy });
+  if (p.plan_xy) await flyTo({ target: P(p.plan_xy[0], p.plan_xy[1]), zoom: 2.6, dur: 1200 });
+  return !!p.plan_xy;
+}
+function snapshot() {
+  if (!renderer || !S.data) return null;
+  try { if (composer) composer.render(); else renderer.render(scene, camera); return renderer.domElement.toDataURL("image/jpeg", 0.85); }
+  catch (e) { console.warn("snapshot failed", e); return null; }
+}
+
 /* ------------------------------------------------------------------ public */
 window.SiteTwin = {
+  focusZone, focusPhoto, snapshot,
+  highlight(list) { S.hl = {}; (list || []).forEach(h => { if (h?.id) S.hl[h.id] = h.level || "amber"; }); applyHighlights(); },
+  clearHighlights() { S.hl = {}; applyHighlights(); },
+  reload() { return S.visible ? load(true) : Promise.resolve(); },
+  get ready() { return !!(S.data && root); },
   async show() {
     try {
       const first = !renderer;

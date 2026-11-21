@@ -172,7 +172,7 @@ camBtn.onclick=async()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stre
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});vid.srcObject=stream;await vid.play();camBtn.textContent="Stop camera";snap.disabled=false;
   timer=setInterval(async()=>{if(busy||!vid.videoWidth)return;busy=true;const c=document.createElement("canvas");c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext("2d").drawImage(vid,0,0);
     const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.7));const fd=new FormData();fd.append("file",blob,"f.jpg");
-    try{const r=await api("/api/infer",{method:"POST",body:fd});drawBoxes(ov,c.width,c.height,r.detections);liveinfo.textContent=r.mock?"mock mode":r.detections.length+" detections"}catch(e){liveinfo.textContent=e.message}busy=false},1000)};
+    try{const r=await api("/api/infer",{method:"POST",body:fd});drawBoxes(ov,c.width,c.height,r.detections);document.dispatchEvent(new CustomEvent("bb:live-detections",{detail:r}));liveinfo.textContent=r.mock?"mock mode":r.detections.length+" detections"}catch(e){liveinfo.textContent=e.message}busy=false},1000)};
 snap.onclick=async()=>{const c=document.createElement("canvas");c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext("2d").drawImage(vid,0,0);
   const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9));const fd=new FormData();fd.append("files",blob,"live_"+Date.now()+".jpg");await api("/api/photos",{method:"POST",body:fd});loadPhotos()};
 
