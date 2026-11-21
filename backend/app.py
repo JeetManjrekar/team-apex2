@@ -1,4 +1,4 @@
-"""Nachweis – AI Site Manager Assistant: FastAPI backend.
+"""BauBuddy – AI Site Manager Assistant: FastAPI backend.
 
 Run (from this folder):
     uvicorn app:app --reload --port 8000     # http://127.0.0.1:8000  (also serves ../frontend)
@@ -26,7 +26,7 @@ FRONTEND = Path(os.environ.get("FRONTEND_DIR", BACKEND.parent / "frontend")).res
 # Origins allowed to call the API when the frontend is hosted separately ("*" = any; fine for a local demo).
 CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGIN", "*").split(",")]
 
-app = FastAPI(title="Nachweis – AI Site Manager Assistant")
+app = FastAPI(title="BauBuddy – AI Site Manager Assistant")
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 for r in (system.router, photos.router, documents.router, plan.router, site.router,

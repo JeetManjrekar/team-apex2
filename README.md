@@ -1,4 +1,8 @@
-# Nachweis – AI Site Manager Assistant (TUM.ai Construction Hackathon, Challenge B)
+# BauBuddy – AI Site Manager Assistant (TUM.ai Construction Hackathon, Challenge B)
+
+<img src="frontend/img/logo-wordmark-light.svg" alt="BauBuddy" height="44">
+
+*Formerly "Nachweis". The internal LLM package keeps its name `nachweis_llm`.*
 
 Chat and voice capture → notices with evidence per field → review → Word / PDF. Plus plan vs actual with early warnings,
 daily report from photos/notes/schedule/weather, summaries of minutes and emails, Roboflow photo detection with geotags.
