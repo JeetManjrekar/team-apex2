@@ -89,12 +89,25 @@ def doc_photos(doc_id: str, body: dict = Body(...)):
     return docs.public(docs.put(d))
 
 
+def _download_name(d, ext):
+    return f"{d['title'].split(' /')[0].replace(' ', '_')}_{d['id']}.{ext}"
+
+
 @router.get("/docs/{doc_id}/docx")
 def doc_docx(doc_id: str):
     d = _doc(doc_id)
-    with llm_bridge.Timer("export_docx", d["id"], document_type=d["type"]):
-        path = export.docx(d)
-    return FileResponse(path, filename=f"{d['title'].split(' /')[0].replace(' ', '_')}_{d['id']}.docx")
+    return FileResponse(export.docx(d), filename=_download_name(d, "docx"))
+
+
+@router.get("/docs/{doc_id}/pdf")
+def doc_pdf(doc_id: str):
+    """PDF via headless LibreOffice. 503 if it is unavailable: the client then falls back to GET /api/docs/{id}/print."""
+    d = _doc(doc_id)
+    try:
+        path = export.pdf(d)
+    except export.PdfUnavailable as e:
+        raise ApiError(503, f"PDF export unavailable ({e}). Use the print view instead: /api/docs/{doc_id}/print")
+    return FileResponse(path, media_type="application/pdf", filename=_download_name(d, "pdf"))
 
 
 @router.get("/docs/{doc_id}/print", response_class=HTMLResponse)
