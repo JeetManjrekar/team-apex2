@@ -1,0 +1,63 @@
+# Nachweis – AI Site Manager Assistant (TUM.ai Construction Hackathon, Challenge B)
+
+Chat and voice capture → notices with evidence per field → review → Word / PDF. Plus plan vs actual with early warnings,
+daily report from photos/notes/schedule/weather, summaries of minutes and emails, Roboflow photo detection with geotags.
+
+## Project layout
+```
+backend/                 FastAPI (Python)
+  app.py                 entry point: routers, JSON errors, CORS, serves ../frontend and /data
+  routes/                one APIRouter per area: system, photos, documents, plan, site
+  core/                  host logic: store, docs, assistant, plan, summarize, export, photos, site_twin, llm_bridge …
+  nachweis_llm/          the team's LLM package (vendored unmodified)
+  data/                  JSON store, uploads/, generated reports
+  requirements.txt, .env(.example)
+frontend/                static UI, no build step
+  index.html, config.js, css/app.css, js/app.js, js/site3d.js
+  vendor/                three.js 0.160 and Leaflet 1.9.4 (local: the demo works without CDN access)
+```
+
+## Run
+```
+cd backend
+pip install -r requirements.txt
+cp .env.example .env        # fill in keys (loaded automatically by app.py)
+uvicorn app:app --reload --port 8000   # http://127.0.0.1:8000 – API + frontend, API docs at /docs
+```
+Open http://127.0.0.1:8000, click "Load demo data" once.
+
+Frontend hosted separately (optional): `cd frontend && python -m http.server 5500`, open http://127.0.0.1:5500.
+It calls the API at `http://127.0.0.1:8000` (change in `frontend/config.js`; restrict `CORS_ORIGIN` in `.env` if needed).
+
+## Architecture
+- `backend/nachweis_llm/` – the team's LLM package, vendored unmodified. Owns extraction, evidence-ID and confidence gates,
+  critical-field reviewer, photo classification and JSONL metrics. Its `registry.py` is the single source of document fields.
+- `backend/core/` – host: chat, evidence IDs, persistence, edit locks, status flow, schedule maths, weather, export, rule fallback.
+- `backend/core/llm_bridge.py` – the only place where host and package meet.
+- Every source gets an evidence ID: `msg-…` (chat), `mail-…`, `photo-…`, `sched-…`, `gutachten-14` (page-tagged client document).
+
+## Site twin (2D plan / 3D isometric)
+Tab "Site twin": a Three.js engineering site plan (`frontend/js/site3d.js`, layout + data from `backend/core/site_twin.py`).
+- Layout in `backend/data/site_layout.json` (edit via "Layout"): boundary, zones (linked to schedule activities), roads, gates,
+  structures. Metres relative to `origin`; points may also be given as `{lat, lon}`. `origin: null` = relative coordinates only.
+- Photos with EXIF/user GPS are positioned automatically. Photos without GPS sit in a "no GPS" strip until placed by click;
+  a second click sets the camera direction. The site-default GPS fallback is never shown as a real position.
+- Detected objects: confidences from the stored detector output. Their plan position is estimated (pinhole model from
+  box column/height + camera direction) or drawn next to the camera when no direction is known; the UI says which.
+- Structures show progress from the progress log (piles done/current, abutment height, cap beam length).
+- API: `GET /api/site/twin`, `GET|PUT /api/site/layout`, `POST /api/site/layout/reset`, `PATCH /api/photos/{id}` with `site_xy`, `heading`, `zone`.
+
+## Human in control
+- Every field has a source (message quote, answer, photo, schedule, weather) or stays empty and triggers a follow-up question.
+- Status Draft → Checked → Sent only by the user's click. Editing after Checked drops back to Draft.
+- User edits are locked; later AI input appears as a proposal. Edit log with undo.
+- E-mails, phone numbers and IBANs are masked before any LLM call.
+- Formal completeness checklist only, no legal advice.
+
+## Demo script ("a day in the life")
+1. Assistant: tap "Rock at pile 7" → Mehrkostenanzeige draft, answer the follow-up question, "Also draft Behinderungsanzeige".
+2. Tap a field's "source" to show the quote. Edit a field, show lock + edit log + undo.
+3. Summaries: sample email → masked contact data, open item, "Draft Mehrkostenanzeige from this" merges into the pile 7 draft as proposals.
+4. Plan vs actual: piles red (3 days) → "Draft Behinderungsanzeige"; frost warning if the forecast is cold.
+5. Diary note, then "daily report" → Bautagesbericht with weather, plan status, photos, notices.
+6. Mark as checked → Word / PDF export with photos and evidence appendix.

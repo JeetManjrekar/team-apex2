@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nachweis · AI Site Manager</title>
+<meta name="theme-color" content="#06080e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Cpath d=%22M4 36 L24 8 L44 36Z%22 fill=%22%23ff6a2b%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+<script src="config.js"></script></head><body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div><div class="gridbg" aria-hidden="true"></div>
+<div id="splash" hidden><div class="gridbg"></div><div class="sp-ring"></div><div class="sp-ring r2"></div><div class="sp-ring r3"></div>
+  <div class="sp-core"><svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 36 L24 8 L44 36" stroke="#ff6a2b" stroke-width="3.2"/><line class="d2" x1="4" y1="36" x2="44" y2="36" stroke="#22d3ee" stroke-width="3.2"/><polyline class="d3" points="12,36 12,26 24,20 36,26 36,36" stroke="#e9edf5" stroke-width="2.2"/></svg><div class="sp-word" id="spWord"></div><div class="sp-sub">AI Site Manager · Digital Twin</div>
+  <div class="sp-bar"><i id="spBar"></i></div><div class="sp-status" id="spStatus"></div></div><div class="sp-skip">click to skip</div></div>
+<div id="lowerThird" aria-live="polite"><div class="lt-box"><div class="lt-kicker" id="ltK"></div><div class="lt-title" id="ltT"></div><div class="lt-text" id="ltX"></div><div class="lt-progress"><i id="ltP"></i></div></div></div>
+<header>
+  <div class="brand"><svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 36 L24 8 L44 36" stroke="#ff6a2b" stroke-width="3.2"/><line class="d2" x1="4" y1="36" x2="44" y2="36" stroke="#22d3ee" stroke-width="3.2"/><polyline class="d3" points="12,36 12,26 24,20 36,26 36,36" stroke="#e9edf5" stroke-width="2.2"/></svg><h1>Nachweis <small>· AI Site Manager</small></h1></div><span class="mut" id="site"></span><span class="sp"></span>
+  <span id="b-llm" class="badge"></span><span id="b-rf" class="badge"></span>
+  <button class="s auto" id="autoBtn" title="Hands-free walkthrough of the app (any click or key stops it)">▶ Autopilot</button>
+  <button class="s" id="demoBtn" title="Loads the fictional bridge schedule">Load demo data</button>
+  <button class="s" id="resetBtn" title="Clears chat, documents and notes. Photos stay.">Reset demo</button>
+</header>
+<nav id="nav"><span class="ind"></span>
+  <button data-t="assist" class="on">Assistant<kbd>1</kbd></button><button data-t="docs">Documents<kbd>2</kbd></button><button data-t="plan">Plan vs actual<kbd>3</kbd></button>
+  <button data-t="sum">Summaries<kbd>4</kbd></button><button data-t="photos">Photos<kbd>5</kbd></button><button data-t="twin">Site twin<kbd>6</kbd></button><button data-t="mapt">Map<kbd>7</kbd></button><button data-t="live">Live camera<kbd>8</kbd></button><button data-t="metrics">Metrics<kbd>9</kbd></button>
+</nav>
+<main>
+<section id="assist" class="tab on"><div class="two">
+  <div class="card" id="chat">
+    <div id="msgs"></div>
+    <div class="chips" id="demoChips"></div>
+    <div class="inbar">
+      <input type="file" id="chatPhotos" accept="image/*" multiple hidden>
+      <button title="Add photos" onclick="chatPhotos.click()">📷</button>
+      <button id="mic" title="Dictate (Chrome speech recognition)">🎤</button>
+      <select id="lang" title="Dictation language"><option value="de-DE">DE</option><option value="en-US">EN</option></select>
+      <textarea id="inp" placeholder="Type or dictate, e.g. „Bagger steht seit 10 Uhr an Widerlager Süd, weil Bewehrungspläne fehlen“"></textarea>
+      <button class="p" id="send">Send</button>
+    </div>
+  </div>
+  <div class="card pad" id="assistDoc"><div class="empty">Drafts appear here. Every field shows where it came from. Nothing is sent without your click.</div></div>
+</div></section>
+
+<section id="docs" class="tab"><div class="two">
+  <div class="card"><div class="pad row" style="align-items:center"><b style="flex:0">Documents</b>
+    <select id="newType" style="flex:1"></select><button id="newDoc" style="flex:0">New</button><button id="dailyBtn" style="flex:0" class="p">Daily report</button></div>
+    <ul class="dl" id="docList"></ul></div>
+  <div class="card pad" id="docView"><div class="empty">Select a document.</div></div>
+</div></section>
+
+<section id="plan" class="tab">
+  <div class="card pad"><div class="row" style="align-items:center"><b style="flex:2">Plan vs actual <span class="mut" id="asof"></span></b><span class="mut" id="wx" style="flex:3"></span></div>
+    <div id="alerts"></div><table class="t" id="actTable"></table></div>
+  <div class="card pad" style="margin-top:12px"><b>Report progress</b>
+    <div class="row" style="margin-top:8px"><input type="date" id="pDate"><select id="pAct"></select><input type="number" step="0.5" id="pQty" placeholder="Quantity">
+    <input id="pNote" placeholder="Note (e.g. Pfahl 7)" style="flex:2"><button class="p" id="pAdd" style="flex:0">Add</button></div></div>
+</section>
+
+<section id="sum" class="tab"><div class="two">
+  <div class="card pad"><b>Minutes, diary or email</b>
+    <textarea id="sumText" style="height:340px;margin:8px 0" placeholder="Paste meeting minutes, site diary entries or an email"></textarea>
+    <div class="row"><button id="sMin">Sample minutes</button><button id="sMail">Sample email</button><button class="p" id="sGo">Summarize</button></div>
+    <p class="mut">E-mail addresses, phone numbers and IBANs are masked before any AI call.</p></div>
+  <div class="card pad" id="sumOut"><div class="empty">Open items with owner and deadline appear here.</div></div>
+</div></section>
+
+<section id="photos" class="tab">
+  <div class="row" style="margin:6px 0 10px"><div class="chips" id="cats" style="border:0;padding:0;flex:4"></div>
+    <input id="up" type="file" accept="image/*" multiple hidden><button class="p" style="flex:0" onclick="up.click()">Upload photos</button>
+    <a id="reportLink" href="/api/report" style="flex:0"><button>Photo report (Word)</button></a></div>
+  <div class="grid" id="grid"></div>
+</section>
+<section id="twin" class="tab"><div class="tw">
+  <div class="tw-stage card"><div id="twCanvas"></div>
+    <div class="tw-bar">
+      <div class="seg" id="twMode"><button data-mode="2d" class="on">2D plan</button><button data-mode="3d">3D isometric</button></div>
+      <label><input type="checkbox" id="twDet" checked>AI detections</label><label class="opt"><input type="checkbox" id="twLbl" checked>Labels</label>
+      <label><input type="checkbox" id="twPho" checked>Photos</label><label class="opt"><input type="checkbox" id="twZon" checked>Zones</label>
+      <label class="opt" title="Hide detections below this model confidence">Min conf <input type="range" id="twConf" min="0" max="100" value="0"><span id="twConfV">0%</span></label>
+      <button class="s tour" id="twTour" title="Automated camera tour of the site from the live data">▶ Tour</button><button class="s" id="twReset">Reset</button><button class="s" id="twLayout">Layout</button>
+    </div>
+        <svg class="tw-north" id="twNorth" viewBox="0 0 40 52"><polygon points="20,4 30,32 20,26 10,32" fill="#22d3ee"/><polygon points="20,4 10,32 20,26" fill="#0b1630" stroke="#22d3ee" stroke-width="1.2"/><text x="20" y="48" text-anchor="middle" font-size="13" font-weight="800" fill="#e9edf5">N</text></svg>
+    <div class="tw-scale" id="twScale"><div id="twScaleBar"></div><span id="twScaleTxt"></span></div>
+    <details class="tw-legend" id="twLegend"></details><div class="tw-help" id="twHelp"><b id="twCount"></b> · <span id="twHelpTxt"></span></div>
+    <div class="tw-hint" id="twHint"></div><div class="tw-tip" id="twTip"></div>
+  </div>
+  <aside class="tw-side card" id="twSide"><div class="pad mut">Loading site plan…</div></aside>
+</div>
+<dialog id="twDlg"><b>Site layout (JSON)</b>
+  <p class="mut">Coordinates in metres: x = east, y = north, relative to <code>origin</code>. Any point may instead be written as <code>{"lat": 48.1501, "lon": 11.5802}</code> when an origin is set.
+  Set <code>origin</code> to <code>null</code> for a site without GPS/survey data. Zones: <code>polygon</code>, <code>activities</code> (schedule IDs). Structure kinds: container, stockpile, crane, pile_row, beam, abutment, deck, heap, box.</p>
+  <textarea id="twLayTxt" spellcheck="false"></textarea><p id="twLayErr" style="color:var(--bad)"></p>
+  <div class="row" style="display:flex;gap:8px;justify-content:flex-end"><button id="twLayReset">Reset to default</button><button id="twLayCancel">Cancel</button><button class="p" id="twLaySave">Save layout</button></div>
+</dialog></section>
+<section id="mapt" class="tab"><p class="mut" id="siteinfo"></p><div id="mapbox"></div></section>
+<section id="live" class="tab"><p class="mut">Webcam frames go to the Roboflow model about once a second. Nothing is saved unless you press save.</p>
+  <button id="camBtn" class="p">Start camera</button> <button id="snap" disabled>Save frame to inbox</button> <span id="liveinfo" class="mut"></span>
+  <div class="live" style="margin-top:10px"><video id="vid" playsinline muted></video><canvas id="ov"></canvas></div></section>
+<section id="metrics" class="tab"><div class="card pad"><div class="row" style="align-items:center"><b style="flex:3">Measured pipeline metrics</b>
+  <span class="mut" id="mfile" style="flex:4"></span><button id="mRefresh" style="flex:0">Refresh</button></div>
+  <p class="mut">One JSON line per stage (nachweis_llm MetricsRecorder). Only these measured numbers belong in the pitch.</p>
+  <table class="t" id="mTable"></table><details><summary>Last 20 entries</summary><div class="log" id="mRecent" style="max-height:320px"></div></details></div></section>
+</main>
+<dialog id="dlg"><div class="dr"><img id="dimg"><canvas id="dcv"></canvas></div><div style="padding:14px" id="dinfo"></div></dialog>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="js/app.js"></script>
+<script src="js/fx.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+<script>
+// Site twin loader: surface failures instead of spinning forever
+window.addEventListener("error",e=>{if(String(e.filename||"").includes("site3d")||String(e.filename||"").includes("/vendor/three"))twinFail(e.message)});
+function twinFail(msg){const el=document.getElementById("twSide");if(el)el.innerHTML='<div class="pad"><b style="color:var(--bad)">Site twin could not start</b><p class="mut">'+String(msg).replace(/</g,"&lt;")+'</p><p class="mut">Try a hard reload (Cmd+Shift+R). If the browser translates this page, switch translation off for this tab. Details in the browser console.</p></div>'}
+</script>
+<script type="module" src="js/site3d.js?v=5" onerror="twinFail('site3d.js failed to load')"></script>
+</body></html>

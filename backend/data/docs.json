@@ -1,0 +1,944 @@
+[
+  {
+    "id": "d4df1453",
+    "type": "bautagesbericht",
+    "title": "Bautagesbericht",
+    "status": "sent",
+    "origin": "daily",
+    "created_at": "2026-11-21T01:13:31",
+    "updated_at": "2026-11-21T01:13:36",
+    "date": "2026-11-21",
+    "fields": {
+      "date": {
+        "value": "21.11.2026",
+        "source": {
+          "type": "timestamp",
+          "evidence_id": null,
+          "locator": "Berichtstag",
+          "quote": "2026-11-21"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 1.0,
+        "proposal": null
+      },
+      "weather": {
+        "value": "Regenschauer, Niederschlag 2.9 mm, Wind bis 32 km/h",
+        "source": {
+          "type": "weather",
+          "evidence_id": "weather-api",
+          "locator": "Open-Meteo 2026-11-21",
+          "quote": "Regenschauer, 4 bis 8 °C, Niederschlag 2.9 mm, Wind bis 32 km/h"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "temperature": {
+        "value": "4 bis 8 °C",
+        "source": {
+          "type": "weather",
+          "evidence_id": "weather-api",
+          "locator": "Open-Meteo 2026-11-21",
+          "quote": "Regenschauer, 4 bis 8 °C, Niederschlag 2.9 mm, Wind bis 32 km/h"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "staff_by_company_trade": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "equipment": {
+        "value": "dump_truck (auf 5 Fotos), excavator (auf 5 Fotos)",
+        "source": {
+          "type": "photo",
+          "evidence_id": "photo-ecae8902,photo-07179547,photo-1c92357b,photo-6342cd1c,photo-a7b1a4f1",
+          "locator": "Objekterkennung (Roboflow)",
+          "quote": "Erkennung auf Fotos von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "work_performed": {
+        "value": "Hey what can you do for me\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
+        "source": {
+          "type": "diary",
+          "evidence_id": "msg-0c39735e",
+          "locator": "Bautagebuch und Bauzeitenplan",
+          "quote": "Einträge und Leistungsmeldungen von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "deliveries": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "visits_inspections": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "obstructions_incidents": {
+        "value": "Bohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -2 °C.",
+        "source": {
+          "type": "documents",
+          "evidence_id": null,
+          "locator": "Anzeigen von heute und Soll-Ist-Vergleich",
+          "quote": "0 Anzeige(n), 4 Warnung(en)"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "instructions": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "photo_captions": {
+        "value": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety",
+        "source": {
+          "type": "photo",
+          "evidence_id": null,
+          "locator": "Fotoablage",
+          "quote": "5 Fotos von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "signature": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      }
+    },
+    "photos": [
+      "ecae8902",
+      "07179547",
+      "1c92357b",
+      "6342cd1c",
+      "a7b1a4f1"
+    ],
+    "log": [
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "date",
+        "old": "",
+        "new": "21.11.2026",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "weather",
+        "old": "",
+        "new": "Regenschauer, Niederschlag 2.9 mm, Wind bis 32 km/h",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "temperature",
+        "old": "",
+        "new": "4 bis 8 °C",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "equipment",
+        "old": "",
+        "new": "dump_truck (auf 5 Fotos), excavator (auf 5 Fotos)",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "work_performed",
+        "old": "",
+        "new": "Hey what can you do for me\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "obstructions_incidents",
+        "old": "",
+        "new": "Bohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -2 °C.",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:31",
+        "by": "ai",
+        "kind": "edit",
+        "field": "photo_captions",
+        "old": "",
+        "new": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:13:35",
+        "by": "user",
+        "kind": "status",
+        "old": "draft",
+        "new": "checked"
+      },
+      {
+        "at": "2026-11-21T01:13:36",
+        "by": "user",
+        "kind": "status",
+        "old": "checked",
+        "new": "sent"
+      }
+    ],
+    "checked_by": "Bauleitung",
+    "checked_at": "2026-11-21T01:13:35",
+    "sent_at": "2026-11-21T01:13:36"
+  },
+  {
+    "id": "2fcc6096",
+    "type": "nachtragsmeldung",
+    "title": "Nachtragsmeldung",
+    "status": "draft",
+    "origin": "chat",
+    "created_at": "2026-11-21T01:17:28",
+    "updated_at": "2026-11-21T01:17:28",
+    "date": "2026-11-21",
+    "fields": {
+      "project": {
+        "value": "Fictional road bridge",
+        "source": {
+          "type": "project",
+          "evidence_id": null,
+          "locator": "Projektstammdaten",
+          "quote": "Fictional road bridge"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 1.0,
+        "proposal": null
+      },
+      "location": {
+        "value": "Bohrpfahl 7",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Bohrpfahl 7"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "event_datetime": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "description": {
+        "value": "Bohrpfahl 7: bei 4 m auf Fels gestoßen",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Bohrpfahl 7: bei 4 m auf Fels gestoßen"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "instruction_by": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "instruction_datetime": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "tender_reference": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "staff_hours": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "equipment": {
+        "value": "Bohrgerät",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Bohrgerät"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "material": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "expected_ground": {
+        "value": "laut Baugrundgutachten erst ab 9 m erwartet",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "laut Baugrundgutachten erst ab 9 m erwartet"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "expected_ground_page": {
+        "value": "Baugrundgutachten BW 7, Seite 14",
+        "source": {
+          "type": "document",
+          "evidence_id": "gutachten-14",
+          "locator": "Baugrundgutachten BW 7, Seite 14",
+          "quote": "Bohrung BK 3 (Achse 10): 0,0 bis ca. 9,2 m unter GOK Sand und Kies, mitteldicht gelagert; ab ca. 9,2 m Kalkstein (Fels), angewittert."
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "found_ground": {
+        "value": "Bohrpfahl 7: bei 4 m auf Fels gestoßen",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Bohrpfahl 7: bei 4 m auf Fels gestoßen"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "drilling_times": {
+        "value": "Bohrzeit 6 Stunden statt 2",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-4fe50c62",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Bohrzeit 6 Stunden statt 2"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "drilling_log": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "related_instruction": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "photo_evidence": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      }
+    },
+    "photos": [],
+    "log": [
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "location",
+        "old": "",
+        "new": "Bohrpfahl 7",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "description",
+        "old": "",
+        "new": "Bohrpfahl 7: bei 4 m auf Fels gestoßen",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "expected_ground",
+        "old": "",
+        "new": "laut Baugrundgutachten erst ab 9 m erwartet",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "found_ground",
+        "old": "",
+        "new": "Bohrpfahl 7: bei 4 m auf Fels gestoßen",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "drilling_times",
+        "old": "",
+        "new": "Bohrzeit 6 Stunden statt 2",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "equipment",
+        "old": "",
+        "new": "Bohrgerät",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "expected_ground_page",
+        "old": "",
+        "new": "Baugrundgutachten BW 7, Seite 14",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:28",
+        "by": "ai",
+        "kind": "edit",
+        "field": "project",
+        "old": "",
+        "new": "Fictional road bridge",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      }
+    ],
+    "checked_by": null,
+    "checked_at": null,
+    "sent_at": null,
+    "extraction_mode": "rules"
+  },
+  {
+    "id": "ac4cff69",
+    "type": "maengelanzeige",
+    "title": "Mängelanzeige",
+    "status": "draft",
+    "origin": "chat",
+    "created_at": "2026-11-21T01:17:34",
+    "updated_at": "2026-11-21T01:18:11",
+    "date": "2026-11-21",
+    "fields": {
+      "project": {
+        "value": "Fictional road bridge",
+        "source": {
+          "type": "project",
+          "evidence_id": null,
+          "locator": "Projektstammdaten",
+          "quote": "Fictional road bridge"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 1.0,
+        "proposal": null
+      },
+      "location": {
+        "value": "pier 2",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-d00a8766",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "pier 2"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "event_datetime": {
+        "value": "my name is Jeet I am from what can you do for me",
+        "source": {
+          "type": "answer",
+          "evidence_id": "msg-32c19695",
+          "locator": "Antwort im Chat 01:18",
+          "quote": "my name is Jeet I am from what can you do for me"
+        },
+        "by": "user",
+        "locked": true,
+        "confidence": null,
+        "proposal": null
+      },
+      "defect_description": {
+        "value": "Crack in the formwork at pier 2",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-d00a8766",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "Crack in the formwork at pier 2"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "affected_trade": {
+        "value": "formwork",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-d00a8766",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "formwork"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.6,
+        "proposal": null
+      },
+      "responsible_party": {
+        "value": "Müller Bau",
+        "source": {
+          "type": "message",
+          "evidence_id": "msg-d00a8766",
+          "locator": "Chat-Nachricht 01:17",
+          "quote": "subcontractor Müller Bau"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "evidence": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "measure_taken": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      }
+    },
+    "photos": [],
+    "log": [
+      {
+        "at": "2026-11-21T01:17:34",
+        "by": "ai",
+        "kind": "edit",
+        "field": "location",
+        "old": "",
+        "new": "pier 2",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:34",
+        "by": "ai",
+        "kind": "edit",
+        "field": "defect_description",
+        "old": "",
+        "new": "Crack in the formwork at pier 2",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:34",
+        "by": "ai",
+        "kind": "edit",
+        "field": "responsible_party",
+        "old": "",
+        "new": "Müller Bau",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:34",
+        "by": "ai",
+        "kind": "edit",
+        "field": "affected_trade",
+        "old": "",
+        "new": "formwork",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:17:34",
+        "by": "ai",
+        "kind": "edit",
+        "field": "project",
+        "old": "",
+        "new": "Fictional road bridge",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T01:18:11",
+        "by": "user",
+        "kind": "edit",
+        "field": "event_datetime",
+        "old": "",
+        "new": "my name is Jeet I am from what can you do for me",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      }
+    ],
+    "checked_by": null,
+    "checked_at": null,
+    "sent_at": null,
+    "extraction_mode": "rules"
+  },
+  {
+    "id": "012b089b",
+    "type": "bautagesbericht",
+    "title": "Bautagesbericht",
+    "status": "draft",
+    "origin": "daily",
+    "created_at": "2026-11-21T11:42:53",
+    "updated_at": "2026-11-21T11:42:53",
+    "date": "2026-11-21",
+    "fields": {
+      "date": {
+        "value": "21.11.2026",
+        "source": {
+          "type": "timestamp",
+          "evidence_id": null,
+          "locator": "Berichtstag",
+          "quote": "2026-11-21"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 1.0,
+        "proposal": null
+      },
+      "weather": {
+        "value": "Regenschauer, Niederschlag 3.4 mm, Wind bis 32 km/h",
+        "source": {
+          "type": "weather",
+          "evidence_id": "weather-api",
+          "locator": "Open-Meteo 2026-11-21",
+          "quote": "Regenschauer, 4 bis 9 °C, Niederschlag 3.4 mm, Wind bis 32 km/h"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "temperature": {
+        "value": "4 bis 9 °C",
+        "source": {
+          "type": "weather",
+          "evidence_id": "weather-api",
+          "locator": "Open-Meteo 2026-11-21",
+          "quote": "Regenschauer, 4 bis 9 °C, Niederschlag 3.4 mm, Wind bis 32 km/h"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.9,
+        "proposal": null
+      },
+      "staff_by_company_trade": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "equipment": {
+        "value": "dump_truck (auf 7 Fotos), excavator (auf 7 Fotos)",
+        "source": {
+          "type": "photo",
+          "evidence_id": "photo-ecae8902,photo-07179547,photo-1c92357b,photo-6342cd1c,photo-a7b1a4f1,photo-4d007fe8,photo-8d694186",
+          "locator": "Objekterkennung (Roboflow)",
+          "quote": "Erkennung auf Fotos von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.7,
+        "proposal": null
+      },
+      "work_performed": {
+        "value": "Hey what can you do for me\nBetonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle\nmy name is Jeet I am from what can you do for me language\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
+        "source": {
+          "type": "diary",
+          "evidence_id": "msg-0c39735e,msg-209bfb7d,msg-4886dd8b",
+          "locator": "Bautagebuch und Bauzeitenplan",
+          "quote": "Einträge und Leistungsmeldungen von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "deliveries": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "visits_inspections": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "obstructions_incidents": {
+        "value": "Nachtragsmeldung: Bohrpfahl 7\nMängelanzeige: pier 2\nBohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -4 °C.",
+        "source": {
+          "type": "documents",
+          "evidence_id": null,
+          "locator": "Anzeigen von heute und Soll-Ist-Vergleich",
+          "quote": "2 Anzeige(n), 4 Warnung(en)"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "instructions": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      },
+      "photo_captions": {
+        "value": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety\noriginal (3).jpg (01:18): progress\noriginal (1).jpg (01:18): progress",
+        "source": {
+          "type": "photo",
+          "evidence_id": null,
+          "locator": "Fotoablage",
+          "quote": "7 Fotos von heute"
+        },
+        "by": "ai",
+        "locked": false,
+        "confidence": 0.8,
+        "proposal": null
+      },
+      "signature": {
+        "value": "",
+        "source": null,
+        "by": null,
+        "locked": false,
+        "confidence": null,
+        "proposal": null
+      }
+    },
+    "photos": [
+      "ecae8902",
+      "07179547",
+      "1c92357b",
+      "6342cd1c",
+      "a7b1a4f1",
+      "4d007fe8",
+      "8d694186"
+    ],
+    "log": [
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "date",
+        "old": "",
+        "new": "21.11.2026",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "weather",
+        "old": "",
+        "new": "Regenschauer, Niederschlag 3.4 mm, Wind bis 32 km/h",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "temperature",
+        "old": "",
+        "new": "4 bis 9 °C",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "equipment",
+        "old": "",
+        "new": "dump_truck (auf 7 Fotos), excavator (auf 7 Fotos)",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "work_performed",
+        "old": "",
+        "new": "Hey what can you do for me\nBetonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle\nmy name is Jeet I am from what can you do for me language\nLeistungsstand Bohrpfähle Achse 10: Ist 6 / Soll 9 Stk\nLeistungsstand Bewehrung Pfahlkopfbalken: Ist 3 / Soll 4.5 t\nLeistungsstand Schalung Widerlager Süd: Ist 70 / Soll 100 m²",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "obstructions_incidents",
+        "old": "",
+        "new": "Nachtragsmeldung: Bohrpfahl 7\nMängelanzeige: pier 2\nBohrpfähle Achse 10: 3.0 Arbeitstage Verzug (Soll 9 Stk, Ist 6 Stk).\nBewehrung Pfahlkopfbalken: 1.0 Tage hinter Plan. Beobachten.\nSchalung Widerlager Süd: 1.5 Tage hinter Plan. Beobachten.\nFrostgefahr: Betonage Pfahlkopfbalken geplant 2026-11-26 bis 2026-11-28, Prognose am 2026-11-26 Tmin -4 °C.",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      },
+      {
+        "at": "2026-11-21T11:42:53",
+        "by": "ai",
+        "kind": "edit",
+        "field": "photo_captions",
+        "old": "",
+        "new": "original (1).jpg (00:06): progress\noriginal (2).jpg (00:06): progress\noriginal (3).jpg (00:06): progress\noriginal.jpg (00:06): progress\noriginal (2).jpg (00:29): safety\noriginal (3).jpg (01:18): progress\noriginal (1).jpg (01:18): progress",
+        "old_source": null,
+        "old_by": null,
+        "old_locked": false
+      }
+    ],
+    "checked_by": null,
+    "checked_at": null,
+    "sent_at": null
+  }
+]
