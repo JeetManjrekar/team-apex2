@@ -286,7 +286,7 @@
     const nProj = projects(plan, data.zones).length;
     root.classList.toggle("show-src", showSrc);
     const html = `
-      <div class="card db-head db-proj"><div class="db-proj-h"><span class="gl-logo">N</span><b class="db-proj-title">${L("Project progress", "Projektfortschritt")}</b><span class="sp"></span>
+      <div class="card db-head db-proj"><div class="db-proj-h"><span class="gl-logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="d1" d="M12 17C12 10.4 17.4 6 24 6s12 4.4 12 11M7 17h34M24 6v5" stroke-width="3.4"/><path class="d2" d="M9 22h30a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H20l-7 6v-6H9a3 3 0 0 1-3-3V25a3 3 0 0 1 3-3z" stroke-width="2.6"/><polyline class="d3" points="17,30 22,34.5 31,26" stroke-width="3.4"/></svg></span><b class="db-proj-title">${L("Project progress", "Projektfortschritt")}</b><span class="sp"></span>
         ${nProj > 1 ? `<div class="db-pmode" role="tablist"><button data-pmode="one" class="${pMode === "one" ? "on" : ""}">${L("One", "Eins")}</button><button data-pmode="all" class="${pMode === "all" ? "on" : ""}">${L("All", "Alle")} ${nProj}</button></div>` : ""}
         <span class="db-pill db-live"><i></i>${lastAt.toLocaleTimeString(DE ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
         <button class="s" data-db="refresh" title="${L("Refresh", "Aktualisieren")}" aria-label="${L("Refresh", "Aktualisieren")}">↻</button>

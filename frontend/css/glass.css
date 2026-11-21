@@ -1,6 +1,6 @@
 /* =====================================================================
    Team Apex UI layer, additive only
-   Nachweis glass theme: dark "Graphite" is the default, light "Frost" via [data-theme="light"].
+   BauBuddy glass theme: dark "Graphite" is the default, light "Frost" via [data-theme="light"].
    Loaded after css/app.css. Overrides by cascade and variable re-mapping; app.css stays untouched.
    The demo's own transitions (tab view transitions, staggered reveal, sliding nav indicator, splash,
    photo tilt, pointer reflection) are kept; only looping background effects are switched off.
@@ -19,9 +19,9 @@
   /* text */
   --ink: #f2f4f8; --mut: #9aa3b3;
   /* accent + states */
-  --acc: #ffcc00; --acc-ink: #1b1b1b; --acc-shadow: 0 6px 16px rgba(255,190,0,.32);
-  --acc-glass: linear-gradient(135deg,rgba(255,220,77,.96),rgba(255,196,0,.92));
-  --ok: #3ddc84; --warn: #ffb020; --bad: #ff5a6e;
+  --acc: #ff7a00; --acc-ink: #1b1b1b; --acc-shadow: 0 6px 16px rgba(240,100,0,.32);
+  --acc-glass: linear-gradient(135deg,rgba(255,150,60,.96),rgba(255,110,0,.92));
+  --ok: #3ddc84; --warn: #ff9a1f; --bad: #ff5a6e;
   /* status */
   --st-draft-bg: rgba(154,163,179,.2);  --st-draft: #c3cad6;
   --st-checked-bg: rgba(61,220,132,.16); --st-checked: #3ddc84;
@@ -32,15 +32,15 @@
   /* app.css variables mapped onto the tokens */
   --bg2: #14161c; --card: var(--glass); --card2: rgba(255,255,255,.04);
   --line: var(--hair); --line2: rgba(255,255,255,.16);
-  --acc2: #9aa3b3; --acc3: #9aa3b3; --accs: rgba(255,204,0,.16);
+  --acc2: #9aa3b3; --acc3: #9aa3b3; --accs: rgba(255,122,0,.16);
   /* helpers */
   --field: rgba(255,255,255,.06); --field-hover: rgba(255,255,255,.1); --row: rgba(255,255,255,.05);
-  --focus: 0 0 0 3px rgba(255,204,0,.45);
-  --ok-bg: rgba(61,220,132,.10); --warn-bg: rgba(255,176,32,.10); --bad-bg: rgba(255,90,110,.10);
-  --hover-tint: rgba(255,204,0,.14);
+  --focus: 0 0 0 3px rgba(255,122,0,.45);
+  --ok-bg: rgba(61,220,132,.10); --warn-bg: rgba(255,154,31,.10); --bad-bg: rgba(255,90,110,.10);
+  --hover-tint: rgba(255,122,0,.14);
   /* document surface (the draft / "template") */
   --doc-bg: #1b1e25; --doc-row: rgba(255,255,255,.05); --doc-chip: rgba(255,255,255,.07); --doc-line: rgba(255,255,255,.10);
-  --doc-cur: rgba(255,255,255,.14); --doc-quote: rgba(255,255,255,.06); --doc-hint: rgba(255,204,0,.10); --doc-shadow: 0 18px 40px rgba(0,0,0,.4);
+  --doc-cur: rgba(255,255,255,.14); --doc-quote: rgba(255,255,255,.06); --doc-hint: rgba(255,122,0,.10); --doc-shadow: 0 18px 40px rgba(0,0,0,.4);
   color-scheme: dark;
 }
 :root[data-theme="light"]{
@@ -57,7 +57,7 @@
   --bg2: #eef1f4; --card2: rgba(255,255,255,.5); --line2: rgba(20,24,33,.14); --acc2: #5d6575; --acc3: #5d6575;
   --field: rgba(255,255,255,.72); --field-hover: #fff; --row: rgba(255,255,255,.62);
   --ok-bg: rgba(31,157,85,.10); --warn-bg: rgba(217,119,6,.09); --bad-bg: rgba(217,56,72,.08);
-  --hover-tint: rgba(255,204,0,.22);
+  --hover-tint: rgba(255,122,0,.22);
   --doc-bg: #ffffff; --doc-row: #f4f6f8; --doc-chip: #ffffff; --doc-line: rgba(20,24,33,.10);
   --doc-cur: #ffffff; --doc-quote: #f4f5f7; --doc-hint: #fffbea; --doc-shadow: 0 18px 40px rgba(20,30,50,.12);
   color-scheme: light;
@@ -67,7 +67,7 @@
 html,body{background:var(--bg) fixed;background-color:var(--bg2)}
 html{min-height:100%}
 body{font:15px/1.5 var(--font);color:var(--ink);letter-spacing:-.003em}
-::selection{background:rgba(255,204,0,.45);color:#111}
+::selection{background:rgba(255,122,0,.45);color:#111}
 a{color:inherit}
 code{background:var(--hair);color:var(--mut)}
 svg{flex:none}
@@ -80,15 +80,18 @@ h1{animation:none;background:none;-webkit-background-clip:border-box;background-
 .dot.red,.lt-kicker::before{animation:none}
 .card::after{display:none}
 button.p::after{display:none}
-body.autopilot::after{box-shadow:inset 0 0 0 2px rgba(255,204,0,.55),inset 0 0 120px rgba(255,204,0,.06)}
+body.autopilot::after{box-shadow:inset 0 0 0 2px rgba(255,122,0,.55),inset 0 0 120px rgba(255,122,0,.06)}
 /* splash in the platform palette */
 #splash{background:radial-gradient(ellipse at 50% 40%,#232833,#0d0e12 70%)}
 #splash .sp-core svg path{stroke:var(--acc)}
 #splash .sp-core svg line{stroke:#f2f4f8}
 #splash .sp-core svg polyline{stroke:#9aa3b3}
-#splash .sp-bar i{background:var(--acc);box-shadow:0 0 14px rgba(255,204,0,.6)}
-#splash .sp-ring{border-color:rgba(255,204,0,.14)}
+#splash .sp-bar i{background:var(--acc);box-shadow:0 0 14px rgba(255,122,0,.6)}
+#splash .sp-ring{border-color:rgba(255,122,0,.14)}
 #splash .sp-status{color:#9aa3b3}
+/* BauBuddy mark in the splash: orange hat + check, light bubble (overrides the element rules above) */
+#splash .sp-core svg .d1,#splash .sp-core svg .d3{stroke:var(--acc)}
+#splash .sp-core svg .d2{stroke:#f2f4f8}
 @media (prefers-reduced-motion:reduce){.gl-spin{animation:none!important}}
 
 /* ---------- 4. glass primitive ---------- */
@@ -105,6 +108,9 @@ header{background:var(--glass-strong);backdrop-filter:var(--blur);-webkit-backdr
 .brand svg{display:none}
 .gl-logo{width:34px;height:34px;border-radius:10px;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;
   font-weight:800;font-size:17px;box-shadow:var(--acc-shadow);flex:none}
+.gl-logo svg{display:block!important;width:74%;height:74%;filter:none}
+.brand .bb{color:var(--acc)}
+:root[data-theme="light"] .brand .bb{color:#c2410c}
 h1{font-size:18px;font-weight:700;white-space:nowrap}
 h1 small{display:none}
 #site{color:var(--mut);font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -117,20 +123,20 @@ button.auto{background:var(--chip);color:var(--mut);border-color:var(--hair);fon
 button.auto.on{background:var(--acc-glass);color:var(--acc-ink);box-shadow:var(--acc-shadow)}
 .gl-hbtn{width:40px;height:40px;min-width:40px;padding:0;display:grid;place-items:center;border-radius:12px;font-size:17px;flex:none}
 .gl-hbtn svg{width:20px;height:20px}
-/* theme switch: yellow glass with a light flash on click */
-#glTheme{position:relative;overflow:hidden;border-radius:50%;color:#ffd84d;
-  background:radial-gradient(120% 120% at 30% 20%,rgba(255,236,150,.38),rgba(255,204,0,.16) 55%,rgba(255,204,0,.08));
-  border:1px solid rgba(255,204,0,.55);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 14px rgba(255,190,0,.22);transition:transform .18s,box-shadow .25s,background .25s}
-:root[data-theme="light"] #glTheme{color:#a87b00;background:radial-gradient(120% 120% at 30% 20%,rgba(255,240,170,.9),rgba(255,214,51,.55) 60%,rgba(255,204,0,.35))}
-#glTheme:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 20px rgba(255,190,0,.38)}
+/* theme switch: orange glass with a light flash on click */
+#glTheme{position:relative;overflow:hidden;border-radius:50%;color:#ff8f2e;
+  background:radial-gradient(120% 120% at 30% 20%,rgba(255,190,140,.38),rgba(255,122,0,.16) 55%,rgba(255,122,0,.08));
+  border:1px solid rgba(255,122,0,.55);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 14px rgba(240,100,0,.22);transition:transform .18s,box-shadow .25s,background .25s}
+:root[data-theme="light"] #glTheme{color:#a87b00;background:radial-gradient(120% 120% at 30% 20%,rgba(255,205,160,.9),rgba(255,140,40,.55) 60%,rgba(255,122,0,.35))}
+#glTheme:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 20px rgba(240,100,0,.38)}
 #glTheme::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
-  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.95),rgba(255,230,120,.55) 35%,transparent 70%)}
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.95),rgba(255,175,110,.55) 35%,transparent 70%)}
 #glTheme.gl-flash{animation:glThemePulse .55s ease-out}
 #glTheme.gl-flash::after{animation:glThemeFlash .55s ease-out}
 #glTheme.gl-flash svg{animation:glThemeSpin .55s ease-out}
 @keyframes glThemeFlash{0%{opacity:.95;transform:scale(.3)}100%{opacity:0;transform:scale(1.6)}}
-@keyframes glThemePulse{0%{box-shadow:0 0 0 0 rgba(255,214,51,.7)}100%{box-shadow:0 0 0 14px rgba(255,214,51,0)}}
+@keyframes glThemePulse{0%{box-shadow:0 0 0 0 rgba(255,140,40,.7)}100%{box-shadow:0 0 0 14px rgba(255,140,40,0)}}
 @keyframes glThemeSpin{from{transform:rotate(-90deg) scale(.7)}to{transform:none}}
 .gl-menu{position:relative}
 .gl-pop{position:absolute;right:0;top:calc(100% + 8px);min-width:230px;padding:6px;display:none;flex-direction:column;gap:2px;z-index:1200;
@@ -150,19 +156,19 @@ button,select{border:1px solid var(--hair);background:var(--chip);color:var(--in
   transition:background .18s,border-color .18s,box-shadow .18s,color .18s,transform .25s var(--ease)}
 button:hover{background:var(--field-hover);border-color:var(--line2)}
 button.p{background:var(--acc-glass);color:var(--acc-ink);border-color:transparent;font-weight:650;box-shadow:var(--acc-shadow),inset 0 1px 0 rgba(255,255,255,.45)}
-button.p:hover{background:#ffd633;border-color:transparent}
+button.p:hover{background:#ff8f2e;border-color:transparent}
 button.s{padding:5px 11px;font-size:13px;border-radius:10px}
 button:disabled{opacity:.45}
 select option{background:#23262e;color:#f2f4f8}
 :root[data-theme="light"] select option{background:#fff;color:#16181d}
 input,textarea{background:var(--field);border:1px solid var(--hair);border-radius:12px;color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--mut);opacity:.85}
-input:focus,textarea:focus,select:focus{border-color:#d9a800;box-shadow:var(--focus)}
+input:focus,textarea:focus,select:focus{border-color:#e06a00;box-shadow:var(--focus)}
 button:focus-visible,select:focus-visible,[role=button]:focus-visible{outline:none;box-shadow:var(--focus)}
-input[type=checkbox]{accent-color:#e0b400}input[type=range]{accent-color:#e0b400}
+input[type=checkbox]{accent-color:#ff7a00}input[type=range]{accent-color:#ff7a00}
 details summary{font-size:14px}
 
-/* ---------- 7. navigation: yellow glass indicator slides to the active tab ---------- */
+/* ---------- 7. navigation: orange glass indicator slides to the active tab ---------- */
 nav{background:var(--glass);border:1px solid var(--stroke);box-shadow:var(--shadow);border-radius:16px;padding:5px;gap:4px;
   backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);margin:14px 24px 6px;align-items:center;z-index:900;
   overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;max-width:calc(100% - 48px)}
@@ -192,7 +198,7 @@ main{padding:10px 24px 56px;touch-action:pan-y pinch-zoom}
 #chat{height:calc(100dvh - 160px)}
 #msgs{padding:18px;gap:12px}
 .m{font-size:15px;line-height:1.5;padding:11px 15px;border-radius:18px;max-width:86%}
-.m.user{background:var(--acc-glass);color:var(--acc-ink);border:0;border-bottom-right-radius:6px;box-shadow:0 4px 12px rgba(255,190,0,.22)}
+.m.user{background:var(--acc-glass);color:var(--acc-ink);border:0;border-bottom-right-radius:6px;box-shadow:0 4px 12px rgba(240,100,0,.22)}
 .m.user .t{color:rgba(27,27,27,.6)}
 .m.assistant{background:var(--glass-strong);border:1px solid var(--stroke);border-bottom-left-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
 .m.assistant.err{border-color:var(--bad);color:var(--bad)}
@@ -201,7 +207,7 @@ main{padding:10px 24px 56px;touch-action:pan-y pinch-zoom}
 .m .acts button{background:var(--doc-chip);border-color:var(--doc-line);color:var(--ink);font-size:13.5px;padding:6px 12px;border-radius:var(--r-pill)}
 .chips{border-top:1px solid var(--hair);padding:10px 16px;gap:7px}
 .chip{background:var(--chip);border:1px solid var(--hair);color:var(--ink);font-size:13px;padding:5px 12px}
-.chip:hover{border-color:rgba(255,204,0,.6);background:var(--hover-tint);color:var(--ink)}
+.chip:hover{border-color:rgba(255,122,0,.6);background:var(--hover-tint);color:var(--ink)}
 .chip.on{background:var(--acc-glass);color:var(--acc-ink);border-color:transparent}
 /* document card inside an assistant bubble */
 .gl-doccard{margin-top:10px;padding:12px 14px;border-radius:var(--r-sm);background:var(--doc-bg);color:var(--ink);border:1px solid var(--doc-line);
@@ -223,7 +229,7 @@ main{padding:10px 24px 56px;touch-action:pan-y pinch-zoom}
 .inbar #lang{width:58px;min-width:58px;padding:8px 6px;height:44px;border-radius:12px;font-size:13px;flex:none}
 #mic{width:56px;height:56px;min-width:56px;padding:0;border-radius:50%;background:var(--acc-glass);border:0;color:var(--acc-ink);font-size:22px;
   box-shadow:var(--acc-shadow),inset 0 1px 0 rgba(255,255,255,.5);display:grid;place-items:center;order:10;flex:none}
-#mic:hover{background:#ffd633}
+#mic:hover{background:#ff8f2e}
 #mic.rec{background:var(--bad);color:#fff;box-shadow:0 0 0 5px rgba(217,56,72,.22)}
 #send{height:48px;border-radius:14px;flex:none;order:9}
 #voiceSlot{order:8;flex:none}
@@ -249,7 +255,7 @@ main{padding:10px 24px 56px;touch-action:pan-y pinch-zoom}
 #assistDoc .row button,#docView .row button{padding:9px 18px;font-size:14.5px;border-radius:12px}
 #assistDoc .row a button,#docView .row a button{background:var(--doc-chip);border-color:var(--doc-line);font-weight:600;color:var(--ink)}
 .gl-confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:12px 14px;border-radius:var(--r-sm);
-  background:var(--doc-hint);border:1px solid rgba(224,180,0,.45);font-size:14px;color:var(--ink)}
+  background:var(--doc-hint);border:1px solid rgba(230,110,0,.45);font-size:14px;color:var(--ink)}
 .gl-confirm b{flex:1 1 220px}
 .gl-confirm button{padding:7px 14px}
 .gl-confirm button.gl-yes{background:var(--acc-glass);color:var(--acc-ink);border-color:transparent;font-weight:650}
@@ -259,7 +265,7 @@ main{padding:10px 24px 56px;touch-action:pan-y pinch-zoom}
 .f:hover{border-color:var(--doc-line)}
 .f label{font-size:12.5px;font-weight:600;color:var(--mut);flex-wrap:wrap}
 .f textarea{font-size:15.5px;font-weight:550;color:var(--ink);padding:2px 0;border-radius:6px;background:transparent}
-.f textarea:focus{background:var(--doc-cur);box-shadow:0 0 0 2px rgba(255,204,0,.5)}
+.f textarea:focus{background:var(--doc-cur);box-shadow:0 0 0 2px rgba(255,122,0,.5)}
 .f textarea::placeholder{font-weight:500}
 .f.low{border-color:rgba(217,119,6,.65);background:var(--warn-bg)}
 .f.miss{border-color:rgba(217,56,72,.55);background:var(--bad-bg)}
@@ -273,12 +279,12 @@ html[lang="de"] .f.miss label::after{content:"fehlt · Rückfrage offen"}
 .src a.gl-chip{display:inline-flex;gap:6px;align-items:center;background:var(--doc-chip);border:1px solid var(--doc-line);border-radius:var(--r-pill);
   padding:2px 10px;font-weight:550;font-size:12.5px;cursor:pointer;transition:border-color .18s,background .18s;max-width:100%}
 .src a.gl-chip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.src a.gl-chip:hover{border-color:rgba(255,204,0,.6);background:var(--hover-tint)}
+.src a.gl-chip:hover{border-color:rgba(255,122,0,.6);background:var(--hover-tint)}
 .src code{display:none}
 .src .gl-low{color:var(--warn);font-weight:650}
 .src .gl-conf{color:var(--mut);opacity:.8}
 .quote{background:var(--doc-quote);border-left:3px solid var(--acc);color:var(--ink);font-size:13px;border-radius:0 10px 10px 0;padding:7px 11px}
-.prop{background:var(--doc-hint);border:1px solid rgba(224,180,0,.5);border-radius:12px;padding:8px 11px;font-size:13.5px;color:var(--ink);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prop{background:var(--doc-hint);border:1px solid rgba(230,110,0,.5);border-radius:12px;padding:8px 11px;font-size:13.5px;color:var(--ink);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .prop button{background:var(--acc-glass);border-color:transparent;color:var(--acc-ink);font-weight:650}
 .prop.bad{background:var(--bad-bg);border-color:rgba(217,56,72,.35)}
 .gl-spin{display:inline-block;width:11px;height:11px;border-radius:50%;border:2px solid rgba(217,119,6,.3);border-top-color:var(--warn);
@@ -287,13 +293,13 @@ html[lang="de"] .f.miss label::after{content:"fehlt · Rückfrage offen"}
 .badge.gl-run{background:var(--warn-bg);color:var(--warn)}
 #assistDoc>p.mut:last-child,#docView>p.mut:last-child{border-top:1px solid var(--doc-line);padding-top:12px;margin-top:16px;font-size:12.5px}
 .thumbs img{border-radius:10px}
-.thumbs img.sel{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,204,0,.35)}
+.thumbs img.sel{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,122,0,.35)}
 .log{color:var(--mut);font-size:12.5px}
 .err{color:var(--bad)}
 /* document list */
 .dl li{border-bottom:1px solid var(--hair);padding:12px 16px}
 .dl li:hover{background:var(--hover-tint)}
-.dl li.on{background:linear-gradient(90deg,rgba(255,204,0,.18),transparent);box-shadow:inset 3px 0 0 var(--acc)}
+.dl li.on{background:linear-gradient(90deg,rgba(255,122,0,.18),transparent);box-shadow:inset 3px 0 0 var(--acc)}
 .dl li b{font-size:15px}
 
 /* ---------- 10. plan, tables, alerts ---------- */
@@ -311,7 +317,7 @@ table.t tr:hover td{background:var(--hair)}
 
 /* ---------- 11. photos, map, live, dialogs ---------- */
 .pc{background:var(--glass-strong);border:1px solid var(--stroke);box-shadow:var(--shadow);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
-.pc:hover{box-shadow:0 30px 60px -20px rgba(0,0,0,.5),0 0 0 1px rgba(255,204,0,.4),0 0 40px -10px rgba(255,204,0,.3)}
+.pc:hover{box-shadow:0 30px 60px -20px rgba(0,0,0,.5),0 0 0 1px rgba(255,122,0,.4),0 0 40px -10px rgba(255,122,0,.3)}
 .pc.low{box-shadow:var(--shadow),0 0 0 2px rgba(217,119,6,.55)}
 #mapbox{border:1px solid var(--stroke)}
 .leaflet-container{background:#14161c}
@@ -322,25 +328,25 @@ dialog{background:var(--doc-bg);color:var(--ink);box-shadow:0 30px 80px rgba(0,0
 dialog::backdrop{background:rgba(10,12,16,.55);backdrop-filter:blur(4px)}
 
 /* ---------- 12. site twin: dark map panel; clean plan with labels only on hover or click ---------- */
-.tw-stage{--ink:#e9edf5;--mut:#8b94a8;--line:rgba(255,255,255,.085);--line2:rgba(255,255,255,.16);--acc:#ffcc00;--acc2:#ffcc00;
-  --ok:#34d399;--warn:#fbbf24;--bad:#f87171;color:var(--ink);background:#0f1724;border-color:rgba(255,255,255,.08)}
+.tw-stage{--ink:#e9edf5;--mut:#8b94a8;--line:rgba(255,255,255,.085);--line2:rgba(255,255,255,.16);--acc:#ff7a00;--acc2:#ff7a00;
+  --ok:#34d399;--warn:#ff9a1f;--bad:#f87171;color:var(--ink);background:#0f1724;border-color:rgba(255,255,255,.08)}
 .tw-stage button,.tw-stage select{color:#e9edf5;border-color:rgba(255,255,255,.16)}
 .tw-bar label,.tw-legend,.tw-help,.tw-scale,.tw-bar button,.seg{background:rgba(14,20,32,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-.tw-bar button:hover,.tw-bar label:hover{background:rgba(60,52,20,.85)}
-.tw-bar button.tour{background:rgba(14,20,32,.72);border-color:rgba(255,204,0,.5);color:#ffe27a}
+.tw-bar button:hover,.tw-bar label:hover{background:rgba(64,38,16,.85)}
+.tw-bar button.tour{background:rgba(14,20,32,.72);border-color:rgba(255,122,0,.5);color:#ffb070}
 .tw-bar button.tour.on{background:var(--acc-glass);color:#1b1b1b}
 .seg button.on{background:var(--acc-glass);color:#1b1b1b;box-shadow:none}
 .tw-hint{background:var(--acc-glass);color:#1b1b1b;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .tw-hint .mut{color:#4a4a4a}
 .tw-north{filter:none}
-.tw-north polygon:first-child{fill:#ffcc00}.tw-north polygon:last-child{stroke:#ffcc00}
-#twScaleBar{border-color:#ffcc00;background:repeating-linear-gradient(90deg,#ffcc00 0 25%,transparent 25% 50%)}
-.tw-help b{color:#ffcc00}
+.tw-north polygon:first-child{fill:#ff7a00}.tw-north polygon:last-child{stroke:#ff7a00}
+#twScaleBar{border-color:#ff7a00;background:repeating-linear-gradient(90deg,#ff7a00 0 25%,transparent 25% 50%)}
+.tw-help b{color:#ff7a00}
 /* labels: hidden until the object is hovered or selected */
 .twl.zone,.twl.struct,.twl.dim,.twl.road,.twl.gate,.twl.pile,.twl.strip{opacity:0;pointer-events:none!important;transition:opacity .2s ease}
 .twl.gl-show{opacity:1}
-.twl.gl-show.zone{text-shadow:0 0 14px rgba(255,204,0,.55);color:#fff3c4}
-.twl.gl-show.struct{border-color:rgba(255,204,0,.6);box-shadow:0 0 18px rgba(255,204,0,.25)}
+.twl.gl-show.zone{text-shadow:0 0 14px rgba(255,122,0,.55);color:#fff3c4}
+.twl.gl-show.struct{border-color:rgba(255,122,0,.6);box-shadow:0 0 18px rgba(255,122,0,.25)}
 #twin.gl-labels-all .twl{opacity:1}
 .tw-stage.gl-tip-label #twTip{opacity:0}
 .twl.det:not(.open):not(:hover){font-size:0;padding:5px;line-height:0}
@@ -350,7 +356,7 @@ dialog::backdrop{background:rgba(10,12,16,.55);backdrop-filter:blur(4px)}
 .tw-stats b{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--ink);-webkit-text-fill-color:var(--ink)}
 .tw-stats span{letter-spacing:.02em;font-size:10px}
 .tw-item{background:var(--row);border:1px solid var(--hair)}
-.tw-item:hover{border-color:rgba(255,204,0,.5);background:var(--hover-tint)}
+.tw-item:hover{border-color:rgba(255,122,0,.5);background:var(--hover-tint)}
 .tw-tl li:before{background:var(--acc);box-shadow:none}
 .tw-tl li.progress:before{background:var(--ok);box-shadow:none}
 .tw-thumbs figcaption{background:var(--acc);color:#1b1b1b}
@@ -461,9 +467,9 @@ html[data-swipe="next"]::view-transition-old(main){animation:glSlideOutNext .2s 
 html[data-swipe="prev"]::view-transition-new(main){animation:glSlideInPrev .34s cubic-bezier(.22,1,.36,1) both}
 html[data-swipe="prev"]::view-transition-old(main){animation:glSlideOutPrev .2s ease both}
 
-/* hovering a tab previews the yellow of the active tab */
-nav button:not(.on):not(.gl-on):hover,nav .gl-more:not(.on):hover{background:rgba(255,204,0,.26);color:#ffe27a}
-:root[data-theme="light"] nav button:not(.on):not(.gl-on):hover,:root[data-theme="light"] nav .gl-more:not(.on):hover{background:rgba(255,204,0,.38);color:#1b1b1b}
+/* hovering a tab previews the orange of the active tab */
+nav button:not(.on):not(.gl-on):hover,nav .gl-more:not(.on):hover{background:rgba(255,122,0,.26);color:#ffb070}
+:root[data-theme="light"] nav button:not(.on):not(.gl-on):hover,:root[data-theme="light"] nav .gl-more:not(.on):hover{background:rgba(255,122,0,.38);color:#1b1b1b}
 @media (hover:none){nav button:not(.on):not(.gl-on):hover,nav .gl-more:not(.on):hover{background:transparent;color:var(--mut)}}
 
 /* =====================================================================

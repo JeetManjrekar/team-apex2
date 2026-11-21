@@ -16,10 +16,10 @@ const P = (x, y, h = 0) => new THREE.Vector3(x, h, -y);
 const pct = c => `${Math.round(c * 100)}%`;
 const NICE = { excavator: "Excavator", dump_truck: "Dump truck", bulldozer: "Bulldozer", car: "Car", person: "Person", tractor: "Tractor" };
 const nice = c => NICE[c?.toLowerCase()] || (c || "").replace(/_/g, " ").replace(/^./, m => m.toUpperCase());
-const CLASS_COLOR = { excavator: "#e2a014", dump_truck: "#d65a2a", bulldozer: "#b07d12", car: "#2f6db5", person: "#ff6a00", tractor: "#3c8d3c" };
+const CLASS_COLOR = { excavator: "#f0901e", dump_truck: "#d65a2a", bulldozer: "#b85c12", car: "#2f6db5", person: "#ff6a00", tractor: "#3c8d3c" };
 const classColor = c => CLASS_COLOR[c?.toLowerCase()] || "#7a5cc0";
 // blueprint-at-night palette
-const C = { paper: 0x071224, site: 0x0c1d36, outside: 0x061020, grid: 0x10284a, gridMajor: 0x1d4274, ink: 0xdbe7ff, road: 0x15253d, acc: 0xff6a2b, edge: 0x9fc3ff, holo: 0x4cc9ff, zoneEdge: 0x4f79b5 };
+const C = { paper: 0x071224, site: 0x0c1d36, outside: 0x061020, grid: 0x10284a, gridMajor: 0x1d4274, ink: 0xdbe7ff, road: 0x15253d, acc: 0xff7a00, edge: 0x9fc3ff, holo: 0x4cc9ff, zoneEdge: 0x4f79b5 };
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const CAM_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
@@ -322,7 +322,7 @@ const MODELS = {
   person(col) {
     const g = new THREE.Group();
     const b = cyl(0.25, 1.3, col); b.position.y = 0.65; g.add(b);
-    const h = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), mat(0xf2c200)); h.position.y = 1.55; h.castShadow = true; g.add(h);
+    const h = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), mat(0xff7a00)); h.position.y = 1.55; h.castShadow = true; g.add(h);
     return g;
   },
   generic(col) { const g = new THREE.Group(); g.add(part(3, 2, 2, col, 0, 0, 0)); return g; },
@@ -451,9 +451,9 @@ function buildStructure(s) {
       place(g, s.x, s.y, 0, s.rot || 0); break;
     }
     case "crane": {
-      const yel = 0xe0a419, jib = s.jib || 40, h = s.h || 30;
+      const yel = 0xff8a1f, jib = s.jib || 40, h = s.h || 30;
       g.add(place(box(4, 4, 1, 0x8d939b), 0, 0, 0.5));
-      const mast = box(1.6, 1.6, h, yel, { m: { transparent: true, opacity: 0.35 }, edgeOpts: { color: 0x7a5a00, opacity: 0.9 } });
+      const mast = box(1.6, 1.6, h, yel, { m: { transparent: true, opacity: 0.35 }, edgeOpts: { color: 0x7a3a00, opacity: 0.9 } });
       g.add(place(mast, 0, 0, h / 2));
       const top = new THREE.Group(); top.position.y = h; top.rotation.y = (s.rot || 0) * Math.PI / 180; g.add(top);
       const j = box(jib, 1.2, 1.2, yel); j.position.set(jib / 2, 0.6, 0); top.add(j);
@@ -464,7 +464,7 @@ function buildStructure(s) {
       // reach circle on the ground (plan convention)
       const pts = [];
       for (let i = 0; i <= 96; i++) { const a = i / 96 * Math.PI * 2; pts.push([s.x + jib * Math.cos(a), s.y + jib * Math.sin(a)]); }
-      const reach = ribbon(pts, 0.2, 0xb8860b, 0.045, { dash: [1.6, 1.2] }); reach.name = "reach"; root.add(reach);
+      const reach = ribbon(pts, 0.2, 0xc2610c, 0.045, { dash: [1.6, 1.2] }); reach.name = "reach"; root.add(reach);
       lz = h + 3; break;
     }
     case "pile_row": {
@@ -472,7 +472,7 @@ function buildStructure(s) {
       for (let i = 0; i < n; i++) {
         const t = n === 1 ? 0.5 : i / (n - 1), x = s.x1 + (s.x2 - s.x1) * t, y = s.y1 + (s.y2 - s.y1) * t;
         const state = i < done ? "done" : i === done ? "current" : "planned";
-        const col = state === "done" ? 0x34d399 : state === "current" ? (light === "red" ? 0xf87171 : 0xfbbf24) : C.holo;
+        const col = state === "done" ? 0x34d399 : state === "current" ? (light === "red" ? 0xf87171 : 0xff9a1f) : C.holo;
         const pile = new THREE.Mesh(new THREE.CylinderGeometry(s.diameter / 2 * 1.6, s.diameter / 2 * 1.6, state === "planned" ? 0.1 : 1.4, 24),
           state === "planned" ? ghostMat() : mat(col, { emissive: col, emissiveIntensity: state === "current" ? 0.9 : 0.35 }));
         if (state === "current") { const ph = i; S.anims.push(t => { pile.material.emissiveIntensity = 0.5 + 0.6 * (0.5 + 0.5 * Math.sin(t * 4 + ph)); }); }

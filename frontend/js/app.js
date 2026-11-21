@@ -16,7 +16,7 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>TAB(b.dataset.
 
 async function init(){cfg=await api("/api/config");$("#reportLink").href=API+"/api/report";
   $("#site").textContent=cfg.site.name;
-  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?`nachweis_llm: ${L.model}${L.reviewer?" + reviewer":""}`:"Extraction: rules fallback";
+  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?`BauBuddy AI: ${L.model}${L.reviewer?" + reviewer":""}`:"Extraction: rules fallback";
   $("#b-llm").title=L.mode=="llm"?`Confidence threshold ${L.threshold}. Critical fields: ${L.critical_fields.join(", ")}`:`LLM off (${L.error||"no key"}). Rules run under the same evidence and confidence gates.`;
   $("#b-llm").classList.toggle("g",L.mode=="llm");
   $("#b-rf").textContent=cfg.mock_mode?"Photos: mock mode":"Roboflow live";$("#b-rf").classList.toggle("g",!cfg.mock_mode);
@@ -75,7 +75,7 @@ function renderDoc(el,d){
     ${e.kind=="edit"&&!e.undone&&!ro?`<button class="s" data-undo="${i}">Undo</button>`:e.undone?"<i>undone</i>":""}</div>`).join("")||"No edits yet.";
   const rv=d.review?.status;
   el.innerHTML=`<div class="dh"><h2>${esc(d.title)}</h2><span class="pill ${st}">${st}</span>${d.proposal_from?'<span class="badge">proposal from alert</span>':""}
-    ${d.extraction_mode?`<span class="badge ${d.extraction_mode=="llm"?"g":""}">${d.extraction_mode=="llm"?"extracted by nachweis_llm":"extracted by rules"}</span>`:""}
+    ${d.extraction_mode?`<span class="badge ${d.extraction_mode=="llm"?"g":""}">${d.extraction_mode=="llm"?"extracted by BauBuddy AI":"extracted by rules"}</span>`:""}
     ${rv=="running"?'<span class="badge">critical fields being verified…</span>':rv=="completed"?`<span class="badge ${(d.review.findings||[]).length?"":"g"}">reviewer: ${(d.review.findings||[]).length} finding(s)</span>`:""}
     <span class="mut">${esc(d.meta.en)} ${esc(d.meta.basis)}</span></div>
     <div class="row" style="margin-bottom:6px">

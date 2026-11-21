@@ -163,7 +163,7 @@
 .db-pb-track{position:relative;height:10px;border-radius:99px;background:var(--hair);overflow:visible}
 .db-pb.big .db-pb-track{height:14px}
 .db-pb-fill{position:absolute;inset:0;border-radius:99px;transform-origin:left center;transform:scaleX(0);will-change:transform;overflow:hidden;
-  background:linear-gradient(90deg,#ffb800,#ffd84d);box-shadow:0 0 18px rgba(255,204,0,.35),inset 0 1px 0 rgba(255,255,255,.55)}
+  background:linear-gradient(90deg,#ff6a00,#ff8f2e);box-shadow:0 0 18px rgba(255,122,0,.35),inset 0 1px 0 rgba(255,255,255,.55)}
 .db-pb-fill.run::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:dbSheen 1.4s cubic-bezier(.22,1,.36,1) .15s both}
 @keyframes dbSheen{to{transform:translateX(100%)}}
@@ -171,7 +171,7 @@
 .db-ms{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--bg2);border:2px solid var(--line2);
   transition:background .3s ease,border-color .3s ease,transform .45s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease}
 .db-pb.big .db-ms{width:16px;height:16px;margin:-8px 0 0 -8px}
-.db-ms.hit{background:var(--acc);border-color:#fff3c4;transform:scale(1.15);box-shadow:0 0 0 4px rgba(255,204,0,.22),0 0 14px rgba(255,204,0,.6)}
+.db-ms.hit{background:var(--acc);border-color:#fff3c4;transform:scale(1.15);box-shadow:0 0 0 4px rgba(255,122,0,.22),0 0 14px rgba(255,122,0,.6)}
 :root[data-theme="light"] .db-ms.hit{border-color:#fff}
 .db-ms:last-child{margin-left:-14px}
 .db-pb.big .db-ms:last-child{margin-left:-16px}
