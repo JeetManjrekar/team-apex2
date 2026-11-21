@@ -5,6 +5,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22%3E%3Cpath d=%22M4 36 L24 8 L44 36Z%22 fill=%22%23ff6a2b%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/glass.css">
+<link rel="stylesheet" href="css/dashboard.css">
 <script src="config.js"></script></head><body>
 <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div><div class="gridbg" aria-hidden="true"></div>
 <div id="splash" hidden><div class="gridbg"></div><div class="sp-ring"></div><div class="sp-ring r2"></div><div class="sp-ring r3"></div>
@@ -117,4 +119,6 @@ window.addEventListener("error",e=>{if(String(e.filename||"").includes("site3d")
 function twinFail(msg){const el=document.getElementById("twSide");if(el)el.innerHTML='<div class="pad"><b style="color:var(--bad)">Site twin could not start</b><p class="mut">'+String(msg).replace(/</g,"&lt;")+'</p><p class="mut">Try a hard reload (Cmd+Shift+R). If the browser translates this page, switch translation off for this tab. Details in the browser console.</p></div>'}
 </script>
 <script type="module" src="js/site3d.js?v=5" onerror="twinFail('site3d.js failed to load')"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/ui-glass.js"></script>
 </body></html>
