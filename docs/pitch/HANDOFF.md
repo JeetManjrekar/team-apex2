@@ -39,6 +39,15 @@ Visual check (optional): LibreOffice → PDF. On macOS, Homebrew LibreOffice can
 4. **Check once in real PowerPoint:** Morph transitions and animations were validated structurally but not watched in PowerPoint yet.
 5. Dry run with a stopwatch, with the demo running on the app (`w3_frontend` branch, port 8000, "Load demo data").
 
+## Submission (state 21.11.2026, 22:30) · deadline Sun 22.11. 12:00, Tally
+The written submission is separate from the live deck. Everything ready to send sits in
+`D:\projects\Hackathon\TUM.ai construction\BauBuddy_Submission\` (see its `SUBMISSION.md`).
+- **Demo video v1 done** (1:54): built by the toolkit in `docs/pitch/video/` (README there), plan + script + claims check in `VIDEO_PLAN.md`.
+  Voiceover = Christo's ElevenLabs clone; demo = live run of `integrate-all-3` with Claude Fable 5.2. Waiting for team feedback.
+- **7-slide PDF**: outline in `BauBuddy_Submission/2_pitch_deck_pdf/README.md`, not built yet.
+- **Repo**: needs the patch in `BauBuddy_Submission/3_repo/` (Fable 5.2 request params, UTF-8 JSON on Windows), must be public, then frozen.
+- `src/deck.js` now reads `DECK_FONT` (default unchanged: Helvetica Neue); the video uses a Segoe UI render.
+
 ## Context sources
 - `docs/pitch/PITCH_DECK_HANDOFF.md`: original brief for the deck.
 - Challenge brief and partner transcripts: `challenge2_handoff_prompt.md` (was in ~/Downloads on the MacBook; copy it into the repo or the vault if needed).

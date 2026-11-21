@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BauBuddy video scenes</title>
+<!-- Time-driven scenes for the demo video. render(t) sets every frame from time t, so scenes.js can capture exact 30 fps.
+     #arch = technical approach (25 s), #close = result + team (10 s). Open with ?scene=arch&t=12 to preview a moment. -->
+<style>
+  :root { --bg:#14161C; --ink:#F2F4F8; --mut:#9AA3B3; --dim:#5D6575; --acc:#FF7A00; --glass:#22262F; --edge:#333947; --ok:#3DDC84; --bad:#FF5A6E; --warn:#FFB020; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); }
+  body { font-family:"Segoe UI", system-ui, sans-serif; color:var(--ink); }
+  .stage { position:absolute; inset:0; display:none; }
+  .stage.on { display:block; }
+  .grid { position:absolute; inset:0;
+    background-image:linear-gradient(rgba(154,163,179,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(154,163,179,.055) 1px,transparent 1px);
+    background-size:48px 48px; }
+  .glow { position:absolute; width:900px; height:900px; border-radius:50%; background:radial-gradient(circle, rgba(255,122,0,.20), rgba(255,122,0,0) 62%); pointer-events:none; }
+  .brand { position:absolute; left:56px; top:44px; display:flex; align-items:center; gap:14px; font-weight:700; font-size:26px; }
+  .brand svg { width:44px; height:44px; }
+  .kick { position:absolute; left:58px; top:128px; font-size:20px; letter-spacing:.22em; text-transform:uppercase; color:var(--acc); font-weight:700; }
+  h1 { position:absolute; left:56px; top:160px; font-size:62px; font-weight:700; letter-spacing:-.01em; }
+  .col { position:absolute; top:300px; }
+  .colh { font-size:17px; letter-spacing:.2em; text-transform:uppercase; color:var(--mut); font-weight:700; margin-bottom:18px; }
+  .card { background:linear-gradient(180deg, rgba(42,47,58,.92), rgba(30,34,42,.92)); border:1px solid var(--edge); border-radius:20px; padding:18px 22px; box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .src { display:flex; align-items:center; gap:14px; font-size:25px; margin-bottom:14px; padding:16px 20px; }
+  .src i { font-style:normal; color:var(--mut); font-size:18px; margin-left:auto; }
+  .ico { width:36px; height:36px; border-radius:10px; background:rgba(255,122,0,.14); color:var(--acc); display:grid; place-items:center; font-size:20px; flex:none; }
+  .chip { font-family:Consolas, "Cascadia Mono", monospace; font-size:21px; color:var(--ink); background:rgba(255,122,0,.10); border:1px solid rgba(255,122,0,.45);
+          border-radius:12px; padding:10px 16px; margin-bottom:12px; white-space:nowrap; }
+  .claude { padding:22px 24px; }
+  .claude b { display:block; font-size:30px; margin-bottom:6px; }
+  .claude span { color:var(--mut); font-size:21px; }
+  .rule { display:flex; align-items:center; gap:14px; font-size:23px; margin:14px 4px 0; }
+  .tick { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:20px; flex:none; }
+  .tick.ok { background:rgba(61,220,132,.16); color:var(--ok); border:1px solid rgba(61,220,132,.5); }
+  .tick.no { background:rgba(255,90,110,.14); color:var(--bad); border:1px solid rgba(255,90,110,.5); }
+  .reject { margin-top:18px; font-size:21px; color:var(--bad); border:1px dashed rgba(255,90,110,.6); border-radius:14px; padding:12px 16px; }
+  .reject em { color:var(--ink); font-style:normal; }
+  .human { text-align:center; padding:26px 18px; }
+  .human .btn { display:inline-block; margin-top:14px; background:var(--acc); color:#1b1b1b; font-weight:700; border-radius:12px; padding:12px 18px; font-size:22px; }
+  .out { padding:22px; text-align:center; font-size:24px; }
+  .out small { display:block; color:var(--mut); font-size:18px; margin-top:6px; }
+  svg.wires { position:absolute; inset:0; pointer-events:none; }
+  svg.wires path { stroke:#FF7A00 !important; stroke-opacity:.85; }   /* gradient strokes vanish on zero-height paths */
+  .stack { position:absolute; left:56px; right:56px; bottom:56px; display:flex; flex-wrap:wrap; gap:12px; }
+  .stack span { font-size:19px; color:var(--mut); border:1px solid var(--edge); border-radius:999px; padding:8px 16px; background:rgba(34,38,47,.7); }
+  .stack span.k { color:var(--ink); border-color:rgba(255,122,0,.5); }
+  /* close */
+  .big { position:absolute; left:0; right:0; text-align:center; }
+  .num { font-size:240px; font-weight:800; color:var(--acc); line-height:1; letter-spacing:-.03em; }
+  .numt { font-size:44px; font-weight:600; margin-top:18px; }
+  .numt b { color:var(--acc); }
+  .srcl { font-size:21px; color:var(--mut); margin-top:22px; }
+  .logo { width:150px; height:150px; }
+  .word { font-size:92px; font-weight:800; margin-top:20px; letter-spacing:-.01em; }
+  .tag { font-size:36px; color:var(--mut); margin-top:6px; }
+  .team { font-size:30px; margin-top:54px; }
+  .team b { color:var(--acc); }
+  .names { font-size:26px; color:var(--mut); margin-top:10px; }
+  .repo { font-family:Consolas, monospace; font-size:24px; color:var(--ink); margin-top:30px; display:inline-block; border:1px solid var(--edge); border-radius:12px; padding:10px 18px; }
+</style>
+</head>
+<body>
+<template id="logo"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#ff7a00"/><g transform="translate(6.5 6) scale(.73)" fill="none" stroke="#1b1b1b" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17C12 10.4 17.4 6 24 6s12 4.4 12 11M7 17h34M24 6v5" stroke-width="3.4"/><path d="M9 22h30a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H20l-7 6v-6H9a3 3 0 0 1-3-3V25a3 3 0 0 1 3-3z" stroke-width="2.6"/><polyline points="17,30 22,34.5 31,26" stroke-width="3.4"/></g></svg></template>
+
+<!-- ============ ARCHITECTURE (25 s) ============ -->
+<section class="stage" id="arch">
+  <div class="grid"></div><div class="glow" style="left:760px;top:120px"></div>
+  <div class="brand"><span data-logo></span>BauBuddy</div>
+  <div class="kick" data-a="0.2">Technical approach</div>
+  <h1 data-a="0.4">Evidence first. Rules in code.</h1>
+
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs><linearGradient id="w" x1="0" x2="1"><stop offset="0" stop-color="#FF7A00" stop-opacity=".25"/><stop offset="1" stop-color="#FF7A00"/></linearGradient></defs>
+    <path data-w="1" d="M432 560 C 470 560, 470 560, 508 560" stroke="url(#w)" stroke-width="4" fill="none"/>
+    <path data-w="2" d="M862 560 C 900 560, 900 560, 938 560" stroke="url(#w)" stroke-width="4" fill="none"/>
+    <path data-w="3" d="M1398 560 C 1436 560, 1436 560, 1474 560" stroke="url(#w)" stroke-width="4" fill="none"/>
+    <path data-w="4" d="M1692 560 C 1712 560, 1712 560, 1732 560" stroke="url(#w)" stroke-width="4" fill="none"/>
+  </svg>
+
+  <div class="col" style="left:56px;width:376px">
+    <div class="colh" data-a="0.8">1 · Capture</div>
+    <div class="card src" data-a="1.0"><span class="ico">🎙</span>Voice<i>Whisper</i></div>
+    <div class="card src" data-a="1.4"><span class="ico">📷</span>Photos<i>RF-DETR</i></div>
+    <div class="card src" data-a="1.8"><span class="ico">✉</span>E-mails<i>.eml · .ics</i></div>
+    <div class="card src" data-a="2.2"><span class="ico">🗓</span>Schedule<i>plan vs actual</i></div>
+    <div class="card src" data-a="2.6"><span class="ico">📄</span>Client PDFs<i>Gutachten</i></div>
+  </div>
+
+  <div class="col" style="left:508px;width:354px">
+    <div class="colh" data-a="3.6">2 · Evidence IDs</div>
+    <div class="chip" data-a="4.0">audio:v12@4.1–11.0</div>
+    <div class="chip" data-a="4.4">doc:bgg@p14</div>
+    <div class="chip" data-a="4.8">drill:P07</div>
+    <div class="chip" data-a="5.2">photo:6342cd1c</div>
+    <div class="chip" data-a="5.6">sched:A1_BP</div>
+    <div class="chip" data-a="6.0">mail:3f9a…</div>
+  </div>
+
+  <div class="col" style="left:938px;width:460px">
+    <div class="colh" data-a="7.2">3 · Claude + rules in code</div>
+    <div class="card claude" data-a="7.6"><b>Claude proposes fields</b><span>each value must name its evidence ID</span></div>
+    <div class="rule" data-a="10.4"><span class="tick ok">✓</span>cites an ID from this request</div>
+    <div class="rule" data-a="11.4"><span class="tick ok">✓</span>confidence ≥ 0.6</div>
+    <div class="reject" data-a="13.2">✕ no citation → field stays <em>empty</em> → BauBuddy <em>asks</em></div>
+    <div class="rule" data-a="16.2"><span class="tick ok">✓</span>derived values computed in Python</div>
+    <div class="rule" data-a="17.6"><span class="tick ok">✓</span>e-mails, phones, IBANs masked first</div>
+  </div>
+
+  <div class="col" style="left:1474px;width:218px">
+    <div class="colh" data-a="20.2">4 · Human</div>
+    <div class="card human" data-a="20.5">Site manager checks<br><span class="btn" data-a="21.4">Mark as checked</span></div>
+  </div>
+  <div class="col" style="left:1732px;width:150px">
+    <div class="colh" data-a="22.0">Out</div>
+    <div class="card out" data-a="22.3">Word<small>+ evidence appendix</small></div>
+  </div>
+
+  <div class="stack">
+    <span class="k" data-a="1.2">FastAPI · Python</span><span data-a="1.5">YAML document registry</span><span class="k" data-a="1.8">Claude Fable 5.2</span>
+    <span data-a="2.1">faster-whisper (local)</span><span data-a="2.4">RF-DETR</span><span data-a="2.7">vanilla JS · Three.js · Leaflet</span><span data-a="3.0">python-docx</span>
+  </div>
+</section>
+
+<!-- ============ CLOSE (10 s) ============ -->
+<section class="stage" id="close">
+  <div class="grid"></div><div class="glow" style="left:510px;top:40px"></div>
+  <div class="big" style="top:200px" id="cStat">
+    <div class="num"><span id="cNum">0</span> %</div>
+    <div class="numt">of building cost on new builds runs through <b>Nachträge</b></div>
+    <div class="srcl">Rechnungshof Baden-Württemberg, Denkschrift 2020, Beitrag 17</div>
+  </div>
+  <div class="big" style="top:160px" id="cBrand">
+    <div><span data-logo class="logo" style="display:inline-block;width:150px;height:150px"></span></div>
+    <div class="word">BauBuddy</div>
+    <div class="tag">Evidence in. Notices out. On time.</div>
+    <div class="team"><b>Team Apex</b></div>
+    <div class="names">Christo Teresof · Jeet Manjrekar · Karim Keraani · Aaditya Salunke</div>
+    <div class="repo" id="cRepo">github.com/JeetManjrekar/team-apex2</div>
+  </div>
+</section>
+
+<script>
+const logo = document.getElementById('logo').innerHTML;
+document.querySelectorAll('[data-logo]').forEach(e => e.innerHTML = logo);
+const clamp = x => Math.max(0, Math.min(1, x));
+const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+function appear(el, t, at, dur = 0.55, rise = 18) {
+  const k = ease((t - at) / dur);
+  el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * rise}px)`;
+}
+function renderArch(t) {
+  document.querySelectorAll('#arch [data-a]').forEach(el => appear(el, t, +el.dataset.a));
+  const wires = { 1: 3.3, 2: 6.9, 3: 19.8, 4: 21.8 };
+  document.querySelectorAll('#arch [data-w]').forEach(p => {
+    const L = p.getTotalLength(), k = ease((t - wires[p.dataset.w]) / 0.6);
+    p.style.strokeDasharray = L; p.style.strokeDashoffset = L * (1 - k);
+  });
+}
+function renderClose(t) {
+  const stat = document.getElementById('cStat'), brand = document.getElementById('cBrand');
+  appear(stat, t, 0.1, 0.5);
+  if (t > 4.6) stat.style.opacity = 1 - ease((t - 4.6) / 0.45);
+  document.getElementById('cNum').textContent = Math.round(6 * ease((t - 0.2) / 1.1));
+  brand.style.opacity = 0;
+  if (t > 5.0) {
+    brand.style.opacity = 1;
+    [...brand.children].forEach((c, i) => appear(c, t, 5.0 + i * 0.3, 0.55, 24));
+  }
+}
+const SCENES = { arch: [renderArch, 25], close: [renderClose, 10] };
+window.setScene = name => { document.querySelectorAll('.stage').forEach(s => s.classList.toggle('on', s.id === name)); window.render = SCENES[name][0]; return SCENES[name][1]; };
+const qs = new URLSearchParams(location.search);
+setScene(qs.get('scene') || 'arch'); render(+(qs.get('t') ?? 30));
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@ const path = require('path');
 const A = n => path.join(__dirname, 'assets', n);
 const OUTDIR = path.resolve(__dirname, '..');
 
-const F = 'Helvetica Neue';
+const F = process.env.DECK_FONT || 'Helvetica Neue';   // DECK_FONT="Segoe UI" for a Windows render (demo video)
 const K = { bg: '14161C', ink: 'F2F4F8', mut: '9AA3B3', acc: 'FF7A00', accDark: 'C2410C', glass: '2A2F3A', ok: '3DDC84', warn: 'FFB020', bad: 'FF5A6E', dim: '5D6575' };
 const THEME = {
   name: 'BauBuddy Graphite', headFontFace: F, bodyFontFace: F,

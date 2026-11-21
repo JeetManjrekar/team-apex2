@@ -1,0 +1,24 @@
+{
+  "app_data_dir": "../../../../Baubuddy-app/backend/data",
+  "dictation_text": "Pfahl 7: um 11:30 Uhr bei 4 m auf Fels gestoßen, laut Baugrundgutachten erst ab 9 m erwartet. Bohrzeit 6 Stunden statt 2.",
+  "source_patterns": {
+    "document": "Baugrundgutachten, Seite 14",
+    "audio": "Diktat|Sprachnotiz|audio:"
+  },
+  "answers": {
+    "occurred_at": "Heute um 11:30 Uhr.",
+    "drilling_log_ref": "Bohrprotokoll Nr. 7 vom 17.11.2026 liegt vor.",
+    "ordered_by": "Angeordnet von der Bauleitung des Bauherrn."
+  },
+  "agent_command": "Check today's progress and safety",
+  "hold": {
+    "draft": 2500,
+    "source": 3200,
+    "question": 3000,
+    "answer": 2400,
+    "checked": 1500,
+    "word": 3200,
+    "agent": 9000,
+    "twin": 11000
+  }
+}

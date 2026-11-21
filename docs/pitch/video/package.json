@@ -1,0 +1,13 @@
+{
+  "name": "baubuddy-demo-video",
+  "private": true,
+  "description": "Records the BauBuddy demo video: director (Playwright drives the real app), scenes, ffmpeg assembly",
+  "scripts": {
+    "record": "node director.js",
+    "scenes": "node scenes.js",
+    "build": "py build_video.py"
+  },
+  "dependencies": {
+    "playwright-core": "1.49.1"
+  }
+}
