@@ -122,8 +122,7 @@ def set_field(doc, key, value, source=None, by="ai", confidence=None, fill_only=
                        "old_source": f["source"], "old_by": f["by"], "old_locked": f["locked"]})
     f.update({"value": value, "source": source, "by": by, "confidence": confidence,
               "locked": f["locked"] or by == "user", "proposal": None})
-    if by == "user":
-        _drop_to_draft(doc, by)
+    _drop_to_draft(doc, by)   # any change of a reviewed document (user or AI, e.g. a mail import) sends it back to Draft
     return "set"
 
 
