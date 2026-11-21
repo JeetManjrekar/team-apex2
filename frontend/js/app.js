@@ -42,11 +42,11 @@ function msgHtml(m){const acts=(m.actions||[]).map((a,i)=>`<button class="s" dat
 function bindMsgs(){$("#msgs").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>showAssistDoc(b.dataset.open));
   $("#msgs").querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const a=JSON.parse(b.dataset.act);b.disabled=true;
     const d=await api("/api/docs",{json:{type:a.type,text:a.text,source:"message"}});showAssistDoc(d.id);});}
+window.NW={dictated:false};
 async function loadMsgs(){const r=await api("/api/messages");
   $("#msgs").innerHTML=r.messages.length?r.messages.map(msgHtml).join(""):`<div class="empty">Tell me what happened on site. Type, dictate with 🎤, or tap an example below.<br><br>Try: rock at pile 7 → I draft a Mehrkostenanzeige and ask for what is missing.</div>`;
   bindMsgs();$("#msgs").scrollTop=1e9;if(r.active)showAssistDoc(r.active);}
-let dictated=false;
-async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=dictated;dictated=false;
+async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=NW.dictated;NW.dictated=false;
   try{const r=await api("/api/chat",{json:{text,voice}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
   catch(e){$("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant err">${esc(e.message)}</div>`)}$("#send").disabled=false;}
 $("#send").onclick=send;$("#inp").onkeydown=e=>{if(e.key=="Enter"&&!e.shiftKey){e.preventDefault();send()}};
@@ -54,13 +54,6 @@ chatPhotos.onchange=async()=>{const fd=new FormData();[...chatPhotos.files].forE
   try{const r=await api("/api/photos",{method:"POST",body:fd});
     $("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant">Added ${r.length} photo(s): ${esc(r.map(p=>p.category+(p.detections.length?" ("+p.detections.map(d=>d.class).join(", ")+")":"")).join("; "))}. They will be attached to matching drafts and today's daily report.</div>`);
     $("#msgs").scrollTop=1e9;loadPhotos();}catch(e){alert(e.message)}chatPhotos.value="";};
-// voice: Chrome Web Speech API
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-$("#mic").onclick=()=>{if(!SR){$("#mic").title="Speech recognition needs Chrome";$("#mic").disabled=true;return}
-  if(rec){rec.stop();return}rec=new SR();rec.lang=$("#lang").value;rec.interimResults=true;rec.continuous=true;const base=$("#inp").value;
-  rec.onresult=e=>{dictated=true;let t="";for(const r of e.results)t+=r[0].transcript;$("#inp").value=(base?base+" ":"")+t};
-  rec.onend=()=>{rec=null;$("#mic").classList.remove("rec")};rec.onerror=()=>{};rec.start();$("#mic").classList.add("rec");};
-
 /* ---------- document view ---------- */
 async function showAssistDoc(id){activeDoc=id;const d=await api("/api/docs/"+id);renderDoc($("#assistDoc"),d);}
 function renderDoc(el,d){
@@ -192,3 +185,5 @@ $("#demoBtn").onclick=async()=>{await api("/api/demo/load",{json:{}});$("#demoBt
 let armed=false;$("#resetBtn").onclick=async()=>{if(!armed){armed=true;$("#resetBtn").textContent="Click again to reset";setTimeout(()=>{armed=false;$("#resetBtn").textContent="Reset demo"},3000);return}
   await api("/api/demo/reset",{json:{}});armed=false;$("#resetBtn").textContent="Reset demo";$("#assistDoc").innerHTML='<div class="empty">Drafts appear here.</div>';docsSel=null;loadMsgs();};
 init();
+// slots for the other workstreams (js/voice.js, inbox.js, replan.js, tile.js)
+Object.assign(window.NW,{api,esc,$,loadMsgs,showAssistDoc,TAB});

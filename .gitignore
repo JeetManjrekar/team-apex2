@@ -28,3 +28,12 @@ node_modules/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Runtime state (restored from backend/data/seed/ by POST /api/system/reset)
+backend/data/*.json
+backend/data/*.jsonl
+backend/data/*.docx
+backend/data/*.pdf
+backend/data/uploads/
+backend/data/metrics_archive/
+# kept tracked: backend/data/seed/, backend/data/eval/, backend/data/inbox_samples/, backend/templates/

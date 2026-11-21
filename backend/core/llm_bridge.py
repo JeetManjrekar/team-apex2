@@ -108,3 +108,16 @@ def classify_photo(raw, mime, evidence_id, context=""):
     except Exception as e:
         _state["error"] = f"photo classification failed: {e}"
         return None
+
+
+def phrase_replan(candidate):
+    """German one-sentence wording for a rules-approved reassignment candidate (EligibleReassignmentCandidate).
+    Returns the ReplannerPhrase, or None without key / on failure (caller falls back to a template sentence)."""
+    svc = services()
+    if not svc or getattr(svc, "replanner", None) is None:
+        return None
+    try:
+        return asyncio.run(svc.replanner.phrase(run_id=f"replan-{int(time.time() * 1000)}", candidate=candidate))
+    except Exception as e:
+        _state["error"] = f"replanner wording failed: {e}"
+        return None
