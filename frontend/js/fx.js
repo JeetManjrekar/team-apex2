@@ -1,4 +1,4 @@
-/* Nachweis · cinematic layer: splash, tab transitions, reflections, count-ups, captions, autopilot.
+/* BauBuddy · cinematic layer: splash, tab transitions, reflections, count-ups, captions, autopilot.
    Pure presentation: it reads the same data as the app and never changes anything on the server. */
 (() => {
   const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -98,7 +98,7 @@
   async function splash({ replay = false } = {}) {
     const el = q("#splash");
     if (!el) return;
-    const word = "NACHWEIS";
+    const word = "BAUBUDDY";
     q("#spWord").innerHTML = [...word].map((c, i) => `<span style="animation-delay:${300 + i * 70}ms">${c}</span>`).join("");
     el.hidden = false; el.classList.remove("out");
     let skip = false; const onSkip = () => { skip = true; };
@@ -164,7 +164,7 @@
     TAB("metrics");
     await caption("Metrics", "Measured, not claimed", "Every pipeline stage is timed and costed in llm_metrics.jsonl.", 4200);
     if (stopped(tok)) return;
-    await caption("Nachweis", "Evidence in. Notices out. On time.", "Autopilot finished — you have the controls.", 4200);
+    await caption("BauBuddy", "Evidence in. Notices out. On time.", "Autopilot finished — you have the controls.", 4200);
     AP.on = false; AP.token++; resetAutopilotUI(); hideCaption();
   }
   // a real user interaction (not the autopilot's own clicks) hands control back

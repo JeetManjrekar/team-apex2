@@ -1,6 +1,6 @@
 /* Team Apex UI layer, additive only.
-   Nachweis glass UI: theme toggle (dark default), language switch (English default, German optional),
-   header menu, navigation regrouping (5 + More) with a sliding yellow indicator and swipe between tabs,
+   BauBuddy glass UI: theme toggle (dark default), language switch (English default, German optional),
+   header menu, navigation regrouping (5 + More) with a sliding orange indicator and swipe between tabs,
    chat and document enhancements, in-page confirm for "Send on", phone sheets, and a clean site plan whose
    labels appear only for the hovered or selected object.
    It only observes and extends the DOM rendered by js/app.js and js/site3d.js; it never changes API calls or backend behaviour.
@@ -46,8 +46,8 @@
   applyTheme(store.get("nw-theme") === "light" ? "light" : "dark");
   root.lang = LANG;
   const fav = q('link[rel="icon"]');
-  if (fav) fav.href = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#ffcc00"/><text x="24" y="33" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#1b1b1b">N</text></svg>');
-  if (DE) document.title = "Nachweis · KI-Assistent für die Bauleitung";
+  if (fav) fav.href = "img/logo.svg";
+  if (DE) document.title = "BauBuddy · KI-Assistent für die Bauleitung";
 
   /* ------------------------------------------------------------------ German labels */
   const EX = {
@@ -263,7 +263,7 @@
   function buildHeader() {
     const h = q("header"); if (!h) return;
     const brand = q(".brand", h);
-    if (brand && !q(".gl-logo", brand)) brand.insertAdjacentHTML("afterbegin", '<span class="gl-logo" aria-hidden="true">N</span>');
+    if (brand && !q(".gl-logo", brand)) brand.insertAdjacentHTML("afterbegin", '<span class="gl-logo" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="d1" d="M12 17C12 10.4 17.4 6 24 6s12 4.4 12 11M7 17h34M24 6v5" stroke-width="3.4"/><path class="d2" d="M9 22h30a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H20l-7 6v-6H9a3 3 0 0 1-3-3V25a3 3 0 0 1 3-3z" stroke-width="2.6"/><polyline class="d3" points="17,30 22,34.5 31,26" stroke-width="3.4"/></svg></span>');
     const auto = q("#autoBtn"), demo = q("#demoBtn"), reset = q("#resetBtn");
     const theme = document.createElement("button");
     theme.id = "glTheme"; theme.className = "gl-hbtn"; theme.type = "button";
@@ -299,7 +299,7 @@
     applyTheme(root.dataset.theme);
   }
 
-  /* ------------------------------------------------------------------ navigation: 5 primary + More, sliding yellow indicator */
+  /* ------------------------------------------------------------------ navigation: 5 primary + More, sliding orange indicator */
   const PRIMARY = [["assist", L("Assistant", "Assistent"), IC.chat], ["docs", L("Documents", "Dokumente"), IC.doc], ["dash", "Dashboard", IC.dash],
     ["twin", L("Site", "Baustelle"), IC.site], ["photos", L("Photos", "Fotos"), IC.camera]];
   const MORE = [["plan", L("Plan vs actual", "Plan & Ist")], ["sum", L("Summaries", "Zusammenfassungen")], ["live", L("Live camera", "Live-Kamera")], ["metrics", L("Metrics", "Metriken")]];
@@ -355,7 +355,7 @@
     moreEl?.classList.toggle("on", MORE.some(([m]) => m === t));
     qa("[data-gl-t]", morePop || document).forEach(b => b.classList.toggle("on", b.dataset.glT === t));
     qa(".gl-seg button").forEach(b => b.classList.toggle("on", b.dataset.glT === t));
-    // the yellow indicator sits on the visible owner of the active tab (Site for the map, More for its items)
+    // the orange indicator sits on the visible owner of the active tab (Site for the map, More for its items)
     const vis = qa("#nav button.on").find(b => b.offsetWidth) || (t === "mapt" ? twinBtn : null) || (moreEl?.classList.contains("on") ? moreEl : null);
     const ind = q("#nav .ind");
     if (ind && vis) { ind.style.left = vis.offsetLeft + "px"; ind.style.width = vis.offsetWidth + "px"; }
