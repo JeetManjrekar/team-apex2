@@ -39,13 +39,13 @@ ZONE_WORDS = [
 ]
 
 INTENTS = [
-    ("helmet", re.compile(r"helmet|helm|hard ?hat|ppe|psa|schutzausrüstung|warnweste|vest", re.I)),
+    ("helmet", re.compile(r"\bhelm\w*|\bhard ?hats?\b|\bppe\b|protective (?:equipment|gear)|safety gear|\bpsa\b|schutzausrüstung|\bwarnweste\w*|\bvests?\b", re.I)),
     ("report", re.compile(r"report|bericht|pdf|protokoll erstellen|export", re.I)),
     ("explain", re.compile(r"explain|erklär|what happened|was ist passiert|details? (?:of|zu|zum)", re.I)),
     ("safety", re.compile(r"safety|sicherheit|violation|verstoß|verstoss|hazard|gefahr|risk|risiko|restricted|sperr|unsafe", re.I)),
-    ("incidents", re.compile(r"incident|vorfall|vorfälle|unfall|accident|alarm|detected|erkannt|detection", re.I)),
+    ("incidents", re.compile(r"incident|vorfall|vorfälle|unfall|accident|injur|verletz|alarm|detected|erkannt|detection", re.I)),
     ("changes", re.compile(r"chang|since yesterday|seit gestern|what'?s new|was ist neu|änderung|neu seit|new since", re.I)),
-    ("progress", re.compile(r"progress|fortschritt|stand|plan(?:ned)? vs|soll.?ist|planned|behind|verzug|schedule|bauzeitenplan|on track|status", re.I)),
+    ("progress", re.compile(r"progress|fortschritt|\bstand\b|plan(?:ned)? vs|soll.?ist|planned|behind|verzug|schedule|bauzeitenplan|on track|status", re.I)),
     ("focus", re.compile(r"show|zeig|navigate|go to|fly|3d|twin|plan|zone|area|bereich|inspect|prüf", re.I)),
 ]
 # drafting / diary commands stay with the document assistant
@@ -308,7 +308,24 @@ def _zone_card(tw, zid, lang):
 
 
 # ---------------------------------------------------------------- orchestrator
+DAILY_DOC_RX = re.compile(r"tagesbericht|daily (?:site )?(?:report|diary)|bautagebuch", re.I)
+# explicit notice names: always the document pipeline, even when the text also contains safety/progress words ("Standsicherheit")
+NOTICE_RX = re.compile(r"bedenken|bedenkenanmeldung|behinderungsanzeige|mehrkostenanzeige|nachtragsmeldung|mängelanzeige|aktennotiz", re.I)
+# a question or a negation is not an incident report ("Did anyone get injured?", "Kein Unfall heute")
+_QUESTION_RX = re.compile(r"\?\s*$|^\s*(?:did|does|do|has|have|was|were|is|are|hat|haben|wurde|ist|sind)\b", re.I)
+_NEGATION_RX = re.compile(r"\b(?:kein(?:e|en|er|em)?|nicht|nichts|niemand|no|not|nobody|nothing|without|ohne)\b|nur eine übung|just a drill", re.I)
+
+
+def is_incident_report(text):
+    """True only for a statement that something happened. Questions, negations and show/explain/report requests are not reports."""
+    t = text or ""
+    return bool(INCIDENT_WORDS.search(t) and not _QUESTION_RX.search(t) and not _NEGATION_RX.search(t)
+                and not re.search(r"\b(show|zeig|explain|erklär|report|bericht|any|gibt es)\b", t, re.I))
+
+
 def route(text):
+    if DAILY_DOC_RX.search(text or "") or NOTICE_RX.search(text or ""):
+        return ["chat"]
     if DRAFT_RX.search(text or "") and not re.search(r"report|bericht|show|zeig|safety|sicherheit|progress|fortschritt", text or "", re.I):
         return ["chat"]
     found = [name for name, rx in INTENTS if rx.search(text or "")]
@@ -322,7 +339,7 @@ def run(text: str, ctx: dict | None = None, lang_hint: str | None = None) -> dic
     lang = _lang(text, lang_hint)
     steps = _Steps()
     intents = steps.run("intent", _t(lang, "Understand the request", "Anfrage verstehen"), lambda: route(text))
-    if INCIDENT_WORDS.search(text) and not re.search(r"\b(show|zeig|explain|erklär|report|bericht|any|gibt es)\b", text, re.I):
+    if is_incident_report(text):
         intents = ["reported"]
     if intents == ["chat"]:
         return {"handoff": "chat", "intents": intents, "lang": lang, "steps": steps.rows, "ctx": ctx}
@@ -465,7 +482,7 @@ def _e(s):
     return html.escape(str(s if s is not None else ""))
 
 
-def report(scope="site", incident_id=None, snapshot=None, lang="de", findings_note=None, plan_snapshot=None) -> dict:
+def report(scope="site", incident_id=None, snapshot=None, lang="en", findings_note=None, plan_snapshot=None) -> dict:
     scan()
     st, tw = plan.status(), site_twin.twin()
     L = lambda en, de: _t(lang, en, de)  # noqa: E731

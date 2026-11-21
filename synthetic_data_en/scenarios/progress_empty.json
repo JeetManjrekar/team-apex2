@@ -1,0 +1,5 @@
+{
+  "_doc": "Empty progress. Expected: 0 %, overdue activities red, no division by zero.",
+  "today": "2026-11-17",
+  "progress": []
+}

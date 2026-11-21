@@ -1,0 +1,23 @@
+From: Josef Huber <j.huber@muster-bau.example>
+To: Markus Brandl <m.brandl@muster-bau.example>
+Subject: Photo
+Date: Thu, 19 Nov 2026 11:03:00 +0100
+Message-ID: <03_attachment_only@synthetic.example>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============6263165987452922874=="
+
+--===============6263165987452922874==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+
+
+--===============6263165987452922874==
+Content-Type: text/plain
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="note.txt"
+MIME-Version: 1.0
+
+U2VlIHBob3RvIGF0dGFjaGVkLCBwaWxlIDcgZHJpbGwgY3V0dGluZ3MsIDExOjAyLgo=
+
+--===============6263165987452922874==--

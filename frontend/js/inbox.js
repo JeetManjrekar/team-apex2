@@ -3,6 +3,8 @@
   const slot = document.getElementById("inboxSlot");
   if (!slot || !window.NW || !NW.api) return;
   const { api, esc } = NW;
+  const DE = (() => { try { return localStorage.getItem("nw-lang") === "de"; } catch { return false; } })();
+  const L = (en, de) => (DE ? de : en);
 
   // Show the card at the top of the Assistant tab unless the layout already placed it inside a tab.
   const assist = document.getElementById("assist");
@@ -28,53 +30,53 @@
   document.head.appendChild(css);
 
   slot.innerHTML = `<div class="card nw-inbox">
-    <h3 style="margin:0 0 8px">Outlook-Import</h3>
+    <h3 style="margin:0 0 8px">${L("Outlook import", "Outlook-Import")}</h3>
     <div class="sync">
-      <div class="row"><button class="s" data-sync>Sync Demo Inbox &amp; Calendar</button><span class="mut">nur auf Klick · Personendaten werden lokal maskiert</span></div>
+      <div class="row"><button class="s" data-sync>Sync Demo Inbox &amp; Calendar</button><span class="mut">${L("on click only · personal data is masked locally", "nur auf Klick · Personendaten werden lokal maskiert")}</span></div>
       <details><summary>Connect iCal URL (Read-Only, 7-Day Window)</summary>
         <input type="url" placeholder="https://…/calendar.ics" autocomplete="off" aria-label="iCal URL">
         <label><input type="checkbox" data-consent> Allow Nachweis to read upcoming meetings for the next 7 days; PII is masked locally</label>
       </details>
     </div>
-    <div class="dz" tabindex="0" role="button" aria-label="E-Mails, Kalendereinträge und Dokumente hochladen">
-      Dateien hierher ziehen oder tippen<small>.eml (E-Mails), .ics (Kalender), .pdf / .docx / .xlsx / .csv (Dokumente, Tabellen), mehrere Dateien möglich</small>
-      <button class="s" type="button" data-upload style="margin-top:8px">Dateien hochladen …</button>
+    <div class="dz" tabindex="0" role="button" aria-label="${L("Upload emails, calendar entries and documents", "E-Mails, Kalendereinträge und Dokumente hochladen")}">
+      ${L("Drag files here or tap", "Dateien hierher ziehen oder tippen")}<small>${L(".eml (emails), .ics (calendar), .pdf / .docx / .xlsx / .csv (documents, spreadsheets), multiple files allowed", ".eml (E-Mails), .ics (Kalender), .pdf / .docx / .xlsx / .csv (Dokumente, Tabellen), mehrere Dateien möglich")}</small>
+      <button class="s" type="button" data-upload style="margin-top:8px">${L("Upload files …", "Dateien hochladen …")}</button>
     </div>
     <input type="file" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv,message/rfc822,text/calendar,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden>
     <ul class="out"></ul></div>`;
   const dz = slot.querySelector(".dz"), input = slot.querySelector("input[type=file]"), out = slot.querySelector(".out");
 
-  const openBtn = d => `<button class="s" data-open="${esc(d.id)}">Entwurf öffnen: ${esc(d.title)}</button>`;
+  const openBtn = d => `<button class="s" data-open="${esc(d.id)}">${L("Open draft", "Entwurf öffnen")}: ${esc(d.title)}</button>`;
   const labels = a => (a || []).map(esc).join(", ");
 
   function mailCard(m) {
-    const drafts = m.drafts.map(d => `<div class="row">${openBtn(d)}<span class="mut">${d.created ? "neuer Entwurf" : "bestehender Entwurf"}${
-      d.proposals.length ? ` · Vorschlag: ${labels(d.proposal_labels)}` : ""}${d.filled.length ? ` · ergänzt: ${labels(d.filled_labels)}` : ""}</span></div>`).join("");
-    const items = m.open_items.map(i => `<li style="border:0;padding:0">• ${esc(i.item)}${i.deadline ? ` <span class="mut">(bis ${esc(i.deadline)})</span>` : ""}</li>`).join("");
-    return `<li><span class="tag">E-Mail · ${esc(m.evidence_id)}${m.duplicate ? " · bereits importiert" : ""}</span>
-      <b>${esc(m.subject || m.file)}</b><span class="mut">von ${esc(m.from)}${m.masked.length ? ` · maskiert: ${esc(m.masked.join(", "))}` : ""}</span>
+    const drafts = m.drafts.map(d => `<div class="row">${openBtn(d)}<span class="mut">${d.created ? L("new draft", "neuer Entwurf") : L("existing draft", "bestehender Entwurf")}${
+      d.proposals.length ? ` · ${L("proposal", "Vorschlag")}: ${labels(d.proposal_labels)}` : ""}${d.filled.length ? ` · ${L("added", "ergänzt")}: ${labels(d.filled_labels)}` : ""}</span></div>`).join("");
+    const items = m.open_items.map(i => `<li style="border:0;padding:0">• ${esc(i.item)}${i.deadline ? ` <span class="mut">(${L("by", "bis")} ${esc(i.deadline)})</span>` : ""}</li>`).join("");
+    return `<li><span class="tag">${L("Email", "E-Mail")} · ${esc(m.evidence_id)}${m.duplicate ? ` · ${L("already imported", "bereits importiert")}` : ""}</span>
+      <b>${esc(m.subject || m.file)}</b><span class="mut">${L("from", "von")} ${esc(m.from)}${m.masked.length ? ` · ${L("masked", "maskiert")}: ${esc(m.masked.join(", "))}` : ""}</span>
       ${(m.summary || []).slice(1).map(s => `<span>${esc(s)}</span>`).join("")}${items ? `<ul>${items}</ul>` : ""}${drafts}</li>`;
   }
-  const calCard = r => `<li><span class="tag">Erinnerung · ${esc(r.evidence_id)}</span><b>${esc(r.message)}</b>
+  const calCard = r => `<li><span class="tag">${L("Reminder", "Erinnerung")} · ${esc(r.evidence_id)}</span><b>${esc(r.message)}</b>
     <span class="mut">${esc(r.location)}${r.attendees.length ? " · " + esc(r.attendees.join(", ")) : ""}</span>
     ${r.open_items.map(i => `<span>• ${esc(i.item)}</span>`).join("")}</li>`;
 
   function docCard(m) {
     const drafts = m.drafts.map(d => `<div class="row">${openBtn(d)}<span class="mut">${
-      d.proposals.length ? `Vorschlag: ${labels(d.proposal_labels)}` : ""}${d.filled.length ? ` · ergänzt: ${labels(d.filled_labels)}` : ""}</span></div>`).join("");
-    const items = m.open_items.map(i => `<li style="border:0;padding:0">• ${esc(i.item)}${i.deadline ? ` <span class="mut">(bis ${esc(i.deadline)})</span>` : ""}</li>`).join("");
+      d.proposals.length ? `${L("proposal", "Vorschlag")}: ${labels(d.proposal_labels)}` : ""}${d.filled.length ? ` · ${L("added", "ergänzt")}: ${labels(d.filled_labels)}` : ""}</span></div>`).join("");
+    const items = m.open_items.map(i => `<li style="border:0;padding:0">• ${esc(i.item)}${i.deadline ? ` <span class="mut">(${L("by", "bis")} ${esc(i.deadline)})</span>` : ""}</li>`).join("");
     const cite = m.locators.slice(0, 6).map(esc).join(" · ") + (m.locators.length > 6 ? " …" : "");
-    return `<li><span class="tag">Dokument · ${esc(m.format)} · ${esc(m.evidence_id)}${m.duplicate ? " · bereits importiert" : ""}</span>
-      <b>${esc(m.file)}</b><span class="mut">${m.units} Abschnitt(e): ${cite}${m.masked.length ? ` · maskiert: ${esc(m.masked.join(", "))}` : ""}</span>
+    return `<li><span class="tag">${L("Document", "Dokument")} · ${esc(m.format)} · ${esc(m.evidence_id)}${m.duplicate ? ` · ${L("already imported", "bereits importiert")}` : ""}</span>
+      <b>${esc(m.file)}</b><span class="mut">${m.units} ${L("section(s)", "Abschnitt(e)")}: ${cite}${m.masked.length ? ` · ${L("masked", "maskiert")}: ${esc(m.masked.join(", "))}` : ""}</span>
       ${(m.summary || []).slice(0, 3).map(s => `<span>${esc(s)}</span>`).join("")}${items ? `<ul>${items}</ul>` : ""}${drafts}
-      ${!m.drafts.length && !m.duplicate ? `<span class="mut">Kein passender offener Entwurf – es wurde nichts angelegt.</span>` : ""}
-      ${m.truncated ? `<span class="mut">Nur die ersten Abschnitte wurden zugeordnet.</span>` : ""}</li>`;
+      ${!m.drafts.length && !m.duplicate ? `<span class="mut">${L("No matching open draft – nothing was created.", "Kein passender offener Entwurf – es wurde nichts angelegt.")}</span>` : ""}
+      ${m.truncated ? `<span class="mut">${L("Only the first sections were matched.", "Nur die ersten Abschnitte wurden zugeordnet.")}</span>` : ""}</li>`;
   }
 
   function render(res) {
     const cards = res.emails.map(mailCard).concat((res.documents || []).map(docCard)).concat(res.reminders.map(calCard))
       .concat(res.skipped.map(s => `<li><span class="err"><b>${esc(s.file)}</b>: ${esc(s.reason)}</span></li>`));
-    out.innerHTML = cards.join("") || `<li class="mut">Nichts importiert.</li>`;
+    out.innerHTML = cards.join("") || `<li class="mut">${L("Nothing imported.", "Nichts importiert.")}</li>`;
     out.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { NW.TAB("assist"); NW.showAssistDoc(b.dataset.open); });
     if (res.notifications.length && NW.loadMsgs) NW.loadMsgs();
   }
@@ -84,7 +86,7 @@
     if (!files.length) return;
     const fd = new FormData();
     files.forEach(f => fd.append("files", f));
-    out.innerHTML = `<li class="mut">Importiere ${files.length} Datei(en) …</li>`;
+    out.innerHTML = `<li class="mut">${L("Importing", "Importiere")} ${files.length} ${L("file(s)", "Datei(en)")} …</li>`;
     try { render(await api("/api/inbox/import", { method: "POST", body: fd })); }
     catch (e) { out.innerHTML = `<li><span class="err">${esc(e.message)}</span></li>`; }
     input.value = "";
@@ -95,12 +97,12 @@
     const url = urlIn.value.trim(), body = { include_samples: true };
     if (url && consent.checked) body.ics_url = url;
     syncBtn.disabled = true;
-    out.innerHTML = `<li class="mut">Synchronisiere …</li>`;
+    out.innerHTML = `<li class="mut">${L("Syncing", "Synchronisiere")} …</li>`;
     try {
       const res = await api("/api/inbox/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       render(res);
       const bad = (res.sources_synced || []).filter(s => !s.ok).map(s => `<li><span class="err">${esc(s.source)}: ${esc(s.error)}</span></li>`).join("");
-      if (url && !consent.checked) out.insertAdjacentHTML("afterbegin", `<li class="mut">iCal-URL ignoriert: Einwilligung nicht angehakt.</li>`);
+      if (url && !consent.checked) out.insertAdjacentHTML("afterbegin", `<li class="mut">${L("iCal URL ignored: consent not ticked.", "iCal-URL ignoriert: Einwilligung nicht angehakt.")}</li>`);
       out.insertAdjacentHTML("afterbegin", bad);
     } catch (e) { out.innerHTML = `<li><span class="err">${esc(e.message)}</span></li>`; }
     syncBtn.disabled = false;

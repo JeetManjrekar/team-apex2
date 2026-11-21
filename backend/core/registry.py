@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from .i18n import get_lang
+
 REG = Path(__file__).resolve().parent.parent / "registry"
 
 
@@ -27,6 +29,11 @@ def doc_types() -> tuple[str, ...]:
     return tuple(p.stem for p in sorted((REG / "doc_types").glob("*.yaml")))
 
 
+def tr(obj: dict, base: str, lang: str | None = None, default: str = "") -> str:
+    """Language-aware text from a registry dict: `<base>_<lang>`, falling back to `<base>_de`."""
+    return obj.get(f"{base}_{lang or get_lang()}") or obj.get(f"{base}_de") or default
+
+
 def all_specs() -> list[dict]:
     return [doc_spec(t) for t in doc_types()]
 
@@ -37,5 +44,16 @@ def related_fields(doc_type: str, field_key: str) -> list[str]:
 
 
 @lru_cache
-def prompt(name: str) -> str:
+def _prompt_raw(name: str) -> str:
     return (REG / "prompts" / name).read_text(encoding="utf-8")
+
+
+EN_RULE = ("\n\nSPRACHE / LANGUAGE: The user works in English. Write EVERY free-text output in English (field values, questions, "
+           "notes, explanations, messages), translating German source text where needed. Keep JSON keys, field keys, enum values, "
+           "names, numbers and quoted evidence unchanged. This rule overrides any German wording above.")
+
+
+def prompt(name: str) -> str:
+    """Prompt file; with English selected an English-output rule is appended (the prompts themselves stay German)."""
+    p = _prompt_raw(name)
+    return (EN_RULE.lstrip() + "\n\n" + p) if get_lang() == "en" and name not in ("chat.md", "extraction_rules.md") else p

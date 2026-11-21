@@ -1,0 +1,28 @@
+id,suggested_filename,category,zone_id,description,conditions,expected_detections,expected_incident_rule,gps_exif,source_suggestion
+P01,syn_progress_excavator_01.jpg,progress,erd,"Bagger belädt Muldenkipper in der Baugrube, Totale",Tageslicht klar; Kamera auf Augenhöhe,"excavator;dump_truck",none,yes (nahe Baustelle),Echtes Baustellenfoto oder Stockfoto 'excavator loading truck'
+P02,syn_progress_piles_01.jpg,progress,a10,"Bohrpfahl-Bohrgerät am Widerlager 1, Bohrmast aufgerichtet",Bewölkt; leichte Gegenlicht-Silhouette,"crane;truck",none,yes,Stockfoto 'piling rig drilling'
+P03,syn_delivery_rebar_01.jpg,delivery,be,"Lkw mit Bewehrungsstahl-Bündeln an der Einfahrt, Lieferschein sichtbar",Tageslicht; Lkw-Kennzeichen unscharf,"truck",none,no (GPS-Fallback testen),Foto Lkw mit Stahl; Kennzeichen verpixeln
+P04,syn_defect_crack_01.jpg,defect,wls,"Haarriss in Flügelwand, Maßstab/Zollstock daneben",Streiflicht; Nahaufnahme 30 cm,,none,yes,Stockfoto 'concrete wall crack ruler'
+P05,syn_defect_honeycomb_01.jpg,defect,wls,"Kiesnest/Lunker an Betonoberfläche nach Ausschalung",Diffuses Licht,,none,yes,Stockfoto 'concrete honeycomb defect'
+P06,syn_evidence_rock_01.jpg,Nachtrag evidence,a10,"Bohrgut mit Kalksteinbrocken neben Pfahl 7, Maßstab daneben",Tageslicht; nasser Boden,"rock",none,yes,Foto Kalksteinbrocken auf Erde; Kern aus Bohrung
+P07,syn_evidence_rock_02.jpg,Nachtrag evidence,a10,"Fels im Bohrloch-Aushub, Bohrkrone mit Abrieb",Dämmerung; Blitz an,"rock",none,yes,Stockfoto 'rock core drilling'
+P08,syn_safety_person_machine_01.jpg,safety,erd,"Person 2 m neben laufendem Bagger ohne Absperrung",Tageslicht; Person klar im Bild,"person;excavator",person_near_machine,yes,Gestellte Szene (Statist) oder Stockfoto; Sicherheitsabstand beachten
+P09,syn_safety_person_machine_02.jpg,safety,erd,"Person hinter Muldenkipper (rückwärts fahrend)",Tageslicht; Person teilweise verdeckt,"person;dump_truck",person_near_machine,yes,Gestellt; Test auf teilweise Verdeckung
+P10,syn_safety_restricted_01.jpg,obstruction,wln,"Bagger in gesperrtem 2. Bauabschnitt (Zone Nord, Kind future)",Tageslicht; Sperrband im Bild,"excavator",machine_in_restricted_zone,yes (Zone wln),Foto Bagger hinter Absperrband
+P11,syn_safety_no_ppe_01.jpg,safety,erd,"Arbeiter ohne Helm und Warnweste neben Grube",Tageslicht,"person",none (Detektor hat keine Helm-/Westenklasse),yes,Stockfoto 'worker without helmet'. Erwartung: Agent sagt 'cannot verify'
+P12,syn_incident_flipped_01.jpg,safety,erd,"Umgekippter Muldenkipper an der Grubenkante",Tageslicht; Note im Upload: 'Lkw in die Grube gestürzt',"dump_truck",reported_incident,yes,Stockfoto 'overturned dump truck'. Nur mit Hinweis 'Test'
+P13,syn_obstruction_01.jpg,obstruction,be,"Zufahrt durch geparkten Pkw blockiert",Tageslicht,"car",none,no,Eigenes Foto Parkplatz
+P14,syn_neg_empty_field_01.jpg,uncategorized,,"Leeres Feld, nur Himmel und Gras",Tageslicht,,none,no,Beliebiges Landschaftsfoto (Negativfall: keine Detektion)
+P15,syn_neg_indoor_01.jpg,uncategorized,,"Büroraum mit Plänen am Tisch",Kunstlicht,,none,no,Eigenes Foto
+P16,syn_neg_cat_01.jpg,uncategorized,,"Katze auf Bauzaun (Fehlalarm-Test für 'person'/'animal')",Tageslicht,,none,yes,Stockfoto cat on fence
+P17,syn_edge_dark_01.jpg,progress,erd,"Baustelle bei Nacht, nur Scheinwerfer",Nacht; hohes Rauschen,"excavator",none (niedrige Konfidenz erwartet),yes,Stockfoto 'construction site night'
+P18,syn_edge_blur_01.jpg,progress,a10,"Verwackelte Aufnahme Bohrgerät",Bewegungsunschärfe,"crane",none,yes,Bewusst verwackeln
+P19,syn_edge_tiny_01.jpg,progress,erd,"Bagger sehr klein im Bild (>80 m entfernt)",Weitwinkel,"excavator (evtl. unter 0.5 Konfidenz)",none (MIN_CONF 0.5),yes,Drohnen-/Weitwinkelfoto
+P20,syn_edge_crowd_01.jpg,safety,be,"Gruppe von 8 Personen bei Einweisung, zwei Maschinen im Hintergrund",Tageslicht,"person x8;truck",person_near_machine (prüfen),yes,Gestellt; Test auf viele Detektionen
+P21,syn_edge_large_12mp.jpg,progress,erd,"Hochauflösend 4000x3000, 8–12 MB",Tageslicht,"excavator",none,yes,Original-Kamera; Upload-Limit/Zeit prüfen
+P22,syn_edge_png_screenshot.png,uncategorized,,"Screenshot eines Plans als PNG, ohne EXIF",,,none,no,Screenshot; Format PNG
+P23,syn_edge_no_exif_01.jpg,progress,erd,"Normales Baustellenfoto, EXIF per exiftool entfernt","Tageslicht","excavator",none,no (location_source=site_default; in 'no GPS'-Leiste),exiftool -all= Datei
+P24,syn_edge_exif_far_01.jpg,progress,erd,"Normales Foto, GPS auf anderen Kontinent gesetzt (lat 35.68 lon 139.69)",Tageslicht,"excavator",none,far away,exiftool -GPSLatitude=35.68 -GPSLongitude=139.69; Test: Position außerhalb Baufeld
+P25,syn_edge_dup_01.jpg,progress,erd,"Exaktes Duplikat von P01 (gleiche Datei, neuer Name)",Tageslicht,"excavator;dump_truck",none,yes,cp P01; Duplikat-Verhalten prüfen
+P26,syn_edge_wrongext.jpg,uncategorized,,"PDF-Datei mit .jpg Endung",,,none,no,mv test.pdf test.jpg; erwartet 4xx statt 500
+P27,syn_edge_heic_01.heic,progress,erd,"iPhone HEIC",Tageslicht,"excavator",none,yes,iPhone-Originalfoto; Format ggf. nicht unterstützt

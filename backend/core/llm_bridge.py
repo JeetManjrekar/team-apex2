@@ -13,6 +13,7 @@ from nachweis_llm.config import LLMSettings
 from nachweis_llm.metrics import MetricsRecorder
 from nachweis_llm.ports import TokenUsage
 
+from . import pricing
 from .llm_settings import CFG
 from .sources import KIND_TO_SRC  # noqa: F401  (re-exported for core.assistant)
 from .store import DATA
@@ -52,21 +53,24 @@ def status():
             "photo_llm": bool(services()), "demo_today": CFG.demo_today.isoformat() if CFG.demo_today else None}
 
 
-def record(stage, started_wall, started_perf, run_id="host", extra=None):
+def record(stage, started_wall, started_perf, run_id="host", extra=None, model=None):
     METRICS.record(run_id=run_id, stage=stage, started_at=started_wall.astimezone(dt.timezone.utc),
-                   duration_ms=(time.perf_counter() - started_perf) * 1000, model=None, extra=extra)
+                   duration_ms=(time.perf_counter() - started_perf) * 1000, model=model, extra=extra)
 
 
 class Timer:
-    def __init__(self, stage, run_id="host", **extra):
-        self.stage, self.run_id, self.extra = stage, run_id, extra or None
+    def __init__(self, stage, run_id="host", model=None, **extra):
+        self.stage, self.run_id, self.model, self.extra = stage, run_id, model, extra or None
 
     def __enter__(self):
         self.w, self.p = dt.datetime.now(dt.timezone.utc), time.perf_counter()
         return self
 
-    def __exit__(self, *a):
-        record(self.stage, self.w, self.p, self.run_id, self.extra)
+    def __exit__(self, exc_type, exc, tb):
+        extra = self.extra
+        if exc_type:        # failed runs are counted as errors, not as latency samples
+            extra = {**(extra or {}), "ok": False, "error": str(exc)[:200] or exc_type.__name__}
+        record(self.stage, self.w, self.p, self.run_id, extra, self.model)
 
 
 class timed:
@@ -97,6 +101,11 @@ class timed:
         if exc_type:
             self.meta.update(ok=False, error=str(exc)[:200])
         ms = (time.perf_counter() - self.p) * 1000
+        if not (SETTINGS.input_cost_eur_per_1m or SETTINGS.output_cost_eur_per_1m) and (self.usage.input_tokens or self.usage.output_tokens):
+            r = pricing.rates(self.model)       # no manual price configured -> live price for this model
+            if r:
+                self.extra_cost_eur += (self.usage.input_tokens * r[0] + self.usage.output_tokens * r[1]) / 1_000_000
+                self.meta["price_src"] = "live"
         if not self.extra_cost_eur:
             METRICS.record(run_id=self.run_id, stage=self.stage, started_at=self.w, duration_ms=ms, model=self.model,
                            usage=self.usage, extra=self.meta or None)
@@ -136,13 +145,13 @@ def detect_intent(text, run_id="host"):
         return llm_extract.Intent(intent="smalltalk", by="default")
 
 
-def converse(text, context, run_id="chat"):
+def converse(text, context, run_id="chat", lang=None):
     """Conversational answer for non-incident messages. None without a model or on failure (caller uses a help text)."""
     if not CFG.llm_ready:
         return None
     from . import llm_extract
     try:
-        return llm_extract.converse(text, context, run_id) or None
+        return llm_extract.converse(text, context, run_id, lang) or None
     except Exception as e:
         _state["error"] = f"chat failed: {str(e)[:300]}"
         return None

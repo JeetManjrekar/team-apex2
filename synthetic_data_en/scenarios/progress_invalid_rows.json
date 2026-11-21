@@ -1,0 +1,35 @@
+{
+  "_doc": "Invalid input: negative quantity, future date, unknown activity, missing date, qty as text. Expected: validation/ignored, no 500.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": -12,
+      "note": "negative"
+    },
+    {
+      "date": "2027-01-01",
+      "activity": "W1_BP",
+      "qty": 12,
+      "note": "future"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "XX_UNKNOWN",
+      "qty": 5,
+      "note": "unknown"
+    },
+    {
+      "qty": 12,
+      "activity": "W1_BP",
+      "note": "no date"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": "twelve",
+      "note": "qty as text"
+    }
+  ]
+}

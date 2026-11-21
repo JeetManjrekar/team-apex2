@@ -1,29 +1,34 @@
 key: bautagesbericht
 label_de: Bautagesbericht
+label_en: Daily site report
 template: bautagesbericht.docx
 prompt: bautagesbericht.md
 intent: daily_report_request
 intent_keywords:
   - [tagesbericht]
   - [bautagesbericht]
+intent_keywords_en:
+  - [daily report]
+  - [daily site report]
 fields:
-  - {key: date, label_de: Datum, type: date, required: true, critical: false}
-  - {key: location, label_de: Ort / Bauabschnitt, type: text, required: false, critical: false}
-  - {key: weather, label_de: Wetter, type: text, required: true, critical: false}
-  - {key: temperature_min_c, label_de: Temperatur min (°C), type: number, required: false, critical: false}
-  - {key: temperature_max_c, label_de: Temperatur max (°C), type: number, required: false, critical: false}
-  - {key: staff_by_company, label_de: Personal je Firma, type: list, required: true, critical: false, question_de: "Welche Firmen waren heute mit wie vielen Personen auf der Baustelle?"}
-  - {key: equipment, label_de: Geräte, type: list, required: false, critical: false}
-  - {key: work_done, label_de: Ausgeführte Leistungen, type: list, required: true, critical: false}
-  - {key: deliveries, label_de: Lieferungen, type: list, required: false, critical: false}
-  - {key: visits, label_de: Besuche, type: list, required: false, critical: false}
-  - {key: incidents, label_de: Besondere Vorkommnisse, type: list, required: false, critical: false}
-  - {key: instructions, label_de: Anordnungen, type: list, required: false, critical: false}
-  - {key: reassignments, label_de: Umsetzungen, type: list, required: false, critical: false}
-  - {key: photos, label_de: Fotos, type: list, required: false, critical: false}
+  - {key: date, label_de: Datum, label_en: "Date", type: date, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauabschnitt, label_en: "Location / section", type: text, required: false, critical: false}
+  - {key: weather, label_de: Wetter, label_en: "Weather", type: text, required: true, critical: false}
+  - {key: temperature_min_c, label_de: Temperatur min (°C), label_en: "Temperature min (°C)", type: number, required: false, critical: false}
+  - {key: temperature_max_c, label_de: Temperatur max (°C), label_en: "Temperature max (°C)", type: number, required: false, critical: false}
+  - {key: staff_by_company, label_de: Personal je Firma, label_en: "Staff per company", type: list, required: true, critical: false, question_de: "Welche Firmen waren heute mit wie vielen Personen auf der Baustelle?", question_en: "Which companies were on site today, and with how many people?"}
+  - {key: equipment, label_de: Geräte, label_en: "Equipment", type: list, required: false, critical: false}
+  - {key: work_done, label_de: Ausgeführte Leistungen, label_en: "Work performed", type: list, required: true, critical: false}
+  - {key: deliveries, label_de: Lieferungen, label_en: "Deliveries", type: list, required: false, critical: false}
+  - {key: visits, label_de: Besuche, label_en: "Visits", type: list, required: false, critical: false}
+  - {key: incidents, label_de: Besondere Vorkommnisse, label_en: "Special incidents", type: list, required: false, critical: false}
+  - {key: instructions, label_de: Anordnungen, label_en: "Instructions", type: list, required: false, critical: false}
+  - {key: reassignments, label_de: Umsetzungen, label_en: "Reassignments", type: list, required: false, critical: false}
+  - {key: photos, label_de: Fotos, label_en: "Photos", type: list, required: false, critical: false}
 checklist:
-  - {key: date, label_de: Datum, field_key: date}
-  - {key: weather, label_de: Wetter, field_key: weather}
-  - {key: staff, label_de: Personal, field_key: staff_by_company}
-  - {key: work, label_de: Leistungen, field_key: work_done}
+  - {key: date, label_de: Datum, label_en: "Date", field_key: date}
+  - {key: weather, label_de: Wetter, label_en: "Weather", field_key: weather}
+  - {key: staff, label_de: Personal, label_en: "Staff", field_key: staff_by_company}
+  - {key: work, label_de: Leistungen, label_en: "Work", field_key: work_done}
 static_text_de: ""
+static_text_en: ""

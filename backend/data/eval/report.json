@@ -1,0 +1,72 @@
+{
+  "accuracy": 0.682,
+  "fields_correct": 15,
+  "fields_total": 22,
+  "gaps_asked": 0,
+  "cases": [
+    {
+      "id": "case_01_pfahl7_text",
+      "mode": "rules",
+      "fields": {
+        "location": false,
+        "depth_rock_m": true,
+        "expected_ground_ref": true,
+        "drilling_time_ratio": true,
+        "found_ground": true
+      },
+      "must_be_empty_ok": true
+    },
+    {
+      "id": "case_04_bagger_text",
+      "mode": "rules",
+      "fields": {
+        "occurred_at": false,
+        "cause": true,
+        "addressee": true,
+        "contract_ref": true
+      },
+      "must_be_empty_ok": true
+    },
+    {
+      "id": "case_06_bagger_ohne_zeit",
+      "mode": "rules",
+      "fields": {
+        "contract_ref": true
+      },
+      "must_be_empty_ok": true
+    },
+    {
+      "id": "case_07_bewehrung_teillieferung",
+      "mode": "rules",
+      "fields": {
+        "occurred_at": false,
+        "affected_work": false,
+        "cause": true
+      },
+      "must_be_empty_ok": true
+    },
+    {
+      "id": "case_08_maengelanzeige_text_foto",
+      "mode": "rules",
+      "fields": {
+        "location": true,
+        "defect_description": true,
+        "responsible_company": false,
+        "deadline": false,
+        "detected_at": false
+      },
+      "must_be_empty_ok": true
+    },
+    {
+      "id": "case_09_mehrkostenanzeige_text",
+      "mode": "rules",
+      "fields": {
+        "location": true,
+        "cause": true,
+        "additional_effort": true,
+        "contract_ref": true
+      },
+      "must_be_empty_ok": true
+    }
+  ]
+}

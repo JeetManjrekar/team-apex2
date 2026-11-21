@@ -12,6 +12,8 @@ Guardrails (all in this module):
 """
 from __future__ import annotations
 
+import contextvars
+
 import json
 import threading
 import time
@@ -21,6 +23,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from . import docs, sanitizer
+from .i18n import T
 from .llm_adapter import complete_json
 from .llm_settings import CFG
 from .registry import prompt
@@ -89,24 +92,24 @@ def combine(a: list[Verdict] | None, b: list[Verdict] | None) -> list[Verdict]:
     if a is None and b is None:
         raise RuntimeError("Both review judges failed")
     if a is None or b is None:
-        return [v.model_copy(update={"note_de": _note(v, "nur ein Prüfer")}) for v in (a if a is not None else b)]
+        return [v.model_copy(update={"note_de": _note(v, T("rv_one"))}) for v in (a if a is not None else b)]
     by_b, out = {v.field_key: v for v in b}, []
     for va in a:
         vb = by_b.get(va.field_key)
         if vb is None:
-            out.append(va.model_copy(update={"note_de": _note(va, "nur ein Prüfer")}))
+            out.append(va.model_copy(update={"note_de": _note(va, T("rv_one"))}))
             continue
         judges = {"a": va.supported, "b": vb.supported}
         if va.supported and vb.supported:
             out.append(Verdict(field_key=va.field_key, supported=True, judges=judges))
             continue
         notes = [n for n in (va.note_de, vb.note_de) if n]
-        note = ("Prüfer uneinig" + (f": {notes[0]}" if notes else "")) if va.supported != vb.supported \
-            else ("; ".join(dict.fromkeys(notes)) or "Wert durch Quelle nicht gestützt")
+        note = (T("rv_disagree") + (f": {notes[0]}" if notes else "")) if va.supported != vb.supported \
+            else ("; ".join(dict.fromkeys(notes)) or T("rv_unsupported"))
         q = next((x.followup_question_de for x in (va, vb) if not x.supported and x.followup_question_de), None)
         out.append(Verdict(field_key=va.field_key, supported=False, note_de=note, followup_question_de=q, judges=judges))
     seen = {v.field_key for v in out}
-    out += [vb.model_copy(update={"note_de": _note(vb, "nur ein Prüfer")}) for vb in b if vb.field_key not in seen]
+    out += [vb.model_copy(update={"note_de": _note(vb, T("rv_one"))}) for vb in b if vb.field_key not in seen]
     return out
 
 
@@ -151,7 +154,7 @@ def start(doc_id: str) -> bool:
         doc["fields"][k]["review"] = {"status": "being_verified"}
     doc["review"] = {"status": "running", "mode": CFG.reviewer_mode, "fields": sorted(snap), "findings": []}
     docs.put(doc)
-    threading.Thread(target=_run, args=(doc_id, snap), daemon=True).start()
+    threading.Thread(target=contextvars.copy_context().run, args=(_run, doc_id, snap), daemon=True).start()   # keeps the request language
     return True
 
 
@@ -195,9 +198,9 @@ def _run(doc_id: str, snap: dict[str, dict]):
             f["review"] = {"status": "verified" if v.supported else "flagged", "note_de": v.note_de, "judges": v.judges}
             if not v.supported:
                 # same shape the review panel already renders (frontend/js/app.js)
-                findings.append({"field_name": k, "issue": "nicht belegt" if len(v.judges) < 2 or not any(v.judges.values()) else "Prüfer uneinig",
-                                 "explanation_de": v.note_de or "Wert durch Quelle nicht gestützt",
-                                 "suggested_action_de": v.followup_question_de or "Bitte Wert und Quelle prüfen."})
+                findings.append({"field_name": k, "issue": T("rv_unproven") if len(v.judges) < 2 or not any(v.judges.values()) else T("rv_disagree"),
+                                 "explanation_de": v.note_de or T("rv_unsupported"),
+                                 "suggested_action_de": v.followup_question_de or T("rv_check")})
         d["review"] = {"status": "failed" if error else "done", "mode": CFG.reviewer_mode, "fields": sorted(snap),
                        "findings": findings, "error": error, "duration_ms": round((time.perf_counter() - t0) * 1000)}
     _write(doc_id, apply)

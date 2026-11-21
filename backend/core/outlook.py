@@ -19,6 +19,7 @@ from html.parser import HTMLParser
 from . import assistant, docs, llm_bridge, sanitizer, summarize
 from .extract import LOC, detect_intents
 from .store import env, load, new_id, now, save
+from .i18n import T
 
 MAX_BYTES = 10 * 1024 * 1024
 SAMPLES_DIR = Path(__file__).resolve().parents[1] / "data" / "inbox_samples"
@@ -165,16 +166,16 @@ def import_eml(raw: bytes, filename: str = "") -> tuple[dict, list]:
 
 
 def _mail_notification(item: dict) -> dict:
-    parts = [f"E-Mail „{item['subject']}“ von {item['from']} importiert ({len(item['open_items'])} offene Punkte)."]
+    parts = [T("ol_mail", subject=item["subject"], frm=item["from"], n=len(item["open_items"]))]
     for e in item["drafts"]:
         what = []
         if e["filled"]:
-            what.append(f"{len(e['filled'])} Feld(er) ergänzt ({', '.join(e['filled_labels'])})")
+            what.append(T("ol_filled", n=len(e["filled"]), labels=", ".join(e["filled_labels"])))
         if e["proposals"]:
-            what.append(f"Vorschlag zu {', '.join(e['proposal_labels'])}")
-        parts.append(f"{e['title']}: {'; '.join(what) or 'keine neuen Angaben'}.")
+            what.append(T("ol_prop", labels=", ".join(e["proposal_labels"])))
+        parts.append(f"{e['title']}: {'; '.join(what) or T('ol_none')}.")
     if item["drafts"]:
-        parts.append("Bitte prüfen – nichts wurde automatisch übernommen oder versendet.")
+        parts.append(T("ol_check_mail"))
     return {"text": " ".join(parts), "ref": item["evidence_id"], "doc": item["drafts"][0]["id"] if item["drafts"] else None}
 
 
@@ -466,12 +467,12 @@ def import_document(raw: bytes, filename: str, ext: str) -> tuple[dict, list]:
 
 
 def _doc_notification(item: dict) -> dict:
-    parts = [f"Dokument „{item['file']}“ ({item['units']} Abschnitte) gelesen, {len(item['open_items'])} offene Punkte."]
+    parts = [T("ol_doc", file=item["file"], units=item["units"], n=len(item["open_items"]))]
     for e in item["drafts"]:
         if e["proposals"] or e["filled"]:
-            parts.append(f"{e['title']}: Vorschlag/Ergänzung zu {', '.join(e['proposal_labels'] + e['filled_labels'])} (mit Quellenangabe).")
+            parts.append(T("ol_doc_prop", title=e["title"], labels=", ".join(e["proposal_labels"] + e["filled_labels"])))
     if item["drafts"]:
-        parts.append("Bitte prüfen – gesperrte Felder wurden nicht verändert.")
+        parts.append(T("ol_check_doc"))
     return {"text": " ".join(parts), "ref": item["evidence_id"], "doc": item["drafts"][0]["id"] if item["drafts"] else None}
 
 

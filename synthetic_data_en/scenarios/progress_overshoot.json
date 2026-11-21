@@ -1,0 +1,12 @@
+{
+  "_doc": "Edge case: total 130 m > 96 m planned (typo?). Expected: capped at 100 % or a data warning, no crash.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 130,
+      "note": "typo: 13 instead of 130?"
+    }
+  ]
+}

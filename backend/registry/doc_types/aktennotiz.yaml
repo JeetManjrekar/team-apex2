@@ -1,5 +1,6 @@
 key: aktennotiz
 label_de: Aktennotiz
+label_en: File note
 template: aktennotiz.docx
 prompt: aktennotiz.md
 intent: aktennotiz
@@ -7,14 +8,18 @@ intent: aktennotiz
 intent_keywords:
   - [aktennotiz]
   - [telefonat]
+intent_keywords_en:
+  - [file note]
+  - [phone call]
 fields:
-  - {key: date, label_de: Datum, type: date, required: true, critical: false}
-  - {key: location, label_de: Ort, type: text, required: false, critical: false}
-  - {key: participants, label_de: Beteiligte, type: text, required: false, critical: false}
-  - {key: subject, label_de: Betreff, type: text, required: true, critical: false, question_de: "Worum ging es?"}
-  - {key: facts, label_de: Feststellungen, type: text, required: true, critical: false}
-  - {key: next_steps, label_de: Nächste Schritte, type: text, required: false, critical: false}
+  - {key: date, label_de: Datum, label_en: "Date", type: date, required: true, critical: false}
+  - {key: location, label_de: Ort, label_en: "Location", type: text, required: false, critical: false}
+  - {key: participants, label_de: Beteiligte, label_en: "Participants", type: text, required: false, critical: false}
+  - {key: subject, label_de: Betreff, label_en: "Subject", type: text, required: true, critical: false, question_de: "Worum ging es?", question_en: "What was it about?"}
+  - {key: facts, label_de: Feststellungen, label_en: "Findings", type: text, required: true, critical: false}
+  - {key: next_steps, label_de: Nächste Schritte, label_en: "Next steps", type: text, required: false, critical: false}
 checklist:
-  - {key: subject, label_de: Betreff, field_key: subject}
-  - {key: facts, label_de: Feststellungen, field_key: facts}
+  - {key: subject, label_de: Betreff, label_en: "Subject", field_key: subject}
+  - {key: facts, label_de: Feststellungen, label_en: "Findings", field_key: facts}
 static_text_de: ""
+static_text_en: ""

@@ -1,6 +1,7 @@
 const API=window.API_BASE||"";
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const api=(u,o={})=>{if(o.json){o.method=o.method||"POST";o.headers={"Content-Type":"application/json"};o.body=JSON.stringify(o.json)}
+const LANG=(()=>{try{return localStorage.getItem("nw-lang")==="de"?"de":"en"}catch{return"en"}})(), L=(en,de)=>LANG==="de"?de:en;
+const api=(u,o={})=>{o.headers={...(o.headers||{}),"X-Lang":LANG};if(o.json){o.method=o.method||"POST";o.headers["Content-Type"]="application/json";o.body=JSON.stringify(o.json)}
   return fetch(API+u,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||r.statusText);return j})};
 let cfg,photos=[],docsCache=[],activeDoc=null,docsSel=null,filter="all",map,layer;
 const SRC={message:"chat message",voice:"dictation",answer:"your answer in chat",user:"edited by you",timestamp:"message time",weather:"weather service",
@@ -28,13 +29,13 @@ async function init(){cfg=await api("/api/config");$("#reportLink").href=API+"/a
 
 /* ---------- chat ---------- */
 const DEMO=[
- ["Rock at pile 7","Bohrpfahl 7: bei 4 m auf Fels gestoßen, laut Baugrundgutachten erst ab 9 m erwartet. Bohrzeit 6 Stunden statt 2, Bohrgerät steht still."],
+ ["Rock at pile 7",L("Bored pile 7: hit rock at 4 m, the ground report only expected it from 9 m. Drilling time 6 hours instead of 2, drilling rig stands still.","Bohrpfahl 7: bei 4 m auf Fels gestoßen, laut Baugrundgutachten erst ab 9 m erwartet. Bohrzeit 6 Stunden statt 2, Bohrgerät steht still.")],
  ["Excavator idle","Excavator idle since 10 am at abutment south because the client has not released the reinforcement plans"],
  ["Defect","Crack in the formwork at pier 2, subcontractor Müller Bau, please fix by 24.11.2026"],
- ["Diary note","Betonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle"],
+ ["Diary note",L("Concrete delivery for the blinding layer arrived at 7:30, 12 m3, 8 workers on site","Betonlieferung Sauberkeitsschicht um 7:30 angeliefert, 12 m3, 8 Arbeiter auf der Baustelle")],
  ["Edit by chat","change duration to 3 days"],
- ["File note","Telefonat mit Hr. Weber: Meißeleinsatz an Pfahl 7 freigegeben, schriftliche Bestätigung folgt bis Montag"],
- ["Daily report","daily report"]];
+ ["File note",L("Phone call with Mr. Weber: chiselling at pile 7 approved, written confirmation to follow by Monday","Telefonat mit Hr. Weber: Meißeleinsatz an Pfahl 7 freigegeben, schriftliche Bestätigung folgt bis Montag")],
+ ["Daily report",L("daily report","Tagesbericht")]];
 function renderChips(){$("#demoChips").innerHTML=DEMO.map((d,i)=>`<span class="chip" data-i="${i}">${esc(d[0])}</span>`).join("");
   $("#demoChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{$("#inp").value=DEMO[c.dataset.i][1];$("#inp").focus()});}
 function msgHtml(m){const acts=(m.actions||[]).map((a,i)=>`<button class="s" data-act='${esc(JSON.stringify(a))}'>${esc(a.label)}</button>`).join("");
@@ -49,7 +50,7 @@ async function loadMsgs(){const r=await api("/api/messages");
   $("#msgs").innerHTML=r.messages.length?r.messages.map(msgHtml).join(""):`<div class="empty">Tell me what happened on site. Type, dictate with 🎤, or tap an example below.<br><br>Try: rock at pile 7 → I draft a Mehrkostenanzeige and ask for what is missing.</div>`;
   bindMsgs();$("#msgs").scrollTop=1e9;if(r.active)showAssistDoc(r.active);}
 async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=NW.dictated;NW.dictated=false;const photo_ids=pendingPhotos;pendingPhotos=[];
-  try{const r=await api("/api/chat",{json:{text,voice,photo_ids}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
+  try{const r=await api("/api/chat",{json:{text,voice,photo_ids,lang:LANG}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
   catch(e){$("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant err">${esc(e.message)}</div>`)}$("#send").disabled=false;}
 $("#send").onclick=send;$("#inp").onkeydown=e=>{if(e.key=="Enter"&&!e.shiftKey){e.preventDefault();send()}};
 chatPhotos.onchange=async()=>{const fd=new FormData();[...chatPhotos.files].forEach(f=>fd.append("files",f));
@@ -87,7 +88,7 @@ function renderDoc(el,d){
     <div class="err" id="derr"></div>
     ${d.missing.length?`<div class="mut" style="margin-bottom:4px">Missing required: ${esc(d.missing.map(k=>d.meta.fields.find(f=>f.key==k).label).join(", "))}</div>`:""}
     ${fields}
-    ${ro?"":`<button class="s" id="addField" style="margin:2px 0 8px" title="Add a field this document type does not have">+ Feld hinzufügen</button>`}
+    ${ro?"":`<button class="s" id="addField" style="margin:2px 0 8px" title="Add a field this document type does not have">${L("+ Add field","+ Feld hinzufügen")}</button>`}
     <details ${d.photos.length?"open":""}><summary>Photos (${d.photos.length})</summary><div class="thumbs">${thumbs}</div>
       ${ro?"":`<button class="s" id="pickPh" style="margin-top:6px">Choose photos</button><div class="thumbs" id="phPick" style="display:none;margin-top:6px"></div>`}</details>
     <details><summary>Edit log</summary><div class="log">${log}</div></details>
@@ -101,7 +102,7 @@ function renderDoc(el,d){
   el.querySelectorAll("[data-undo]").forEach(b=>b.onclick=async()=>reload(await api(`/api/docs/${d.id}/undo/${b.dataset.undo}`,{json:{}})));
   const err=e=>el.querySelector("#derr").textContent=e.message;
   const af=el.querySelector("#addField");if(af)af.onclick=async()=>{const label=(prompt("Name des neuen Feldes (z. B. Ort):")||"").trim();if(!label)return;
-    const value=prompt(`Wert für „${label}“ (optional):`)||"";try{reload(await api(`/api/docs/${d.id}/fields`,{json:{label,value}}))}catch(e){err(e)}};
+    const value=prompt(L(`Value for “${label}” (optional):`,`Wert für „${label}“ (optional):`))||"";try{reload(await api(`/api/docs/${d.id}/fields`,{json:{label,value}}))}catch(e){err(e)}};
   el.querySelectorAll("[data-rmf]").forEach(b=>b.onclick=async()=>{if(!confirm("Feld entfernen?"))return;
     try{reload(await api(`/api/docs/${d.id}/fields/${b.dataset.rmf}`,{method:"DELETE"}))}catch(e){err(e)}});
   el.querySelectorAll("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(d.id,b));

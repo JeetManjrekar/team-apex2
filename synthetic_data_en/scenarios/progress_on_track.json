@@ -1,0 +1,30 @@
+{
+  "_doc": "Plan = actual on 17.11.2026 (W1_BP 96 m). Expected: no delay warning.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P01+P02"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P03+P04"
+    },
+    {
+      "date": "2026-11-16",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P05+P06"
+    },
+    {
+      "date": "2026-11-17",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P07+P08 as planned"
+    }
+  ]
+}

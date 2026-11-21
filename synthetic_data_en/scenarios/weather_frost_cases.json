@@ -1,0 +1,50 @@
+{
+  "_doc": "Forecast variants for the frost warning (concreting W1_BET, threshold min < 5 °C). Check field names against backend/data/demo/weather/weather_fixture.json before use.",
+  "cases": [
+    {
+      "id": "w01",
+      "date": "2026-11-19",
+      "min_c": -4,
+      "max_c": 3,
+      "precip_mm": 0,
+      "wind_kmh": 12,
+      "expect": "frost warning"
+    },
+    {
+      "id": "w02",
+      "date": "2026-11-19",
+      "min_c": 5,
+      "max_c": 9,
+      "precip_mm": 0,
+      "wind_kmh": 8,
+      "expect": "no warning (exactly on the threshold: not < 5)"
+    },
+    {
+      "id": "w03",
+      "date": "2026-11-19",
+      "min_c": 4.9,
+      "max_c": 9,
+      "precip_mm": 0,
+      "wind_kmh": 8,
+      "expect": "warning (just below threshold)"
+    },
+    {
+      "id": "w04",
+      "date": "2026-11-19",
+      "min_c": 10,
+      "max_c": 16,
+      "precip_mm": 22.5,
+      "wind_kmh": 55,
+      "expect": "no frost warning, but rain/wind in the daily report"
+    },
+    {
+      "id": "w05",
+      "date": "2026-11-19",
+      "min_c": null,
+      "max_c": null,
+      "precip_mm": null,
+      "wind_kmh": null,
+      "expect": "weather data missing: field stays empty, follow-up question, no invented value"
+    }
+  ]
+}

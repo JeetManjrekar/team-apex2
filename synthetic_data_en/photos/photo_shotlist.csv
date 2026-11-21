@@ -1,0 +1,28 @@
+id,suggested_filename,category,zone_id,description,conditions,expected_detections,expected_incident_rule,gps_exif,source_suggestion
+P01,syn_progress_excavator_01.jpg,progress,erd,"Excavator loading a dump truck in the excavation, wide shot",Clear daylight; camera at eye level,excavator;dump_truck,none,yes (near site),Real site photo or stock photo 'excavator loading truck'
+P02,syn_progress_piles_01.jpg,progress,a10,"Bored-pile rig at abutment 1, mast raised",Overcast; slight backlight silhouette,crane;truck,none,yes,Stock photo 'piling rig drilling'
+P03,syn_delivery_rebar_01.jpg,delivery,be,"Truck with rebar bundles at the gate, delivery note visible","Daylight; licence plate blurred",truck,none,no (tests GPS fallback),Photo of truck with steel; blur the plate
+P04,syn_defect_crack_01.jpg,defect,wls,"Hairline crack in wing wall, ruler next to it",Raking light; close-up 30 cm,,none,yes,Stock photo 'concrete wall crack ruler'
+P05,syn_defect_honeycomb_01.jpg,defect,wls,"Honeycombing / voids on concrete surface after formwork removal",Diffuse light,,none,yes,Stock photo 'concrete honeycomb defect'
+P06,syn_evidence_rock_01.jpg,Nachtrag evidence,a10,"Drill cuttings with limestone chunks next to pile 7, scale beside them",Daylight; wet ground,rock,none,yes,Photo of limestone chunks on soil; core from a drilling
+P07,syn_evidence_rock_02.jpg,Nachtrag evidence,a10,"Rock in the borehole spoil, drill bit with wear",Dusk; flash on,rock,none,yes,Stock photo 'rock core drilling'
+P08,syn_safety_person_machine_01.jpg,safety,erd,"Person 2 m from a running excavator without barrier",Daylight; person clearly visible,person;excavator,person_near_machine,yes,Staged scene (volunteer) or stock photo; keep a safe distance
+P09,syn_safety_person_machine_02.jpg,safety,erd,"Person behind a reversing dump truck",Daylight; person partly hidden,person;dump_truck,person_near_machine,yes,Staged; tests partial occlusion
+P10,syn_safety_restricted_01.jpg,obstruction,wln,"Excavator in the closed second phase (zone north, kind future)",Daylight; barrier tape in frame,excavator,machine_in_restricted_zone,yes (zone wln),Photo of excavator behind barrier tape
+P11,syn_safety_no_ppe_01.jpg,safety,erd,"Worker without helmet and vest next to the pit",Daylight,person,none (detector has no helmet/vest class),yes,Stock photo 'worker without helmet'. Expected: agent says 'cannot verify'
+P12,syn_incident_flipped_01.jpg,safety,erd,"Overturned dump truck at the pit edge",Daylight; upload note: 'truck fell into the pit',dump_truck,reported_incident,yes,Stock photo 'overturned dump truck'. Only with a 'test' note
+P13,syn_obstruction_01.jpg,obstruction,be,"Access blocked by a parked car",Daylight,car,none,no,Own photo of a car park
+P14,syn_neg_empty_field_01.jpg,uncategorized,,"Empty field, only sky and grass",Daylight,,none,no,Any landscape photo (negative case: no detection)
+P15,syn_neg_indoor_01.jpg,uncategorized,,"Office room with plans on a table",Artificial light,,none,no,Own photo
+P16,syn_neg_cat_01.jpg,uncategorized,,"Cat on a site fence (false-alarm test for 'person'/'animal')",Daylight,,none,yes,Stock photo cat on fence
+P17,syn_edge_dark_01.jpg,progress,erd,"Site at night, floodlights only",Night; heavy noise,excavator,none (low confidence expected),yes,Stock photo 'construction site night'
+P18,syn_edge_blur_01.jpg,progress,a10,"Shaky shot of the drill rig",Motion blur,crane,none,yes,Blur on purpose
+P19,syn_edge_tiny_01.jpg,progress,erd,"Excavator very small in frame (>80 m away)",Wide angle,excavator (maybe below 0.5 confidence),none (MIN_CONF 0.5),yes,Drone / wide-angle photo
+P20,syn_edge_crowd_01.jpg,safety,be,"Group of 8 people at a briefing, two machines in the background",Daylight,person x8;truck,person_near_machine (check),yes,Staged; tests many detections
+P21,syn_edge_large_12mp.jpg,progress,erd,"High resolution 4000x3000, 8–12 MB",Daylight,excavator,none,yes,Original camera file; check upload limit/time
+P22,syn_edge_png_screenshot.png,uncategorized,,"Screenshot of a plan as PNG, no EXIF",,,none,no,Screenshot; PNG format
+P23,syn_edge_no_exif_01.jpg,progress,erd,"Normal site photo with EXIF removed via exiftool",Daylight,excavator,none,no (location_source=site_default; shows in the 'no GPS' strip),exiftool -all= file
+P24,syn_edge_exif_far_01.jpg,progress,erd,"Normal photo with GPS set to another continent (lat 35.68 lon 139.69)",Daylight,excavator,none,far away,exiftool -GPSLatitude=35.68 -GPSLongitude=139.69; test: position outside the site boundary
+P25,syn_edge_dup_01.jpg,progress,erd,"Exact duplicate of P01 (same file, new name)",Daylight,excavator;dump_truck,none,yes,cp P01; check duplicate handling
+P26,syn_edge_wrongext.jpg,uncategorized,,"PDF file with a .jpg extension",,,none,no,mv test.pdf test.jpg; expect 4xx instead of 500
+P27,syn_edge_heic_01.heic,progress,erd,"iPhone HEIC",Daylight,excavator,none,yes,Original iPhone photo; format may be unsupported

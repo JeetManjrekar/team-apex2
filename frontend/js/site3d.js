@@ -9,7 +9,8 @@ const API = window.API_BASE || "";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const api = (u, o = {}) => {
-  if (o.json) { o.method = o.method || "POST"; o.headers = { "Content-Type": "application/json" }; o.body = JSON.stringify(o.json); }
+  o.headers = { ...(o.headers || {}), "X-Lang": (() => { try { return localStorage.getItem("nw-lang") === "de" ? "de" : "en"; } catch { return "en"; } })() };
+  if (o.json) { o.method = o.method || "POST"; o.headers["Content-Type"] = "application/json"; o.body = JSON.stringify(o.json); }
   return fetch(API + u, o).then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.detail || r.statusText); return j; });
 };
 const P = (x, y, h = 0) => new THREE.Vector3(x, h, -y);

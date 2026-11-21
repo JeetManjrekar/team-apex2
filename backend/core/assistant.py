@@ -10,6 +10,7 @@ from .extract import detect_intents, extract, to_text, DAILY_RX, EDIT_RX, LOC
 from .llm_settings import today as llm_today
 from .registry import related_fields
 from .store import load, save, new_id, now, today, SITE
+from .i18n import T, get_lang, set_lang, fmt_date
 
 # Statements that are site diary notes, not answers to an open question
 NOTE_RX = re.compile(r"\b(arrived|delivered|geliefert|angeliefert|done|finished|completed|fertig|erledigt|betoniert|poured|started|begonnen)\b", re.I)
@@ -72,7 +73,7 @@ def context_chunks(photo_ids=None):
 def _source_for(by_ref, f):
     refs = [r for r in f["refs"] if r in by_ref]
     if not refs:
-        return {"type": "timestamp", "evidence_id": None, "locator": "Zeitpunkt der Meldung", "quote": now()[:16].replace("T", " ")}
+        return {"type": "timestamp", "evidence_id": None, "locator": T("loc_report_time"), "quote": now()[:16].replace("T", " ")}
     return sources.field_source(refs, by_ref, f.get("quote"))
 
 
@@ -99,7 +100,7 @@ def attach_photos(doc):
 
 
 def _photo_label(p):
-    cat = "Kategorie nicht geprüft" if p["category"] == UNVERIFIED_CAT else p["category"]
+    cat = T("photo_unverified") if p["category"] == UNVERIFIED_CAT else p["category"]
     return f"{p['original_name']} ({cat}, {p['taken_at'][11:16]})"
 
 
@@ -119,8 +120,8 @@ def _host_fields(doc):
     key = next((k for k in ("photos", "photo_evidence", "evidence") if k in f), None)
     if key and pics:
         val = "; ".join(_photo_label(p) for p in pics)
-        docs.set_field(doc, key, f"{len(pics)} Foto(s): {val}", {"type": "photo", "evidence_id": ",".join(f"photo:{p['id']}" for p in pics),
-                                                                 "locator": "Fotoablage", "quote": val}, "ai", 1.0)
+        docs.set_field(doc, key, T("n_photos", n=len(pics), val=val), {"type": "photo", "evidence_id": ",".join(f"photo:{p['id']}" for p in pics),
+                                                                 "locator": T("loc_photo_store"), "quote": val}, "ai", 1.0)
 
 
 def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None, evidence_meta: dict | None = None,
@@ -179,7 +180,7 @@ def answer_followup(doc, asked, text, msg_id):
     open_keys = set(asked + [r for k in asked for r in related_fields(doc["type"], k)]) | \
         {k for k, v in doc["fields"].items() if not v["value"]}
     only = list(dict.fromkeys(asked + sorted(open_keys - set(asked)) + [k for k in doc["fields"] if k not in open_keys]))
-    primary = [sources.message_chunk(msg_id, text, locator=f"Antwort im Chat {now()[11:16]}")]
+    primary = [sources.message_chunk(msg_id, text, locator=T("loc_chat_answer", t=now()[11:16]))]
     locked = {k: v["value"] for k, v in doc["fields"].items() if v["locked"]}
     only = [k for k in only if k not in locked]
     res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only, followup=True)
@@ -208,7 +209,6 @@ def _asked(state):
     return p.get("fields") or ([p["field"]] if p.get("field") else [])
 
 
-GENERIC_Q = "Bitte ergänzen: "     # registry default when a field has no question_de (docs.DOC_TYPES)
 
 
 def _question(doc, keys):
@@ -216,10 +216,11 @@ def _question(doc, keys):
     keys = [k for k in keys if docs.field_meta(doc, k)]
     qs = [doc.get("followup_q", {}).get(k) or docs.field_meta(doc, k)["question"] for k in keys]
     if len(qs) <= 1:
-        return f"{''.join(qs)} (oder „skip“)"
+        return f"{''.join(qs)}{T('r_or_skip')}"
+    GENERIC_Q = T("generic_q")
     generic = [q[len(GENERIC_Q):] for q in qs if q.startswith(GENERIC_Q)]
     parts = [q for q in qs if not q.startswith(GENERIC_Q)] + ([GENERIC_Q + ", ".join(generic) + "."] if generic else [])
-    return " ".join(parts) + " Sie können alles in einer Nachricht beantworten, in beliebiger Reihenfolge (oder „skip“)."
+    return " ".join(parts) + T("r_one_message")
 
 
 def _ask_next(doc, state):
@@ -230,7 +231,7 @@ def _ask_next(doc, state):
     miss = [k for k in docs.missing(doc) if k not in skipped]
     if not miss:
         state.pop("pending", None)
-        return "Alle Pflichtangaben sind gefüllt. Bitte prüfen Sie den Entwurf (Quelle je Feld antippen) und markieren Sie ihn dann als geprüft."
+        return T("r_all_filled")
     ask = miss[:FOLLOWUP_BATCH if llm_bridge.CFG.llm_ready else 1]
     state["pending"] = {"doc": doc["id"], "field": ask[0], "fields": ask}
     return _question(doc, ask)
@@ -284,29 +285,23 @@ def _is_chat(text, hit):
 
 
 def _chat_context(state):
-    lines = [f"Projekt: {SITE['name']}", f"Bauleiter: {SITE['manager']}"] if SITE["name"] else []
+    lines = [T("ctx_project") + SITE["name"], T("ctx_manager") + SITE["manager"]] if SITE["name"] else []
     open_docs = [d for d in docs.all_docs() if d["status"] != "sent"][-5:]
     if open_docs:
-        lines.append("Offene Entwürfe: " + "; ".join(f"{d['title']} ({len(docs.missing(d))} Angaben offen)" for d in open_docs))
+        lines.append(T("ctx_open_drafts") + "; ".join(T("ctx_n_open", title=d["title"], n=len(docs.missing(d))) for d in open_docs))
     p = state.get("pending")
     if p and docs.get(p["doc"]):
         pd = docs.get(p["doc"])
-        lines.append(f"Offene Rückfrage an den Bauleiter: {_question(pd, _asked(state))}")
+        lines.append(T("ctx_question") + _question(pd, _asked(state)))
     return "\n".join(lines)
 
 
-def _help_text(text):
-    if DE_RX.search(text):
-        return ("Ich bin Ihr Baustellen-Assistent: Ich mache aus Sprachnachrichten, Texten und Fotos Entwürfe wie Nachtragsmeldung, "
-                "Behinderungsanzeige oder Bautagesbericht, mit Quelle je Feld. Sagen Sie mir zum Beispiel: „Pfahl 7, ab 4 Meter Fels“ "
-                "oder „Bagger steht seit 10 Uhr wegen Hydraulikschaden“.")
-    return ("I'm your site assistant: I turn voice notes, texts and photos into drafts such as a Nachtragsmeldung, "
-            "Behinderungsanzeige or daily report, with a source for every field. Try for example: \"Pfahl 7, ab 4 Meter Fels\" "
-            "or \"Bagger steht seit 10 Uhr wegen Hydraulikschaden\".")
+def _help_text(text, lang=None):
+    return T("help_text", lang or get_lang())
 
 
-def chat_reply(text, state):
-    return llm_bridge.converse(text, _chat_context(state)) or _help_text(text)
+def chat_reply(text, state, lang=None):
+    return llm_bridge.converse(text, _chat_context(state), lang=lang) or _help_text(text, lang)
 
 
 def _labels(doc, keys):
@@ -328,7 +323,7 @@ def _label_value(text):
 
 
 def _set_by_user(doc, key, value, text, msg_id):
-    docs.set_field(doc, key, value, {"type": "user", "evidence_id": f"msg:{msg_id}", "locator": f"Angabe im Chat {now()[11:16]}",
+    docs.set_field(doc, key, value, {"type": "user", "evidence_id": f"msg:{msg_id}", "locator": T("loc_chat_value", t=now()[11:16]),
                                      "quote": text}, by="user")
 
 
@@ -336,47 +331,50 @@ def _field_command(text, state, msg_id):
     """Add / remove a user-defined field on the open draft. Returns the reply text."""
     doc = _target(state)
     if not doc:
-        return "Es ist gerade kein Entwurf offen. Erstellen Sie zuerst einen Entwurf, dann kann ich Felder ergänzen."
+        return T("r_no_open_draft")
     rm = REMOVE_FIELD_RX.match(text)
     if rm:
         key = docs.find_field(doc, rm.group("l"))
         if not key:
-            return f"Ich finde kein Feld „{rm.group('l')}“ in {doc['title']}."
+            return T("r_field_not_found", l=rm.group("l"), title=doc["title"])
         label = docs.field_meta(doc, key)["label"]
         try:
             docs.remove_field(doc, key)
         except ValueError:
-            return f"„{label}“ ist ein Standardfeld der {doc['title']} und kann nicht entfernt werden; lassen Sie es einfach leer."
+            return T("r_field_standard", l=label, title=doc["title"])
         docs.put(doc)
         if (state.get("pending") or {}).get("doc") == doc["id"] and key in _asked(state):
             _ask_next(doc, state)
-        return f"Feld „{label}“ aus {doc['title']} entfernt."
+        return T("r_field_removed", l=label, title=doc["title"])
     m = ADD_FIELD_RX.match(text)
     label, value = next(g for g in (m.group("a"), m.group("b"), m.group("c"), m.group("e")) if g), m.group("v")
     try:
         key, created = docs.add_field(doc, label)
     except ValueError as e:
-        return f"Das Feld konnte ich nicht anlegen: {e}."
+        return T("r_field_failed", e=e)
     label = docs.field_meta(doc, key)["label"]
-    reply = f"Feld „{label}“ zu {doc['title']} hinzugefügt" if created else f"Das Feld „{label}“ gibt es in {doc['title']} bereits"
+    reply = T("r_field_added" if created else "r_field_exists", l=label, title=doc["title"])
     state["active"] = doc["id"]
     if value:
         _set_by_user(doc, key, value, text, msg_id)
-        reply += f" und auf „{value}“ gesetzt."
+        reply += T("r_set_to", v=value)
     else:
         state["pending"] = {"doc": doc["id"], "field": key, "fields": [key]}     # the next message is its value
-        reply += f". Was soll dort stehen? (oder „skip“)"
+        reply += T("r_what_value")
     docs.put(doc)
     return reply
 
 
-def handle(text, voice=False, evidence_meta: dict | None = None, photo_ids: list[str] | None = None):
+def handle(text, voice=False, evidence_meta: dict | None = None, photo_ids: list[str] | None = None,
+           lang: str | None = None):
     """evidence_meta (voice): {"audio_file", "segments", "duration_s", "stt_model"} from core.stt.
     photo_ids: photos the user attached to this message; their detector output goes into the LLM sources."""
+    if lang:
+        set_lang(lang)
     known = {p["id"] for p in load("photos", [])}
     photo_ids = [i for i in dict.fromkeys(photo_ids or []) if isinstance(i, str) and i in known]
     with llm_bridge.Timer("chat_turn_end_to_end"):
-        return _handle(text, voice, evidence_meta, photo_ids)
+        return _handle(text, voice, evidence_meta, photo_ids, lang)
 
 
 def _audio_locator(meta):
@@ -386,7 +384,7 @@ def _audio_locator(meta):
     return f"Diktat 00:00–{fmt_ts(end)}" + (f" · {meta['audio_file']}" if meta.get("audio_file") else "")
 
 
-def _handle(text, voice, evidence_meta=None, photo_ids=None):
+def _handle(text, voice, evidence_meta=None, photo_ids=None, lang=None):
     msgs, state = load("messages", []), load("chat_state", {})
     extra = {"audio": evidence_meta.get("audio_file"), "audio_s": evidence_meta.get("duration_s")} if evidence_meta else {}
     if photo_ids:
@@ -407,8 +405,7 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None):
     elif DAILY_RX.search(text) and len(text) < 120:
         doc = daily_report(text=text, msg_id=user["id"], photo_ids=photo_ids)
         state["active"] = doc["id"]
-        out.append(_msg("assistant", f"Bautagesbericht-Entwurf für {doc['fields']['date']['value']} erstellt aus Fotos, Notizen, Soll-Ist und Wetter. "
-                                     + _ask_next(doc, state), doc=doc["id"]))
+        out.append(_msg("assistant", T("r_daily_created", date=doc["fields"]["date"]["value"]) + _ask_next(doc, state), doc=doc["id"]))
     elif EDIT_RX.match(text) and active:
         m = EDIT_RX.match(text)
         name, value = m.group(1).lower(), m.group(2)
@@ -421,19 +418,18 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None):
             except ValueError:
                 key = None
         if key:
-            docs.set_field(active, key, value, {"type": "user", "evidence_id": None, "locator": "Änderung im Chat", "quote": text}, by="user")
+            docs.set_field(active, key, value, {"type": "user", "evidence_id": None, "locator": T("loc_chat_edit"), "quote": text}, by="user")
             docs.put(active)
             label = docs.field_meta(active, key)["label"]
-            out.append(_msg("assistant", (f"Neues Feld „{label}“ hinzugefügt und auf „{value}“ gesetzt." if added else
-                                          f"{label} geändert auf „{value}“.") + " Das Feld ist jetzt gesperrt, die KI überschreibt es nicht.", doc=active["id"]))
+            out.append(_msg("assistant", (T("r_new_field_set", l=label, v=value) if added else T("r_changed", l=label, v=value)) + T("r_locked"), doc=active["id"]))
         else:
-            out.append(_msg("assistant", f"Ich finde kein Feld „{name}“ in der {active['title']}.", doc=active["id"]))
+            out.append(_msg("assistant", T("r_no_field_in", n=name, title=active["title"]), doc=active["id"]))
     elif not intents and (lv := _label_value(text)) and (tgt := _target(state)) and (lv_key := docs.find_field(tgt, lv[0])):
         # "Ort: Achse 3" names a field of the open draft: the user's value, set directly
         _set_by_user(tgt, lv_key, lv[1], text, user["id"])
         docs.put(tgt)
         state["active"] = tgt["id"]
-        reply = f"Übernommen: {docs.field_meta(tgt, lv_key)['label']} = „{lv[1]}“."
+        reply = T("r_taken", l=docs.field_meta(tgt, lv_key)["label"], v=lv[1])
         if (state.get("pending") or {}).get("doc") == tgt["id"]:
             reply += " " + _ask_next(tgt, state)
         out.append(_msg("assistant", reply, doc=tgt["id"]))
@@ -443,29 +439,29 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None):
                                                                 locator=_audio_locator(evidence_meta) if evidence_meta else None,
                                                                 evidence_meta=evidence_meta, photo_ids=photo_ids)
         state["active"] = doc["id"]
-        parts = [f"{'Zum bestehenden Entwurf hinzugefügt' if merged else 'Entwurf erstellt'}: {doc['title']}."]
+        parts = [T("r_merged" if merged else "r_created", title=doc["title"])]
         if doc.get("assistant_message_de"):
             parts.append(doc["assistant_message_de"])
         if filled:
-            parts.append(f"Aus Ihrer Nachricht übernommen: {_labels(doc, filled)}.")
+            parts.append(T("r_from_msg", l=_labels(doc, filled)))
         if proposals:
-            parts.append(f"Bereits belegt, neue Angabe nur als Vorschlag: {_labels(doc, proposals)}.")
+            parts.append(T("r_proposal", l=_labels(doc, proposals)))
         if gaps:
-            parts.append(f"Nicht ausreichend belegt und daher leer gelassen: {_labels(doc, gaps)}.")
+            parts.append(T("r_gaps", l=_labels(doc, gaps)))
         if doc["photos"]:
-            parts.append(f"{len(doc['photos'])} Foto(s) von heute angehängt.")
+            parts.append(T("r_photos_attached", n=len(doc["photos"])))
         if (doc.get("review") or {}).get("status") == "running":
-            parts.append("Kritische Felder werden im Hintergrund geprüft.")
+            parts.append(T("r_review_running"))
         parts.append(_ask_next(doc, state))
         extra = intents[1:] + (["mehrkostenanzeige"] if primary == "nachtragsmeldung" and "mehrkostenanzeige" not in intents else [])
-        actions = [{"label": f"Auch {docs.DOC_TYPES[i]['title']} entwerfen", "type": i, "text": text} for i in extra]
+        actions = [{"label": T("r_also_draft", title=docs.DOC_TYPES[i]["title"]), "type": i, "text": text} for i in extra]
         actions += replanner.actions_for(doc)
         out.append(_msg("assistant", " ".join(parts), doc=doc["id"], actions=actions, mode=mode))
     elif SKIP_RX.match(text) and not state.get("pending"):
-        out.append(_msg("assistant", "Es gibt gerade keine offene Frage."))
+        out.append(_msg("assistant", T("r_no_question")))
     elif state.get("pending") and docs.get(state["pending"]["doc"]) and CHAT_RX.search(text) and not SITE_RX.search(text):
         pd = docs.get(state["pending"]["doc"])
-        out.append(_msg("assistant", f"{chat_reply(text, state)} Noch offen: {_question(pd, _asked(state))}", doc=pd["id"], kind="chat"))
+        out.append(_msg("assistant", chat_reply(text, state, lang) + T("r_still_open", q=_question(pd, _asked(state))), doc=pd["id"], kind="chat"))
     elif state.get("pending") and docs.get(state["pending"]["doc"]) and (answers or not NOTE_RX.search(text)):
         # a site note (delivered, finished, ...) goes to the diary unless it names the open draft's type
         p, asked = state["pending"], _asked(state)
@@ -473,12 +469,12 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None):
         if SKIP_RX.match(text):
             skipped = state.setdefault("skipped", {}).setdefault(doc["id"], [])
             skipped += [k for k in asked if k not in skipped]
-            reply = "Übersprungen. " + _ask_next(doc, state)
+            reply = T("r_skipped") + _ask_next(doc, state)
         elif asked[0] in {c["key"] for c in doc.get("custom_fields", [])}:
             # a field the user added: no extraction schema knows it, the answer is its value
             _set_by_user(doc, asked[0], text, text, user["id"])
             docs.put(doc)
-            reply = f"Übernommen: {_labels(doc, [asked[0]])}. " + _ask_next(doc, state)
+            reply = T("r_taken_l", l=_labels(doc, [asked[0]])) + _ask_next(doc, state)
         else:
             filled, proposals, mode = answer_followup(doc, asked, text, user["id"])
             doc = docs.get(doc["id"])
@@ -487,23 +483,22 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None):
             unknown = _label_value(text) if not filled and not proposals else None
             if not filled and not proposals and mode == "rules" and not unknown:
                 # no model and no pattern matched: the answer itself is the value of the main question
-                docs.set_field(doc, asked[0], text, {"type": "answer", "evidence_id": f"msg:{user['id']}", "locator": f"Antwort im Chat {now()[11:16]}", "quote": text}, by="user")
+                docs.set_field(doc, asked[0], text, {"type": "answer", "evidence_id": f"msg:{user['id']}", "locator": T("loc_chat_answer", t=now()[11:16]), "quote": text}, by="user")
                 filled = [asked[0]]
             if photo_ids:
                 doc["photos"] += [i for i in photo_ids if i not in doc["photos"]]
             docs.put(doc)
             if unknown:
-                reply = (f"{doc['title']} hat kein Feld „{unknown[0]}“. Mit „Füge Feld {unknown[0]} hinzu: {unknown[1]}“ lege ich es an. "
-                         f"Noch offen: {_question(doc, asked)}")
+                reply = T("r_unknown_field", title=doc["title"], n=unknown[0], v=unknown[1], q=_question(doc, asked))
             elif filled or proposals:
-                reply = (f"Übernommen: {_labels(doc, filled)}. " if filled else "") + \
-                        (f"Bereits belegt, neue Angabe nur als Vorschlag: {_labels(doc, proposals)}. " if proposals else "") + _ask_next(doc, state)
+                reply = (T("r_taken_l", l=_labels(doc, filled)) if filled else "") + \
+                        (T("r_proposal", l=_labels(doc, proposals)) + " " if proposals else "") + _ask_next(doc, state)
             else:
-                reply = f"Daraus konnte ich die Angabe noch nicht entnehmen, die Rückfrage bleibt offen. {_question(doc, asked)}"
+                reply = T("r_no_answer", q=_question(doc, asked))
         state["active"] = doc["id"]
         out.append(_msg("assistant", reply, doc=doc["id"]))
     elif _is_chat(text, hit):
-        out.append(_msg("assistant", chat_reply(text, state), kind="chat"))
+        out.append(_msg("assistant", chat_reply(text, state, lang), kind="chat"))
     else:
         out.append(_msg("assistant", _note(text, user, state)))
     msgs.extend(out)
@@ -517,10 +512,10 @@ def _note(text, user, state):
     notes = load("notes", [])
     notes.append({"id": user["id"], "date": today(), "at": now(), "text": text})
     save("notes", notes)
-    reply = "Im Bautagebuch notiert, geht in den Bautagesbericht ein. Sagen Sie „Tagesbericht“, wenn Sie den Entwurf möchten."
+    reply = T("r_diary_noted")
     p = state.get("pending")
     if p and docs.get(p["doc"]):
-        reply += f" Noch offen: {_question(docs.get(p['doc']), _asked(state))}"
+        reply += T("r_still_open", q=_question(docs.get(p["doc"]), _asked(state)))
     return reply
 
 
@@ -536,10 +531,10 @@ def _daily_report(day=None):
         or docs.create("bautagesbericht", origin="daily")
     doc["date"] = day
     S = lambda t, loc, q, eid=None: {"type": t, "evidence_id": eid, "locator": loc, "quote": q}
-    docs.set_field(doc, "date", dt.date.fromisoformat(day).strftime("%d.%m.%Y"), S("timestamp", "Berichtstag", day), "ai", 1.0)
+    docs.set_field(doc, "date", fmt_date(dt.date.fromisoformat(day)), S("timestamp", T("loc_report_day"), day), "ai", 1.0)
     w = (plan.weather() or {}).get(day)
     if w:
-        docs.set_field(doc, "weather", f"{w['text']}, Niederschlag {w['rain']:.1f} mm, Wind bis {w['wind']:.0f} km/h",
+        docs.set_field(doc, "weather", T("v_weather", **w),
                        S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
         docs.set_field(doc, "temperature_min_c", f"{w['tmin']:.0f}", S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
         docs.set_field(doc, "temperature_max_c", f"{w['tmax']:.0f}", S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
@@ -549,8 +544,8 @@ def _daily_report(day=None):
         for c in {d["class"] for d in p.get("detections", [])}:
             counts[c] = counts.get(c, 0) + 1
     if counts:
-        docs.set_field(doc, "equipment", ", ".join(f"{k} (auf {v} Foto{'s' if v > 1 else ''})" for k, v in sorted(counts.items())),
-                       S("photo", "Objekterkennung (Roboflow)", "Erkennung auf Fotos von heute", ",".join("photo:" + p["id"] for p in photos)), "ai", 0.7)
+        docs.set_field(doc, "equipment", ", ".join(T("v_on_photo", k=k, v=v, s="s" if v > 1 else "") for k, v in sorted(counts.items())),
+                       S("photo", T("loc_detection"), T("q_detection"), ",".join("photo:" + p["id"] for p in photos)), "ai", 0.7)
     notes = [n for n in load("notes", []) if n["date"] == day]
     prog = [p for p in load("progress", []) if p["date"] == day]
     sched = {s["id"]: s for s in load("schedule", [])}
@@ -559,21 +554,21 @@ def _daily_report(day=None):
                                           + (f" ({p['note']})" if p["note"] else "") for p in prog]
     moves = [r["text"] if isinstance(r, dict) and r.get("text") else str(r) for r in replanner.accepted_for(day)]
     if moves:
-        docs.set_field(doc, "reassignments", "\n".join(moves), S("documents", "Bestätigte Umplanungen (Replanner)", f"{len(moves)} Umsetzung(en)"), "ai", 1.0)
-    status_lines = [f"Leistungsstand {a['name']}: Ist {a['actual']:g} / Soll {a['planned']:g} {a['unit']}" for a in st["activities"] if a["light"] != "grey"]
+        docs.set_field(doc, "reassignments", "\n".join(moves), S("documents", T("loc_replanner"), T("q_moves", n=len(moves))), "ai", 1.0)
+    status_lines = [T("v_status_line", name=a["name"], a=a["actual"], p=a["planned"], unit=a["unit"]) for a in st["activities"] if a["light"] != "grey"]
     if work or status_lines:
         docs.set_field(doc, "work_done", "\n".join(work + status_lines),
-                       S("diary", "Bautagebuch und Bauzeitenplan", "Einträge und Leistungsmeldungen von heute", ",".join("msg:" + n["id"] for n in notes) or "sched"), "ai", 0.8)
+                       S("diary", T("loc_diary_sched"), T("q_diary_sched"), ",".join("msg:" + n["id"] for n in notes) or "sched"), "ai", 0.8)
     deliveries = [p for p in photos if p["category"] == "delivery"]
     if deliveries:
-        docs.set_field(doc, "deliveries", f"{len(deliveries)} Lieferung(en) fotografisch dokumentiert", S("photo", "Fotos Kategorie delivery", ", ".join(p["original_name"] for p in deliveries)), "ai", 0.6)
+        docs.set_field(doc, "deliveries", T("v_deliveries", n=len(deliveries)), S("photo", T("loc_photos_cat"), ", ".join(p["original_name"] for p in deliveries)), "ai", 0.6)
     notices = [d for d in docs.all_docs() if d["type"] != "bautagesbericht" and d.get("date", d["created_at"][:10]) == day]
     inc = [f"{d['title']}: {d['fields'].get('location', {}).get('value') or ''}".strip(": ") for d in notices] + [a["text"] for a in st["alerts"]]
     if inc:
-        docs.set_field(doc, "incidents", "\n".join(inc), S("documents", "Anzeigen von heute und Soll-Ist-Vergleich", f"{len(notices)} Anzeige(n), {len(st['alerts'])} Warnung(en)"), "ai", 0.8)
+        docs.set_field(doc, "incidents", "\n".join(inc), S("documents", T("loc_notices_day"), T("q_notices_day", n=len(notices), m=len(st["alerts"]))), "ai", 0.8)
     if photos:
         docs.set_field(doc, "photos", "\n".join(f"{p['original_name']} ({p['taken_at'][11:16]}): {p.get('caption_de') or p['category']}" for p in photos),
-                       S("photo", "Fotoablage", f"{len(photos)} Fotos von heute"), "ai", 0.8)
+                       S("photo", T("loc_photo_store"), T("q_photos_today", n=len(photos))), "ai", 0.8)
     doc["photos"] = [p["id"] for p in photos]
     return docs.put(doc)
 
@@ -583,7 +578,7 @@ def _daily_report_llm(doc, text=None, msg_id=None, photo_ids=None):
     and attached photos; filled or locked fields only get proposals (fill_only). No model -> report unchanged."""
     if not llm_bridge.CFG.llm_ready or doc["status"] == "sent" or doc["date"] != llm_today().isoformat():   # sources cover today only
         return doc
-    text = text or "Bautagesbericht"
+    text = text or docs.DOC_TYPES["bautagesbericht"]["title"]
     primary = [sources.message_chunk(msg_id or new_id(), text)]
     context = context_chunks(photo_ids)
     by_ref = {c.ref: c for c in primary + context}
@@ -609,25 +604,25 @@ def propose_from_alert(alert):
     a = next((x for x in st["activities"] if x["id"] == alert.get("activity")), None)
     if not a:
         raise ValueError("unknown activity")
-    S = {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": f"Bauzeitenplan: {a['name']}",
-         "quote": f"{a['name']}: Soll {a['planned']:g}, Ist {a['actual']:g} {a['unit']} (Stand {st['as_of']})"}
+    S = {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": T("loc_schedule", name=a["name"]),
+         "quote": T("q_schedule", name=a["name"], p=a["planned"], a=a["actual"], unit=a["unit"], asof=st["as_of"])}
     if alert.get("kind") == "frost":
         al = next((x for x in st["alerts"] if x["kind"] == "frost" and x["activity"] == a["id"]), None)
         doc = docs.create("bedenkenanmeldung", origin="alert")
-        W = {"type": "weather", "evidence_id": "weather-api", "locator": "Open-Meteo Prognose", "quote": al["text"] if al else ""}
+        W = {"type": "weather", "evidence_id": "weather-api", "locator": T("loc_forecast"), "quote": al["text"] if al else ""}
         docs.set_field(doc, "location", a["name"], S, "ai", 0.9)
         if al:
-            docs.set_field(doc, "concern_description", f"Betonage {a['start']} bis {a['end']} bei prognostizierter Tiefsttemperatur von {al['tmin']:.0f} °C am {al['weather_date']}.", W, "ai", 0.9)
-            docs.set_field(doc, "technical_basis", f"Wetterprognose Open-Meteo: {al['text']}", W, "ai", 0.9)
+            docs.set_field(doc, "concern_description", T("v_frost", start=a["start"], end=a["end"], tmin=al["tmin"], date=al["weather_date"]), W, "ai", 0.9)
+            docs.set_field(doc, "technical_basis", T("v_frost_basis", text=al["text"]), W, "ai", 0.9)
     else:
         doc = docs.create("behinderungsanzeige", origin="alert")
         # cause stays empty on purpose: the schedule shows the delay, not why -> follow-up question
-        docs.set_field(doc, "affected_work", f"{a['name']}: {a['delay_days']} Arbeitstage Rückstand zum Bauzeitenplan (Soll {a['planned']:g} {a['unit']}, Ist {a['actual']:g} {a['unit']}).", S, "ai", 0.9)
+        docs.set_field(doc, "affected_work", T("v_delay", name=a["name"], days=a["delay_days"], p=a["planned"], a=a["actual"], unit=a["unit"]), S, "ai", 0.9)
         notes = [p["note"] for p in load("progress", []) if p["activity"] == a["id"] and p["note"]]
         if notes:
             loc = LOC.search(notes[-1])
             if loc:
-                docs.set_field(doc, "location", loc.group(0), {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": "Leistungsmeldung", "quote": notes[-1]}, "ai", 0.7)
+                docs.set_field(doc, "location", loc.group(0), {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": T("loc_progress_report"), "quote": notes[-1]}, "ai", 0.7)
     _host_fields(doc)
     doc["proposal_from"] = alert.get("kind")
     return docs.put(doc)

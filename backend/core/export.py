@@ -12,14 +12,16 @@ from PIL import Image, ImageDraw
 from . import llm_bridge
 from .docs import DOC_TYPES, fields_of, missing
 from .store import ROOT, load, DATA, SITE, env
+from .i18n import T, get_lang, fmt_date
 
-SRC_DE = {"voice": "Diktat", "project": "Projektstammdaten", "document": "Unterlage", "calendar": "Kalender", "message": "Chat-Nachricht", "answer": "Antwort im Chat", "user": "manuell bearbeitet", "timestamp": "Zeitstempel",
-          "weather": "Wetterdienst (Open-Meteo)", "photo": "Fotos", "schedule": "Bauzeitenplan", "diary": "Bautagebuch",
-          "documents": "Anzeigen", "email": "E-Mail", "minutes": "Protokoll", "drilling": "Bohrzeitenliste Polier"}
+def _src(kind):
+    """Label of a source type in the current language (`kind` itself if it has no catalog entry)."""
+    from .i18n import CATALOG
+    return T("src_" + kind) if ("src_" + kind) in CATALOG else (kind or T("src_unknown"))
 
 
 def _fmt(ts):
-    return dt.datetime.fromisoformat(ts).strftime("%d.%m.%Y %H:%M") if ts else ""
+    return fmt_date(dt.datetime.fromisoformat(ts), True) if ts else ""
 
 
 def annotated(p):
@@ -40,16 +42,16 @@ def annotated(p):
 
 
 def _photo_caption(p):
-    loc = "GPS aus Foto" if p["location_source"] == "exif" else "Standort Baustelle (kein GPS im Foto)"
-    dets = ", ".join(f"{b['class']} {b['confidence']:.0%}" for b in p.get("detections", [])) or "keine"
-    unverified = " · Kategorie nicht geprüft, bitte bestätigen" if p.get("category") == "uncategorized" else ""
-    return f"{p['original_name']} · {p['taken_at'].replace('T', ' ')} · {p['lat']:.5f}, {p['lon']:.5f} ({loc}) · Erkennung: {dets}{unverified}"
+    loc = T("ex_gps") if p["location_source"] == "exif" else T("ex_site_loc")
+    dets = ", ".join(f"{b['class']} {b['confidence']:.0%}" for b in p.get("detections", [])) or T("ex_none")
+    unverified = T("ex_unverified") if p.get("category") == "uncategorized" else ""
+    return f"{p['original_name']} · {p['taken_at'].replace('T', ' ')} · {p['lat']:.5f}, {p['lon']:.5f} ({loc}) · {T('ex_detection')}: {dets}{unverified}"
 
 
 def _footer(doc):
     if doc["status"] in ("checked", "sent"):
-        return f"Entwurf mit KI-Unterstützung erstellt, geprüft von {doc['checked_by']} am {_fmt(doc['checked_at'])}."
-    return "ENTWURF – mit KI-Unterstützung erstellt, noch nicht geprüft. Keine Rechtsberatung."
+        return T("ex_footer_checked", by=doc["checked_by"], at=_fmt(doc["checked_at"]))
+    return T("ex_footer_draft")
 
 
 TEMPLATE_FOR = {"nachtragsmeldung": "nachtrag.docx", "mehrkostenanzeige": "nachtrag.docx", "bautagesbericht": "tagesbericht.docx",
@@ -69,20 +71,26 @@ class PdfUnavailable(RuntimeError):
 
 
 # ---------- template context ----------
+def _labels():
+    """Static headings of the Word templates / print view in the current language (templates read them as {{ L.x }})."""
+    return {k: T("ex_" + k) for k in ("draft", "completeness", "photodoc", "sources_title", "evidence", "case", "day",
+                                      "col_field", "col_id", "col_where", "col_excerpt", "signature")}
+
+
 def _header_rows(doc, t):
     return [{"label": a, "value": b} for a, b in [
-        ("Bauvorhaben", SITE["name"]), ("Empfänger", t.get("recipient") or SITE["client"]), ("Absender", SITE["manager"]),
-        ("Datum", dt.date.today().strftime("%d.%m.%Y")), ("Dokument-Nr.", doc["id"])]]
+        (T("ex_project"), SITE["name"]), (T("ex_recipient"), t.get("recipient") or SITE["client"]), (T("ex_sender"), SITE["manager"]),
+        (T("ex_date"), fmt_date(dt.date.today())), (T("ex_docno"), doc["id"])]]
 
 
 def _field_rows(doc, t):
-    return [{"label": label + (" *" if req else ""), "value": doc["fields"][k]["value"] or "— (offen)"}
+    return [{"label": label + (" *" if req else ""), "value": doc["fields"][k]["value"] or T("ex_open")}
             for k, label, req, *_ in t["fields"]]
 
 
 def _checklist(doc, t):
     miss = missing(doc)
-    return [{"mark": "☐ fehlt" if k in miss else "☑", "label": label} for k, label, req, *_ in t["fields"] if req]
+    return [{"mark": T("ex_missing") if k in miss else "☑", "label": label} for k, label, req, *_ in t["fields"] if req]
 
 
 def _source_rows(doc, t):
@@ -94,7 +102,7 @@ def _source_rows(doc, t):
             continue
         src = f["source"] or {}
         kind = src.get("type") or ""
-        kind_de, locator = SRC_DE.get(kind, kind or "unbekannt"), src.get("locator") or ""
+        kind_de, locator = _src(kind), src.get("locator") or ""
         rows.append({"label": label, "evidence_id": src.get("evidence_id") or None, "kind": kind, "kind_de": kind_de, "locator": locator,
                      "where": locator if locator.startswith(kind_de) else f"{kind_de}, {locator}" if locator else kind_de,
                      "excerpt": (src.get("quote") or "")[:EXCERPT_MAX]})
@@ -122,7 +130,7 @@ def build_context(doc, tpl=None) -> dict:
     return {"title": t["title"], "basis": t["basis"], "draft": doc["status"] == "draft", "status": doc["status"],
             "header": _header_rows(doc, t), "rows": _field_rows(doc, t), "closing": t.get("closing") or "",
             "checklist": _checklist(doc, t),
-            "checklist_note": "Hinweis: Nur formale Prüfung der Angaben, keine rechtliche Bewertung von Anspruch oder Höhe.",
+            "checklist_note": T("ex_checklist_note"), "L": _labels(),
             "photos": _photo_entries(doc, tpl), "sources": _source_rows(doc, t), "footer": _footer(doc),
             "signature": doc["type"] not in NO_SIGNATURE}
 
@@ -166,8 +174,9 @@ _WATERMARK = """<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml
 </w:pict></w:r></w:p>"""
 
 
-def add_watermark(path: Path, text="ENTWURF"):
+def add_watermark(path: Path, text=None):
     """Diagonal Word watermark in every page header (LibreOffice renders it into the PDF)."""
+    text = text or T("ex_draft")
     d = Document(str(path))
     for s in d.sections:
         s.header.is_linked_to_previous = False
@@ -181,7 +190,7 @@ def _docx_fallback(doc, ctx, out: Path):
     st = d.styles["Normal"]
     st.font.name, st.font.size = "Arial", Pt(10.5)
     if ctx["draft"]:
-        r = d.add_paragraph().add_run("ENTWURF")
+        r = d.add_paragraph().add_run(ctx["L"]["draft"])
         r.bold, r.font.color.rgb = True, RGBColor(0xC8, 0x50, 0x1E)
     d.add_heading(ctx["title"], 0)
     if ctx["basis"]:
@@ -200,17 +209,17 @@ def _docx_fallback(doc, ctx, out: Path):
         c[0].width, c[1].width = Cm(5), Cm(11)
     if ctx["closing"]:
         d.add_paragraph("\n" + ctx["closing"])
-    d.add_heading("Formale Vollständigkeit", 2)
+    d.add_heading(ctx["L"]["completeness"], 2)
     for c in ctx["checklist"]:
         d.add_paragraph(f"{c['mark']}  {c['label']}")
     d.add_paragraph(ctx["checklist_note"]).runs[0].italic = True
     if ctx["photos"]:
-        d.add_heading("Fotodokumentation", 2)
+        d.add_heading(ctx["L"]["photodoc"], 2)
         for p in ctx["photos"]:
             if p["path"]:
                 d.add_picture(str(p["path"]), width=Mm(PHOTO_WIDTH_MM))
             d.add_paragraph(p["caption"]).runs[0].font.size = Pt(8)
-    d.add_heading("Nachweise je Feld", 2)
+    d.add_heading(ctx["L"]["evidence"], 2)
     for s in ctx["sources"]:
         p = d.add_paragraph(f"{s['label']}: {s['kind_de']}, {s['locator']}" + (f" [{s['evidence_id']}]" if s["evidence_id"] else "")
                             + f" – \"{s['excerpt']}\"")
@@ -218,7 +227,7 @@ def _docx_fallback(doc, ctx, out: Path):
     d.add_paragraph()
     d.add_paragraph(ctx["footer"]).runs[0].italic = True
     if ctx["signature"]:
-        d.add_paragraph("\n\n______________________________\nUnterschrift Bauleitung")
+        d.add_paragraph("\n\n______________________________\n" + ctx["L"]["signature"])
     d.save(out)
 
 
@@ -310,7 +319,7 @@ def _build_template(kind: str) -> Document:
     st = d.styles["Normal"]
     st.font.name, st.font.size = "Arial", Pt(10.5)
     d.add_paragraph("{%p if draft %}")
-    p = d.add_paragraph("ENTWURF")
+    p = d.add_paragraph("{{ L.draft }}")
     p.runs[0].bold, p.runs[0].font.color.rgb = True, RGBColor(0xC8, 0x50, 0x1E)
     d.add_paragraph("{%p endif %}")
     d.add_heading("{{ title }}", 0)
@@ -319,27 +328,27 @@ def _build_template(kind: str) -> Document:
     _loop_table(d, "header", ["r.label", "r.value"], [5, 11], "Light Grid Accent 1")
     d.add_paragraph()
     if kind != "notice":
-        d.add_heading("Angaben zum Vorgang" if kind == "nachtrag" else "Angaben zum Berichtstag", 2)
+        d.add_heading("{{ L.case }}" if kind == "nachtrag" else "{{ L.day }}", 2)
     _loop_table(d, "rows", ["r.label", "r.value"], [5, 11], "Table Grid")
     d.add_paragraph("{%p if closing %}")
     d.add_paragraph("{{ closing }}")
     d.add_paragraph("{%p endif %}")
-    d.add_heading("Formale Vollständigkeit", 2)
+    d.add_heading("{{ L.completeness }}", 2)
     d.add_paragraph("{%p for c in checklist %}")
     d.add_paragraph("{{ c.mark }}  {{ c.label }}")
     d.add_paragraph("{%p endfor %}")
     d.add_paragraph("{{ checklist_note }}").runs[0].italic = True
     d.add_paragraph("{%p if photos %}")
-    d.add_heading("Fotodokumentation", 2)
+    d.add_heading("{{ L.photodoc }}", 2)
     d.add_paragraph("{%p for p in photos %}")
     d.add_paragraph("{{ p.image }}")
     cap = d.add_paragraph("{{ p.caption }}")
     cap.runs[0].font.size = Pt(8)
     d.add_paragraph("{%p endfor %}")
     d.add_paragraph("{%p endif %}")
-    d.add_heading("Quellenanhang – Nachweise je Feld", 2)
+    d.add_heading("{{ L.sources_title }}", 2)
     tbl = _loop_table(d, "sources", ["r.label", "r.evidence_id or '–'", "r.where", "r.excerpt"], [3.2, 2.8, 4.5, 5.5], "Table Grid",
-               ["Feld", "Beleg-ID", "Quelle, Fundstelle", "Auszug"])
+               ["{{ L.col_field }}", "{{ L.col_id }}", "{{ L.col_where }}", "{{ L.col_excerpt }}"])
     for row in tbl.rows:
         for c in row.cells:
             for r in c.paragraphs[0].runs:
@@ -348,7 +357,7 @@ def _build_template(kind: str) -> Document:
     d.add_paragraph("{{ footer }}").runs[0].italic = True
     if kind != "tagesbericht":
         d.add_paragraph("{%p if signature %}")
-        d.add_paragraph("\n\n______________________________\nUnterschrift Bauleitung")
+        d.add_paragraph("\n\n______________________________\n{{ L.signature }}")
         d.add_paragraph("{%p endif %}")
     return d
 
@@ -369,24 +378,24 @@ def print_html(doc) -> str:
     t = dict(DOC_TYPES[doc["type"]], fields=fields_of(doc))
     photos = {p["id"]: p for p in load("photos", [])}
     e = html.escape
-    rows = "".join(f"<tr><th>{e(label)}{' *' if req else ''}</th><td>{e(doc['fields'][k]['value'] or '— (offen)').replace(chr(10), '<br>')}</td></tr>"
+    rows = "".join(f"<tr><th>{e(label)}{' *' if req else ''}</th><td>{e(doc['fields'][k]['value'] or T('ex_open')).replace(chr(10), '<br>')}</td></tr>"
                    for k, label, req, *_ in t["fields"])
     miss = missing(doc)
-    check = "".join(f"<li>{'☐ fehlt' if k in miss else '☑'} {e(label)}</li>" for k, label, req, *_ in t["fields"] if req)
+    check = "".join(f"<li>{T('ex_missing') if k in miss else '☑'} {e(label)}</li>" for k, label, req, *_ in t["fields"] if req)
     pics = "".join(f"<figure><img src='/data/{photos[i]['file']}'><figcaption>{e(_photo_caption(photos[i]))}</figcaption></figure>"
                    for i in doc["photos"] if i in photos)
-    ev = "".join(f"<li><b>{e(label)}:</b> {e(SRC_DE.get(doc['fields'][k]['source']['type'], ''))}, {e(doc['fields'][k]['source'].get('locator') or '')}"
+    ev = "".join(f"<li><b>{e(label)}:</b> {e(_src(doc['fields'][k]['source']['type']))}, {e(doc['fields'][k]['source'].get('locator') or '')}"
                  f"{(' [' + e(doc['fields'][k]['source']['evidence_id']) + ']') if doc['fields'][k]['source'].get('evidence_id') else ''} – „{e((doc['fields'][k]['source'].get('quote') or '')[:200])}“</li>"
                  for k, label, *_ in t["fields"] if doc["fields"][k]["value"] and doc["fields"][k]["source"])
-    return f"""<!doctype html><html lang="de"><head><meta charset="utf-8"><title>{e(t['title'])} {doc['id']}</title>
+    return f"""<!doctype html><html lang="{get_lang()}"><head><meta charset="utf-8"><title>{e(t['title'])} {doc['id']}</title>
 <style>body{{font:11pt Arial,sans-serif;max-width:800px;margin:30px auto;color:#111}}h1{{margin:0 0 4px}}table{{border-collapse:collapse;width:100%;margin:12px 0}}
 th,td{{border:1px solid #bbb;padding:6px 8px;text-align:left;vertical-align:top}}th{{width:32%;background:#f3f3f3}}.d{{color:#c8501e;font-weight:bold}}
 figure{{margin:10px 0;page-break-inside:avoid}}img{{max-width:100%;max-height:420px}}figcaption,.ev{{font-size:8pt;color:#555}}.f{{font-style:italic;margin-top:24px}}
 @media print{{.noprint{{display:none}}}}</style></head><body>
-<p class="noprint"><button onclick="print()">Save as PDF / Print</button></p>
-{'<p class="d">ENTWURF</p>' if doc['status'] == 'draft' else ''}<h1>{e(t['title'])}</h1><div>{e(t['basis'])}</div>
-<table><tr><th>Bauvorhaben</th><td>{e(SITE['name'])}</td></tr><tr><th>Empfänger</th><td>{e(t.get('recipient') or SITE['client'])}</td></tr>
-<tr><th>Absender</th><td>{e(SITE['manager'])}</td></tr><tr><th>Datum</th><td>{dt.date.today().strftime('%d.%m.%Y')}</td></tr></table>
-<table>{rows}</table>{('<p>' + e(t['closing']) + '</p>') if t.get('closing') else ''}<h3>Formale Vollständigkeit</h3><ul>{check}</ul><p class="ev">Nur formale Prüfung, keine rechtliche Bewertung.</p>
-{('<h3>Fotodokumentation</h3>' + pics) if pics else ''}<h3>Nachweise je Feld</h3><ul class="ev">{ev}</ul>
+<p class="noprint"><button onclick="print()">{T('ex_print')}</button></p>
+{f'<p class="d">{T("ex_draft")}</p>' if doc['status'] == 'draft' else ''}<h1>{e(t['title'])}</h1><div>{e(t['basis'])}</div>
+<table><tr><th>{T('ex_project')}</th><td>{e(SITE['name'])}</td></tr><tr><th>{T('ex_recipient')}</th><td>{e(t.get('recipient') or SITE['client'])}</td></tr>
+<tr><th>{T('ex_sender')}</th><td>{e(SITE['manager'])}</td></tr><tr><th>{T('ex_date')}</th><td>{fmt_date(dt.date.today())}</td></tr></table>
+<table>{rows}</table>{('<p>' + e(t['closing']) + '</p>') if t.get('closing') else ''}<h3>{T('ex_completeness')}</h3><ul>{check}</ul><p class="ev">{T('ex_formal_only')}</p>
+{(f'<h3>{T("ex_photodoc")}</h3>' + pics) if pics else ''}<h3>{T('ex_evidence')}</h3><ul class="ev">{ev}</ul>
 <p class="f">{e(_footer(doc))}</p><script>setTimeout(()=>print(),400)</script></body></html>"""

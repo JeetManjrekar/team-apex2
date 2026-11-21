@@ -1,0 +1,12 @@
+{
+  "_doc": "Grenzfall: Summe 130 m > total 96 m (Tippfehler?). Erwartung: Cap bei 100 % oder Datenwarnung, kein Absturz.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 130,
+      "note": "Tippfehler 13 statt 130?"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "_doc": "Pile 7 hit rock: only 4 m instead of 12 m on 17.11. Expected: W1_BP delayed, follow-on W1_BET red, hint to draft a hindrance notice.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P01+P02"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P03+P04"
+    },
+    {
+      "date": "2026-11-16",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P05+P06"
+    },
+    {
+      "date": "2026-11-17",
+      "activity": "W1_BP",
+      "qty": 4,
+      "note": "P07: rock from 4 m, aborted"
+    }
+  ]
+}

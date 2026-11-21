@@ -1,0 +1,30 @@
+{
+  "_doc": "Pfahl 7 auf Fels: nur 4 m statt 12 m am 17.11. Erwartung: Verzug W1_BP, Folge W1_BET rot, Hinweis auf Behinderungsanzeige.",
+  "today": "2026-11-17",
+  "progress": [
+    {
+      "date": "2026-11-12",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P01+P02"
+    },
+    {
+      "date": "2026-11-13",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P03+P04"
+    },
+    {
+      "date": "2026-11-16",
+      "activity": "W1_BP",
+      "qty": 24,
+      "note": "P05+P06"
+    },
+    {
+      "date": "2026-11-17",
+      "activity": "W1_BP",
+      "qty": 4,
+      "note": "P07: Fels ab 4 m, abgebrochen"
+    }
+  ]
+}

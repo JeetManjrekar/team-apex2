@@ -1,5 +1,6 @@
 key: behinderungsanzeige
 label_de: Behinderungsanzeige
+label_en: Delay / obstruction notice
 template: behinderungsanzeige.docx
 prompt: behinderungsanzeige.md
 intent: behinderung
@@ -10,21 +11,28 @@ intent_keywords:
   - [bagger, kaputt]
   - [behinderung]
   - [gerät, defekt]
+intent_keywords_en:
+  - [excavator stopped]
+  - [standing since]
+  - [hydraulic]
+  - [obstruction]
+  - [delay notice]
 fields:
-  - {key: addressee, label_de: Empfänger (Bauherr), type: text, required: true, critical: false}
-  - {key: occurred_at, label_de: Beginn der Behinderung, type: datetime, required: true, critical: true, question_de: "Seit wann genau besteht die Behinderung (Uhrzeit)?"}
-  - {key: location, label_de: Ort / Bauteil, type: text, required: true, critical: true}
-  - {key: cause, label_de: Ursache, type: text, required: true, critical: false}
-  - {key: affected_work, label_de: Betroffene Leistungen, type: text, required: true, critical: false}
-  - {key: expected_duration, label_de: Voraussichtliche Dauer, type: text, required: true, critical: false, question_de: "Wie lange wird die Behinderung voraussichtlich dauern?"}
-  - {key: measures, label_de: Getroffene Maßnahmen, type: text, required: false, critical: false}
-  - {key: contract_ref, label_de: Vertragsbezug, type: text, required: true, critical: false}
+  - {key: addressee, label_de: Empfänger (Bauherr), label_en: "Recipient (client)", type: text, required: true, critical: false}
+  - {key: occurred_at, label_de: Beginn der Behinderung, label_en: "Start of obstruction", type: datetime, required: true, critical: true, question_de: "Seit wann genau besteht die Behinderung (Uhrzeit)?", question_en: "Since when exactly has the obstruction existed (time)?"}
+  - {key: location, label_de: Ort / Bauteil, label_en: "Location / component", type: text, required: true, critical: true}
+  - {key: cause, label_de: Ursache, label_en: "Cause", type: text, required: true, critical: false}
+  - {key: affected_work, label_de: Betroffene Leistungen, label_en: "Affected work", type: text, required: true, critical: false}
+  - {key: expected_duration, label_de: Voraussichtliche Dauer, label_en: "Expected duration", type: text, required: true, critical: false, question_de: "Wie lange wird die Behinderung voraussichtlich dauern?", question_en: "How long will the obstruction presumably last?"}
+  - {key: measures, label_de: Getroffene Maßnahmen, label_en: "Measures taken", type: text, required: false, critical: false}
+  - {key: contract_ref, label_de: Vertragsbezug, label_en: "Contract reference", type: text, required: true, critical: false}
 checklist:
-  - {key: written_form, label_de: Schriftform, field_key: null}
-  - {key: addressee, label_de: Empfänger benannt, field_key: addressee}
-  - {key: event_time, label_de: Datum und Uhrzeit des Ereignisses, field_key: occurred_at}
-  - {key: description, label_de: Beschreibung, field_key: cause}
-  - {key: impact, label_de: Auswirkungen, field_key: affected_work}
-  - {key: duration, label_de: Voraussichtliche Dauer, field_key: expected_duration}
-  - {key: contract, label_de: Bezug zum Vertrag, field_key: contract_ref}
+  - {key: written_form, label_de: Schriftform, label_en: "Written form", field_key: null}
+  - {key: addressee, label_de: Empfänger benannt, label_en: "Recipient named", field_key: addressee}
+  - {key: event_time, label_de: Datum und Uhrzeit des Ereignisses, label_en: "Date and time of the event", field_key: occurred_at}
+  - {key: description, label_de: Beschreibung, label_en: "Description", field_key: cause}
+  - {key: impact, label_de: Auswirkungen, label_en: "Impact", field_key: affected_work}
+  - {key: duration, label_de: Voraussichtliche Dauer, label_en: "Expected duration", field_key: expected_duration}
+  - {key: contract, label_de: Bezug zum Vertrag, label_en: "Contract reference", field_key: contract_ref}
 static_text_de: "Hinweis: Diese Anzeige erfolgt ohne rechtliche Bewertung. Die Prüfung obliegt dem Unternehmen."
+static_text_en: "Note: This notice is given without legal assessment. Review is the company's responsibility."

@@ -1,6 +1,7 @@
 """Summaries of minutes, diary entries and emails: open items with owner and deadline, decisions, Nachtrag candidates."""
 import re
 from . import llm, sanitizer
+from .i18n import T
 
 I = re.I
 OPEN_KW = re.compile(r"\bbis\b|until|\bby\b|deadline|frist|offen|\bopen\b|todo|to do|soll|muss|klären|liefern|prüf|senden|einholen|"
@@ -38,11 +39,11 @@ def rules(text):
         dl = DATE.search(s)
         if OPEN_KW.search(s) and (dl or OWNER.search(s) or re.search(r"bitte|please|offen|open", s, I)):
             m = OWNER.search(s)
-            owner = next((g for g in m.groups() if g), "").strip() if m else ("Wir (Empfänger)" if is_email and re.search(r"bitte|please", s, I) else "")
+            owner = next((g for g in m.groups() if g), "").strip() if m else (T("sm_we") if is_email and re.search(r"bitte|please", s, I) else "")
             item = re.split(r"\s*\|\s*", s)[0]
             items.append({"item": item, "owner": owner, "deadline": dl.group(0) if dl else "", "quote": s})
     head = subject.group(1) if subject else (_lines(text)[0] if _lines(text) else "")
-    summary = [head] + ([f"{len(items)} offene Punkte, {len(decisions)} Beschlüsse."] if items or decisions else [])
+    summary = [head] + ([T("sm_counts", n=len(items), m=len(decisions))] if items or decisions else [])
     return {"kind": "email" if is_email else "minutes", "summary": summary, "open_items": items,
             "decisions": decisions, "nachtrag_candidates": nachtrag}
 
