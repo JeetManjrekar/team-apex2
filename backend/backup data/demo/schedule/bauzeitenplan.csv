@@ -1,0 +1,26 @@
+id,name_de,zone_id,start_planned,end_planned,duration_days,predecessors,planned_output_per_day,unit,weather_sensitive,is_milestone,crew_role,assumption_note_de
+BE,Baustelleneinrichtung,BE,2026-10-26,2026-11-06,10,,,,0,0,helfer,Annahme: ca. 2 Wochen
+W1_AUSHUB,Aushub Widerlager 1,W1,2026-11-09,2026-11-11,3,BE,,,0,0,baggerfahrer,
+W1_BP,Bohrpfähle Widerlager 1 (8 × 12 m),W1,2026-11-12,2026-11-17,4,W1_AUSHUB,24,m,0,0,bohrgeraetefuehrer,Annahme: 24 m je Arbeitstag = 2 Pfähle à 12 m; Dauer in Arbeitstagen (Mo–Fr)
+W1_SCHAL,Schalung Widerlager 1,W1,2026-11-18,2026-11-18,1,W1_BP,,,0,0,schaler,
+W1_BEW,Bewehrung Widerlager 1,W1,2026-11-18,2026-11-18,1,W1_BP,,,0,0,eisenflechter,
+W1_BET,Betonieren Widerlager 1,W1,2026-11-19,2026-11-19,1,W1_SCHAL;W1_BEW,,,1,0,helfer,Annahme: Betoniertag Do 19.11.; Frostgrenze 5 °C Prognose-Minimum
+W1_NACH,Nachbehandeln Widerlager 1,W1,2026-11-20,2026-11-24,3,W1_BET,,,0,0,helfer,
+W1_AUSSCHAL,Ausschalen Widerlager 1,W1,2026-11-25,2026-11-25,1,W1_NACH,,,0,0,schaler,
+W1_FERTIG,Widerlager 1 fertig,W1,2026-11-25,2026-11-25,0,W1_AUSSCHAL,,,0,1,,Meilenstein
+A1_AUSHUB,Aushub Achse 1,A1,2026-11-09,2026-11-13,5,BE,,,0,0,baggerfahrer,
+A1_BP,Bohrpfähle Achse 1 (4 × 12 m),A1,2026-11-18,2026-11-19,2,A1_AUSHUB;W1_BP,24,m,0,0,bohrgeraetefuehrer,
+A1_SCHAL,Schalungsarbeiten Achse 1 (Vorfertigung),A1,2026-11-16,2026-11-19,4,A1_AUSHUB,,,0,0,schaler,
+A1_BEW,Bewehrungskörbe Achse 1 (Vorfertigung),A1,2026-11-17,2026-11-20,4,A1_AUSHUB,,,0,0,eisenflechter,
+A1_BET,Betonieren Achse 1,A1,2026-11-23,2026-11-23,1,A1_BP;A1_SCHAL;A1_BEW,,,1,0,helfer,
+A1_NACH,Nachbehandeln Achse 1,A1,2026-11-24,2026-11-26,3,A1_BET,,,0,0,helfer,
+A1_AUSSCHAL,Ausschalen Achse 1,A1,2026-11-27,2026-11-27,1,A1_NACH,,,0,0,schaler,
+A2_AUSHUB,Aushub Achse 2,A2,2026-11-16,2026-11-20,5,BE,,,0,0,baggerfahrer,Bagger EX-01
+A2_BP,Bohrpfähle Achse 2 (4 × 12 m),A2,2026-11-23,2026-11-24,2,A2_AUSHUB;A1_BP,24,m,0,0,bohrgeraetefuehrer,
+A2_SCHAL,Schalungsarbeiten Achse 2,A2,2026-11-25,2026-11-30,4,A2_BP,,,0,0,schaler,
+A2_BEW,Bewehrungskörbe Achse 2,A2,2026-11-25,2026-11-30,4,A2_BP,,,0,0,eisenflechter,
+A2_BET,Betonieren Achse 2,A2,2026-12-01,2026-12-01,1,A2_SCHAL;A2_BEW,,,1,0,helfer,
+W2_AUSHUB,Aushub Widerlager 2,W2,2026-11-23,2026-11-25,3,A2_AUSHUB,,,0,0,baggerfahrer,
+W2_BP,Bohrpfähle Widerlager 2 (8 × 12 m),W2,2026-11-26,2026-12-01,4,W2_AUSHUB;A2_BP,24,m,0,0,bohrgeraetefuehrer,
+W2_BET,Betonieren Widerlager 2,W2,2026-12-02,2026-12-02,1,W2_BP,,,1,0,helfer,
+UNTERBAU_FERTIG,Unterbau fertig,,2026-12-02,2026-12-02,0,W1_FERTIG;A1_AUSSCHAL;A2_BET;W2_BET,,,0,1,,Meilenstein

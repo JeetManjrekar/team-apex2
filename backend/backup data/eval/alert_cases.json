@@ -1,0 +1,38 @@
+[
+  {
+    "id": "alert_01_frost_w1",
+    "today": "2026-11-17",
+    "weather": "data/demo/weather/weather_fixture.json",
+    "events": [
+      {
+        "type": "ground_deviation",
+        "zone_id": "W1",
+        "ref": "Pfahl 7"
+      }
+    ],
+    "expected_alerts": [
+      {
+        "rule_key": "concreting_frost",
+        "zone_id": "W1",
+        "severity": "critical",
+        "text_contains": [
+          "Meilenstein Widerlager 1 gefährdet"
+        ],
+        "proposes": [
+          "letter_draft:behinderungsanzeige",
+          "letter_draft:supplier_reminder"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alert_03_no_frost_in_window",
+    "today": "2026-11-17",
+    "weather": "data/demo/weather/weather_fixture.json",
+    "events": [],
+    "expected_alerts_for_zone": {
+      "A1": []
+    },
+    "note_de": "A1_BET (23.11.) liegt außerhalb des Wetter-Fensters (bis 21.11.): kein Alarm."
+  }
+]

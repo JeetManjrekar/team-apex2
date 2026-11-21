@@ -1,0 +1,27 @@
+{
+  "id": "case_13_followup_weiss_nicht",
+  "doc_type": "nachtragsmeldung",
+  "input": {
+    "text": "Pfahl 7, ab 4 Meter Fels, Bohrgerät kommt kaum runter",
+    "audio": null,
+    "photos": [
+      "ph_dc_01.jpg",
+      "ph_dc_02.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {},
+  "must_be_empty": [
+    "drilling_log_ref"
+  ],
+  "expected_followup_fields": [],
+  "followup_answer": {
+    "followup_field": "drilling_log_ref",
+    "text": "Weiß ich nicht",
+    "documents": []
+  },
+  "expected_followup_open": [
+    "drilling_log_ref"
+  ]
+}
