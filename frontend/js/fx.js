@@ -146,7 +146,7 @@
     const best = photos.flatMap(p => (p.detections || []).map(d => ({ ...d, p }))).sort((a, b) => b.confidence - a.confidence)[0];
     const alert = plan?.alerts?.find(a => a.level === "red") || plan?.alerts?.[0];
     const steps = [
-      ["assist", "Site assistant", "Speak it. It becomes a formal notice.", "Chat or voice turns into Behinderungs- and Mehrkostenanzeigen. Every field cites its evidence.", 5200],
+      ["command", "AI Manager", "Speak it. It becomes a formal notice.", "Voice or chat turns into Behinderungs- and Mehrkostenanzeigen. Every field cites its evidence.", 5200],
       ["docs", "Documents", "Draft → Checked → Sent, only by your click", `${docsCache.length || "Your"} documents with evidence appendix, edit locks and undo. Export to Word or PDF.`, 4800],
       ["plan", "Plan vs actual", alert ? "Early warning raised" : "Schedule on track", alert ? alert.text : "Planned vs actual quantities per activity, with weather-based frost warnings.", 5600],
       ["photos", "Photo evidence", `${nPh} photos · ${nDet} AI detections`, best ? `Best: ${best.class.replace(/_/g, " ")} at ${(best.confidence * 100).toFixed(1)}% (RF-DETR Small), evidence photo-${best.p.id}.` : "Upload site photos to detect machinery.", 5000],

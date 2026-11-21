@@ -141,7 +141,7 @@
     "Hide detections below this model confidence": "Erkennungen unter dieser Modellsicherheit ausblenden",
     "Automated camera tour of the site from the live data": "Automatischer Kamerarundgang über die Baustelle",
     // autopilot captions
-    "Site assistant": "Baustellen-Assistent", "Speak it. It becomes a formal notice.": "Sprich es ein. Daraus wird eine formale Meldung.",
+    "Site assistant": "Baustellen-Assistent", "AI performance": "KI-Leistung", "Pipeline metrics": "Pipeline-Metriken", "Save frame": "Bild speichern", "Results appear here.": "Ergebnisse erscheinen hier.", "Place each photo where it was taken.": "Jedes Foto dort platzieren, wo es aufgenommen wurde.", "Detections": "Erkennungen", "No description.": "Keine Beschreibung.", "No machinery detected.": "Keine Maschinen erkannt.", "Coordinates in metres (x = east, y = north).": "Koordinaten in Metern (x = Ost, y = Nord).", "Speak it. It becomes a formal notice.": "Sprich es ein. Daraus wird eine formale Meldung.",
     "Chat or voice turns into Behinderungs- and Mehrkostenanzeigen. Every field cites its evidence.":
       "Chat oder Sprache wird zu Behinderungs- und Mehrkostenanzeigen. Jedes Feld nennt seinen Beleg.",
     "Draft → Checked → Sent, only by your click": "Entwurf → Geprüft → Weitergegeben, nur per Klick",
@@ -300,7 +300,7 @@
   }
 
   /* ------------------------------------------------------------------ navigation: 5 primary + More, sliding orange indicator */
-  const PRIMARY = [["assist", L("Assistant", "Assistent"), IC.chat], ["docs", L("Documents", "Dokumente"), IC.doc], ["dash", "Dashboard", IC.dash],
+  const PRIMARY = [["command", L("AI Manager", "KI-Bauleiter"), IC.chat], ["docs", L("Documents", "Dokumente"), IC.doc], ["dash", "Dashboard", IC.dash],
     ["twin", L("Site", "Baustelle"), IC.site], ["photos", L("Photos", "Fotos"), IC.camera]];
   const MORE = [["plan", L("Plan vs actual", "Plan & Ist")], ["sum", L("Summaries", "Zusammenfassungen")], ["live", L("Live camera", "Live-Kamera")], ["metrics", L("Metrics", "Metriken")]];
   const HIDDEN = [["mapt", L("Map", "Karte")], ...MORE];

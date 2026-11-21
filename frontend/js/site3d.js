@@ -593,7 +593,6 @@ function detCard(p, d, open) {
   return `${head}<div class="card2">
     <div><span>Object</span>${esc(nice(d.class))}</div>
     <div><span>Detection confidence</span>${(d.confidence * 100).toFixed(1)}%</div>
-    <div><span>Model</span>${esc(p.detector?.name || S.data.models.detector)}</div>
     <div><span>Evidence</span>${esc(p.evidence_id)} · ${esc(p.original_name)}</div>
     <div><span>Location</span>${locationText(p, d)}</div>
     <div><span>Position on plan</span>${d.position_method === "pinhole_estimate" ? `estimated from camera heading (${d.distance_m} m)` : "approximate – drawn next to the camera (no heading)"}</div></div>`;
@@ -626,7 +625,7 @@ function renderLegend() {
   $("#twLegend").innerHTML = `<summary>Legend</summary>` +
     `<div><i class="sw" style="background:#c8501e;border-radius:50%"></i>Photo location</div>` +
     `<div><i class="sw" style="background:#8a8780;border-radius:50%"></i>Photo without GPS</div>` +
-    classes.map(c => `<div><i class="sw" style="background:${classColor(c)}"></i>${esc(nice(c))} (${esc(S.data.models.detector)})</div>`).join("") +
+    classes.map(c => `<div><i class="sw" style="background:${classColor(c)}"></i>${esc(nice(c))}</div>`).join("") +
     `<div><i class="sw" style="background:#2f7d4a"></i>Built (from progress log)</div><div><i class="sw ghost"></i>Planned (dashed)</div>`;
 }
 
@@ -815,16 +814,14 @@ function renderOverview(el) {
   const d = S.data, L = d.layout, unplaced = d.photos.filter(p => !p.plan_xy);
   const nDet = d.photos.reduce((n, p) => n + p.detections.length, 0);
   el.innerHTML = `<div class="pad">
-    <div class="tw-kicker">Site digital twin</div><h3>${esc(L.name || "Construction site")}</h3>
-    <p class="mut">${L.origin ? `Georeferenced: origin ${L.origin.lat.toFixed(5)}, ${L.origin.lon.toFixed(5)}${L.rotation_deg ? `, plan rotated ${L.rotation_deg}°` : ""}. Photos with real GPS are positioned automatically.` : "Not georeferenced: relative coordinates only. Place photos manually."}</p>
+    <h3>${esc(L.name || "Construction site")}</h3>
     <div class="tw-stats"><div><b data-count="${d.photos.length}">${d.photos.length}</b><span>photos</span></div><div><b data-count="${d.photos.length - unplaced.length}">${d.photos.length - unplaced.length}</b><span>on plan</span></div>
       <div><b data-count="${nDet}">${nDet}</b><span>detections</span></div><div><b data-count="${L.zones.length}">${L.zones.length}</b><span>zones</span></div></div>
     <h4>Zones</h4>${L.zones.map(z => { const zs = zoneSum(z.id); return `<button class="tw-item" data-sel="zone:${z.id}"><i class="sw" style="background:${esc(z.color || "#888")}"></i>
       <span><b>${esc(z.name)}</b><span class="mut">${zs.photos.length} photos · ${zs.machinery.map(m => `${m.count}× ${esc(nice(m.class))}`).join(", ") || "no machinery detected"}</span></span></button>`; }).join("")}
-    ${unplaced.length ? `<h4>Photos without GPS (${unplaced.length})</h4><p class="mut">These photos carry no EXIF GPS, so their position is unknown. Place each one where it was taken; optionally click a second time to set the viewing direction, which positions the detected objects.</p>
+    ${unplaced.length ? `<h4>Photos without GPS (${unplaced.length})</h4><p class="mut">Place each photo where it was taken.</p>
       ${unplaced.map(p => `<div class="tw-item"><img src="${API}/data/${esc(p.file)}" data-sel="photo:${p.id}"><span><b>${S.photoNo[p.id]} · ${esc(p.original_name)}</b>
         <span class="mut">${p.detections.map(x => `${esc(nice(x.class))} ${pct(x.confidence)}`).join(", ") || "no detections"}</span></span><button class="s p" data-place="${p.id}">Place</button></div>`).join("")}` : ""}
-    <h4>Models</h4><p class="mut">Object detection: <b>${esc(d.models.detector)}</b> (confidence values from stored model output).<br>Vision description: <b>${esc(d.models.vision)}</b> (only where a description was stored at upload).</p>
   </div>`;
   bindSide(el);
 }
@@ -839,8 +836,7 @@ function renderZone(el, id) {
     <div class="tw-kicker" style="color:${esc(z.color)}">Zone · ${esc(z.kind || "")}</div><h3>${esc(z.name)}</h3>
     <h4>Construction activity</h4>${zs.activities.length ? zs.activities.map(actRow).join("") : `<p class="mut">No scheduled activity linked to this zone.</p>`}
     <h4>Detected machinery</h4>${zs.machinery.length ? `<table class="tw-tab"><tr><th>Object</th><th>Count</th><th>Best confidence</th></tr>${zs.machinery.map(m =>
-      `<tr><td><i class="sw" style="background:${classColor(m.class)}"></i>${esc(nice(m.class))}</td><td>${m.count}</td><td>${pct(m.max_confidence)}</td></tr>`).join("")}</table>
-      <p class="mut">Detections per photo; the same machine seen in two photos counts twice.</p>` : `<p class="mut">No photos with detections in this zone.</p>`}
+      `<tr><td><i class="sw" style="background:${classColor(m.class)}"></i>${esc(nice(m.class))}</td><td>${m.count}</td><td>${pct(m.max_confidence)}</td></tr>`).join("")}</table>` : `<p class="mut">No machinery detected.</p>`}
     <h4>Photographs (${zs.photos.length})</h4>${zs.photos.length ? photoThumbs(zs.photos) : `<p class="mut">No photos placed in this zone.</p>`}
     <h4>Timeline</h4>${zs.timeline.length ? `<ol class="tw-tl">${zs.timeline.slice(0, 30).map(t => `<li class="${t.kind}"><span class="mut">${esc(t.date.replace("T", " ").slice(0, 16))}</span>${esc(t.text)} <code>${esc(t.evidence_id)}</code></li>`).join("")}</ol>` : `<p class="mut">No events yet.</p>`}
     <h4>Evidence records</h4>${zs.evidence.length ? `<ul class="tw-ev">${zs.evidence.map(e => `<li><code>${esc(e.id)}</code> ${esc(e.label)} <span class="mut">${e.kind}</span></li>`).join("")}</ul>` : `<p class="mut">None.</p>`}
@@ -854,13 +850,12 @@ function renderPhoto(el, id) {
     <div class="tw-kicker">Photo ${S.photoNo[p.id]} · ${esc(p.category || "")}</div><h3>${esc(p.original_name)}</h3>
     <div class="tw-img"><img id="twImg" src="${API}/data/${esc(p.file)}"><canvas id="twCv"></canvas></div>
     <label class="tw-chk"><input type="checkbox" id="twBoxes" checked> Bounding boxes</label>
-    <h4>${esc(p.detector?.name || S.data.models.detector)} detections</h4>
+    <h4>Detections</h4>
     ${p.detections.length ? `<table class="tw-tab"><tr><th>Object</th><th>Confidence</th><th>On plan</th></tr>${p.detections.map(d => `<tr class="${d.confidence < S.minConf ? "dim" : ""}">
       <td><i class="sw" style="background:${classColor(d.class)}"></i>${d.xy ? `<a href="#" data-sel="det:${p.id}:${d.index}">${esc(nice(d.class))}</a>` : esc(nice(d.class))}</td><td>${(d.confidence * 100).toFixed(1)}%</td>
-      <td class="mut">${d.position_method === "pinhole_estimate" ? `${d.distance_m} m @ ${d.bearing_deg}°` : d.xy ? "near camera" : "—"}</td></tr>`).join("")}</table>
-      ${p.detector && p.detector.recorded === false ? `<p class="mut">Model name not recorded with this older photo; shown from current config.</p>` : ""}`
-      : `<p class="mut">${p.mock ? "Uploaded in mock mode – detector was not configured." : "No objects detected."}</p>`}
-    <h4>Vision description</h4>${p.caption ? `<p>${esc(p.caption)}</p><p class="mut">Model: ${esc(p.caption_model || "not recorded")}</p>` : `<p class="mut">No description stored for this photo (the vision model was not available when it was uploaded).</p>`}
+      <td class="mut">${d.position_method === "pinhole_estimate" ? `${d.distance_m} m @ ${d.bearing_deg}°` : d.xy ? "near camera" : "—"}</td></tr>`).join("")}</table>`
+      : `<p class="mut">No objects detected.</p>`}
+    <h4>Vision description</h4>${p.caption ? `<p>${esc(p.caption)}</p>` : `<p class="mut">No description.</p>`}
     <h4>Record</h4><table class="tw-kv">
       <tr><th>Evidence ID</th><td><code>${esc(p.evidence_id)}</code></td></tr>
       <tr><th>Timestamp</th><td>${esc((p.taken_at || "").replace("T", " "))}</td></tr>
@@ -907,7 +902,6 @@ function renderDet(el, p, i) {
     <table class="tw-kv">
       <tr><th>Object</th><td>${esc(nice(d.class))} <span class="mut">(class “${esc(d.class)}”)</span></td></tr>
       <tr><th>Detection confidence</th><td><b>${(d.confidence * 100).toFixed(1)}%</b></td></tr>
-      <tr><th>Model</th><td>${esc(p.detector?.name || S.data.models.detector)}</td></tr>
       <tr><th>Evidence</th><td><a href="#" data-sel="photo:${p.id}"><code>${esc(p.evidence_id)}</code> ${esc(p.original_name)}</a></td></tr>
       <tr><th>Location</th><td>${locationText(p, d)}</td></tr>
       <tr><th>Plan position</th><td>x ${d.xy[0].toFixed(1)} m, y ${d.xy[1].toFixed(1)} m</td></tr>
@@ -1085,12 +1079,12 @@ async function tour({ isCancelled = () => false } = {}) {
   const cap = (k, t, x, ms) => (window.FX ? FX.caption(k, t, x, ms) : sleep(ms));
   const hold = async ms => { const t0 = performance.now(); while (!off() && performance.now() - t0 < ms) await sleep(80); };
   const d = S.data, L = d.layout;
-  const placed = d.photos.filter(p => p.plan_xy), nDet = d.photos.reduce((n, p) => n + p.detections.length, 0);
+  const placed = d.photos.filter(p => p.plan_xy);
   const zoomFor = pts => { const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return Math.max(1, Math.min(3.4, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.62))); };
   try {
     select(null);
     if (S.mode !== "3d") { setMode("3d"); await sleep(650); }
-    cap("Digital twin", L.name || "Construction site", `${L.zones.length} zones · ${d.photos.length} photos · ${nDet} AI detections · ${placed.length} photos on the plan`, 5200);
+    cap("Site", L.name || "Construction site", `${L.zones.length} zones · ${d.photos.length} photos`, 5200);
     await flyTo({ target: center, zoom: 0.95, theta: -Math.PI / 4, phi: 0.98, dur: 1600 });
     if (off()) return;
     await flyTo({ theta: Math.PI / 5, phi: 0.82, zoom: 1.05, dur: 3400 });
@@ -1119,19 +1113,19 @@ async function tour({ isCancelled = () => false } = {}) {
     for (const { p, x } of dets) {
       if (off()) return;
       select({ type: "det", id: `${p.id}:${x.index}` });
-      cap(`AI detection · ${p.detector?.name || d.models.detector}`, `${nice(x.class)} · ${(x.confidence * 100).toFixed(1)}%`,
+      cap("AI detection", `${nice(x.class)} · ${(x.confidence * 100).toFixed(1)}%`,
         `Evidence ${p.evidence_id} (${p.original_name}) · ${x.position_method === "pinhole_estimate" ? `${x.distance_m} m from camera, estimated` : "near the camera"}`, 3800);
       await flyTo({ target: P(x.xy[0], x.xy[1]), zoom: 4.2, theta: th + 0.9, phi: 0.92, dur: 1500 });
       await hold(2300);
     }
     if (!dets.length && !off()) {
       const un = d.photos.length - placed.length;
-      cap("Photo evidence", `${un} photo${un === 1 ? "" : "s"} waiting for a position`, "No GPS in these photos. Place them on the plan and the detected machines appear in 3D.", 3800);
+      cap("Photo evidence", `${un} photo${un === 1 ? "" : "s"} waiting for a position`, "Place them on the plan to see detected machines in 3D.", 3800);
       await hold(3800);
     }
     if (off()) return;
     select(null);
-    cap("Digital twin", "Every marker traces back to evidence", "Schedule, photos and AI detections in one model.", 4000);
+    cap("Site", "Every marker traces back to evidence", "", 4000);
     await flyTo({ target: center, zoom: 1, theta: -Math.PI / 4, phi: 0.955, dur: 2200 });
     await hold(1800);
   } finally {
