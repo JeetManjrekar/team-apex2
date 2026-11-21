@@ -1,0 +1,56 @@
+[
+  {
+    "date": "2026-11-13",
+    "t_min": 4,
+    "t_max": 9,
+    "precip_mm": 0.2
+  },
+  {
+    "date": "2026-11-14",
+    "t_min": 3,
+    "t_max": 8,
+    "precip_mm": 0.0
+  },
+  {
+    "date": "2026-11-15",
+    "t_min": 2,
+    "t_max": 6,
+    "precip_mm": 1.2
+  },
+  {
+    "date": "2026-11-16",
+    "t_min": 3,
+    "t_max": 8,
+    "precip_mm": 0.0
+  },
+  {
+    "date": "2026-11-17",
+    "t_min": 2,
+    "t_max": 7,
+    "precip_mm": 0.0
+  },
+  {
+    "date": "2026-11-18",
+    "t_min": 0,
+    "t_max": 4,
+    "precip_mm": 0.5
+  },
+  {
+    "date": "2026-11-19",
+    "t_min": -4,
+    "t_max": 1,
+    "precip_mm": 0.0
+  },
+  {
+    "date": "2026-11-20",
+    "t_min": -2,
+    "t_max": 3,
+    "precip_mm": 0.0
+  },
+  {
+    "date": "2026-11-21",
+    "t_min": -1,
+    "t_max": 4,
+    "precip_mm": 2.0
+  }
+]

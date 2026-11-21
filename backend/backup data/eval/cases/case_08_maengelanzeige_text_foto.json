@@ -1,0 +1,50 @@
+{
+  "id": "case_08_maengelanzeige_text_foto",
+  "doc_type": "maengelanzeige",
+  "input": {
+    "text": "Mangel an der Schalung Achse 1, Schalungsplatte gerissen, Foto anbei. Muster Bau muss bis Donnerstag tauschen.",
+    "audio": null,
+    "photos": [
+      "ph_defect_01.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "location": {
+      "match": "contains_all",
+      "terms": [
+        "Achse 1"
+      ],
+      "value": "Achse 1"
+    },
+    "defect_description": {
+      "match": "contains_all",
+      "terms": [
+        "Schalung"
+      ],
+      "value": "Schalungsplatte gerissen"
+    },
+    "responsible_company": {
+      "match": "contains_all",
+      "terms": [
+        "Muster Bau"
+      ],
+      "value": "Muster Bau GmbH (fiktiv)"
+    },
+    "deadline": {
+      "value": "2026-11-19",
+      "match": "date"
+    },
+    "detected_at": {
+      "value": "2026-11-17",
+      "match": "date"
+    }
+  },
+  "must_be_empty": [
+    "detected_by"
+  ],
+  "expected_followup_fields": [
+    "detected_by"
+  ]
+}

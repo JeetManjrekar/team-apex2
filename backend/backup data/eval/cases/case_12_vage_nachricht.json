@@ -1,0 +1,16 @@
+{
+  "id": "case_12_vage_nachricht",
+  "doc_type": null,
+  "input": {
+    "text": "Heute lief es schlecht",
+    "audio": null,
+    "photos": [],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {},
+  "must_be_empty": [],
+  "expected_followup_fields": [],
+  "expected_no_document": true,
+  "expected_clarifying_question": true
+}
