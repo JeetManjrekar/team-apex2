@@ -43,3 +43,4 @@ backend/models/
 
 # Old APEX 2 prototype (not used; its LLM pipeline is merged into backend/core)
 APEX 2/
+backend/data/reports/

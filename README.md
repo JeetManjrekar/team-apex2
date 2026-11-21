@@ -52,6 +52,30 @@ It calls the API at `http://127.0.0.1:8000` (change in `frontend/config.js`; res
 - Evidence refs: `msg:<id>` (chat), `audio:<id>@<start>-<end>` (dictation segment), `mail:<id>`, `cal:<uid>`, `photo:<id>`,
   `doc:project@p1`, `doc:bgg@p14` (Baugrundgutachten page), `drill:P07`, `sched:<activity>`, `dr:<date>#personal`.
 
+## AI Site Manager (default view)
+The first tab, "AI Manager", is the main interface. One spoken or typed command runs a single workflow:
+voice → intent → data → analysis → evidence → views → answer → report.
+- **Backend:** `core/agent.py` + `routes/agent.py`.
+  - `POST /api/agent {text, ctx, lang}` picks the tools a command needs (progress, safety, incidents, changes, zone, report). It returns the timed steps, evidence cards, UI actions (`twin.focus`, `twin.highlight`, `incident.open`, `report.generate`) and the spoken answer.
+  - Commands about drafting notices (rock at pile 7, excavator idle, diary notes) return `handoff: "chat"` and go to the existing document pipeline.
+  - `ctx` carries the last incident and zone, so "generate a report for it" works.
+- **Incidents:** deterministic rules run on the stored RF-DETR detections. Each rule cites its photo, zone and model confidence.
+  - Rules: `person_near_machine`, `machine_in_restricted_zone` (zone kind `future`/`facilities`), `reported_incident` (photo note/caption), `flagged_safety_photo`.
+  - User-described incidents ("a truck fell into the pit") become `verbal_report` records that cite `msg:<id>`.
+  - The detector has no helmet/vest class, so PPE questions get "cannot verify".
+  - New uploads are scanned immediately. `GET /api/agent/events` is polled every 5 s and opens a popup for each new incident.
+- **Report:** `POST /api/agent/report` writes an HTML report to `data/reports/` with a "Save as PDF" button.
+  - Contents: project, planned vs actual, findings with evidence ids, photos, snapshots of the 2D plan and the 3D twin, outstanding issues.
+  - The summary is assembled only from these numbers. Recommendations are labelled as not verified.
+- **Frontend:** `js/command.js` + `css/command.css`.
+  - An animated core shows the six states. Each state is set by a real event: mic open, request in flight, backend steps, UI actions, speech output.
+  - Voice in uses Web Speech, with MediaRecorder → `/api/voice` (Whisper) as the fallback. Voice out uses speechSynthesis.
+  - Also on the page: suggestion chips, a live 2D plan using the twin's layout, the incident feed, and the conversation history.
+  - A dock keeps the assistant visible on every other tab.
+  - Shared bus `window.BB` (`agent:result`, `incident:new`, `state`). The 3D twin exposes `SiteTwin.focusZone/highlight/focusPhoto/snapshot`.
+  - Live camera: the same proximity rule runs on streamed detections. "Save frame" turns a frame into evidence. The camera only starts after the user clicks and grants permission.
+- Demo link: `http://127.0.0.1:8000/?ask=Check%20today%27s%20progress%20and%20safety` runs a command on load.
+
 ## Site twin (2D plan / 3D isometric)
 Tab "Site twin": a Three.js engineering site plan (`frontend/js/site3d.js`, layout + data from `backend/core/site_twin.py`).
 - Layout in `backend/data/site_layout.json` (edit via "Layout"): boundary, zones (linked to schedule activities), roads, gates,
