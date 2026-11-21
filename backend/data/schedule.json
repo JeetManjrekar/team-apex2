@@ -1,0 +1,38 @@
+[
+  {
+    "id": "piles",
+    "name": "Bohrpfähle Achse 10",
+    "unit": "Stk",
+    "total": 10,
+    "start": "2026-11-13",
+    "end": "2026-11-22",
+    "concrete": false
+  },
+  {
+    "id": "rebar",
+    "name": "Bewehrung Pfahlkopfbalken",
+    "unit": "t",
+    "total": 12,
+    "start": "2026-11-19",
+    "end": "2026-11-26",
+    "concrete": false
+  },
+  {
+    "id": "formwork",
+    "name": "Schalung Widerlager Süd",
+    "unit": "m²",
+    "total": 240,
+    "start": "2026-11-17",
+    "end": "2026-11-28",
+    "concrete": false
+  },
+  {
+    "id": "concrete",
+    "name": "Betonage Pfahlkopfbalken",
+    "unit": "m³",
+    "total": 85,
+    "start": "2026-11-26",
+    "end": "2026-11-28",
+    "concrete": true
+  }
+]
