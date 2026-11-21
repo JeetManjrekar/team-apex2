@@ -87,54 +87,17 @@ def point_in_poly(x, y, poly):
 
 
 # ---------------------------------------------------------------- layout
-def default_layout():
-    """Bridge replacement site BW 7. Local metres, origin = site centre = SITE lat/lon. Edit in the UI (Layout JSON)."""
-    return {
-        "name": SITE["name"],
-        "origin": {"lat": SITE["lat"], "lon": SITE["lon"]},
-        "rotation_deg": 0,
-        "boundary": [[-70, -45], [70, -45], [70, 30], [55, 45], [-70, 45]],
-        "zones": [
-            {"id": "be", "name": "Baustelleneinrichtung", "kind": "facilities", "color": "#8a8f98",
-             "polygon": [[-70, -45], [-35, -45], [-35, 45], [-70, 45]], "activities": []},
-            {"id": "wls", "name": "Achse 1 – Fundament", "kind": "work", "color": "#c8501e",
-             "polygon": [[-35, -45], [70, -45], [70, -12], [-35, -12]], "activities": ["A1_BET"]},
-            {"id": "a10", "name": "Widerlager 1 – Bohrpfähle", "kind": "work", "color": "#2f6db5",
-             "polygon": [[-35, -12], [35, -12], [35, 12], [-35, 12]], "activities": ["W1_BP", "W1_BET"]},
-            {"id": "erd", "name": "Erdbau / Aushub Ost", "kind": "earthworks", "color": "#a0782c",
-             "polygon": [[35, -12], [70, -12], [70, 30], [55, 45], [35, 45]], "activities": []},
-            {"id": "wln", "name": "Widerlager Nord (2. Bauabschnitt)", "kind": "future", "color": "#6b6a66",
-             "polygon": [[-35, 12], [35, 12], [35, 45], [-35, 45]], "activities": []},
-        ],
-        "roads": [
-            {"id": "r1", "name": "Baustraße", "width": 6, "points": [[-35, -52], [-35, 36], [52, 36]]},
-            {"id": "r2", "name": "Fahrweg Süd", "width": 5, "points": [[-35, -32], [62, -32]]},
-        ],
-        "gates": [{"name": "Zufahrt / Tor 1", "at": [-35, -45]}],
-        "structures": [
-            {"id": "office", "name": "Bauleitungscontainer", "kind": "container", "x": -58, "y": 32, "w": 6, "d": 2.5, "h": 5.2, "rot": 0},
-            {"id": "crew", "name": "Mannschaftscontainer", "kind": "container", "x": -58, "y": 24, "w": 6, "d": 2.5, "h": 2.6, "rot": 0},
-            {"id": "wc", "name": "Sanitär", "kind": "container", "x": -63, "y": 17, "w": 2.5, "d": 2.5, "h": 2.6, "rot": 0},
-            {"id": "rebar_store", "name": "Lager Bewehrung", "kind": "stockpile", "x": -54, "y": -8, "w": 12, "d": 6, "h": 1.0, "rot": 0, "activity": "W1_BET"},
-            {"id": "form_store", "name": "Lager Schalung", "kind": "stockpile", "x": -54, "y": -26, "w": 10, "d": 6, "h": 1.6, "rot": 0, "activity": "A1_BET"},
-            {"id": "crane", "name": "Turmdrehkran TDK 1", "kind": "crane", "x": -26, "y": -6, "h": 32, "jib": 40, "rot": 20},
-            {"id": "piles", "name": "Bohrpfähle Widerlager 1 (8 Stk)", "kind": "pile_row", "x1": -27, "y1": 0, "x2": 27, "y2": 0,
-             "count": 8, "diameter": 0.9, "activity": "W1_BP"},
-            {"id": "capbeam", "name": "Pfahlkopfbalken", "kind": "beam", "x": 0, "y": 0, "w": 58, "d": 2.4, "h": 1.6, "rot": 0, "activity": "W1_BET"},
-            {"id": "abut_s", "name": "Achse 1 – Fundament", "kind": "abutment", "x": 0, "y": -24, "w": 30, "d": 5, "h": 6, "rot": 0, "activity": "A1_BET"},
-            {"id": "abut_n", "name": "Widerlager Nord (geplant)", "kind": "abutment", "x": 0, "y": 26, "w": 30, "d": 5, "h": 6, "rot": 0, "planned": True},
-            {"id": "deck", "name": "Überbau BW 7 (geplant)", "kind": "deck", "x": 0, "y": 1, "w": 14, "d": 52, "h": 1.4, "z": 6, "rot": 0, "planned": True},
-            {"id": "spoil", "name": "Bodenmiete", "kind": "heap", "x": 54, "y": 8, "r": 8, "h": 4},
-        ],
-    }
+def empty_layout():
+    """Clean empty schema: no boundary, zones, roads, gates or structures, no origin. Nothing is pre-populated."""
+    return {"name": "", "origin": None, "rotation_deg": 0, "boundary": [], "zones": [], "roads": [], "gates": [], "structures": []}
+
+
+default_layout = empty_layout   # fresh start and reset both give the empty schema; sample layout: data/seed/site_layout.json
 
 
 def get_layout():
-    lay = load("site_layout", None)
-    if not lay:
-        lay = default_layout()
-        save("site_layout", lay)
-    return lay
+    """Stored layout, or the empty schema. Reading never writes: no site_layout.json appears until the user saves one."""
+    return load("site_layout", None) or empty_layout()
 
 
 def normalise(layout):
@@ -145,8 +108,9 @@ def normalise(layout):
     o = lay.get("origin")
     if o is not None and not (isinstance(o, dict) and {"lat", "lon"} <= set(o)):
         raise ValueError("origin must be {lat, lon} or null")
-    if not isinstance(lay.get("boundary"), list) or len(lay["boundary"]) < 3:
-        raise ValueError("boundary needs at least 3 points")
+    lay.setdefault("boundary", [])
+    if not isinstance(lay["boundary"], list) or (lay["boundary"] and len(lay["boundary"]) < 3):
+        raise ValueError("boundary needs at least 3 points (or none for an empty layout)")
     lay["boundary"] = [_pt(p, lay) for p in lay["boundary"]]
     zones = []
     for i, z in enumerate(lay.get("zones", [])):

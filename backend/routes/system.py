@@ -21,6 +21,6 @@ def health():
 
 @router.post("/system/reset")
 def system_reset(body: dict | None = None):
-    """Restore the seed state (core/demo.reset). Body: {"keep_metrics": true}."""
+    """Reset all runtime state to empty (core/demo.reset). Body: {"keep_metrics": true}."""
     from core import demo
     return demo.reset(keep_metrics=(body or {}).get("keep_metrics", True))
