@@ -1,0 +1,57 @@
+{
+  "id": "case_11_followup_bohrprotokoll_pdf",
+  "doc_type": "nachtragsmeldung",
+  "input": {
+    "text": "Pfahl 7, ab 4 Meter Fels, Bohrgerät kommt kaum runter",
+    "audio": null,
+    "photos": [
+      "ph_dc_01.jpg",
+      "ph_dc_02.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "drilling_log_ref": {
+      "value": "doc:up_*@p1",
+      "match": "source_ref",
+      "glob": true
+    },
+    "found_ground": {
+      "match": "contains_all",
+      "terms": [
+        "Fels"
+      ],
+      "value": "Fels (Kalkstein)"
+    },
+    "depth_rock_m": {
+      "value": 4.0,
+      "match": "numeric_tol",
+      "tol": 0.1
+    }
+  },
+  "must_be_empty": [
+    "ordered_by"
+  ],
+  "expected_followup_fields": [],
+  "followup_answer": {
+    "followup_field": "drilling_log_ref",
+    "text": null,
+    "documents": [
+      "inbox/pfahl7_bohrprotokoll.pdf"
+    ]
+  },
+  "expected_source_refs": {
+    "drilling_log_ref": [
+      "doc:up_*@p1",
+      "drill:P07"
+    ],
+    "found_ground": [
+      "doc:up_*@p1",
+      "drill:P07"
+    ]
+  },
+  "expected_followup_closed": [
+    "drilling_log_ref"
+  ]
+}

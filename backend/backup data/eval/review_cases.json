@@ -1,0 +1,152 @@
+[
+  {
+    "id": "review_01",
+    "item": {
+      "field_key": "depth_rock_m",
+      "label_de": "Tiefe Fels (m)",
+      "value": 4.0,
+      "cited_chunks": [
+        {
+          "source_ref": "drill:P07",
+          "text": "P07, 06:45 bis 11:20, 4,6 m, ab 4 m Fels; Fels (Kalkstein) von 4,0 m bis 12,0 m"
+        }
+      ]
+    },
+    "expected_supported": true
+  },
+  {
+    "id": "review_02",
+    "item": {
+      "field_key": "depth_rock_m",
+      "label_de": "Tiefe Fels (m)",
+      "value": 6.0,
+      "cited_chunks": [
+        {
+          "source_ref": "drill:P07",
+          "text": "P07, 06:45 bis 11:20, 4,6 m, ab 4 m Fels; Fels (Kalkstein) von 4,0 m bis 12,0 m"
+        }
+      ]
+    },
+    "expected_supported": false
+  },
+  {
+    "id": "review_03",
+    "item": {
+      "field_key": "expected_ground",
+      "label_de": "Erwarteter Baugrund",
+      "value": "Sand und Kies bis mindestens 9,0 m",
+      "cited_chunks": [
+        {
+          "source_ref": "doc:bgg@p14",
+          "text": "Sand und Kies, mitteldicht bis dicht gelagert, bis mindestens 9,0 m unter GOK; Fels nicht erkundet"
+        }
+      ]
+    },
+    "expected_supported": true
+  },
+  {
+    "id": "review_04",
+    "item": {
+      "field_key": "expected_ground",
+      "label_de": "Erwarteter Baugrund",
+      "value": "Fels ab 4,0 m",
+      "cited_chunks": [
+        {
+          "source_ref": "doc:bgg@p14",
+          "text": "Sand und Kies, mitteldicht bis dicht gelagert, bis mindestens 9,0 m unter GOK; Fels nicht erkundet"
+        }
+      ]
+    },
+    "expected_supported": false
+  },
+  {
+    "id": "review_05",
+    "item": {
+      "field_key": "occurred_at",
+      "label_de": "Beginn",
+      "value": "2026-11-17T10:00",
+      "cited_chunks": [
+        {
+          "source_ref": "msg:msg_81a",
+          "text": "Bagger steht seit 10 Uhr wegen Hydraulikschaden"
+        }
+      ]
+    },
+    "expected_supported": true
+  },
+  {
+    "id": "review_06",
+    "item": {
+      "field_key": "occurred_at",
+      "label_de": "Beginn",
+      "value": "2026-11-17T08:00",
+      "cited_chunks": [
+        {
+          "source_ref": "msg:msg_81a",
+          "text": "Bagger steht seit 10 Uhr wegen Hydraulikschaden"
+        }
+      ]
+    },
+    "expected_supported": false
+  },
+  {
+    "id": "review_07",
+    "item": {
+      "field_key": "location",
+      "label_de": "Ort",
+      "value": "Widerlager 1, Pfahl 7",
+      "cited_chunks": [
+        {
+          "source_ref": "audio:aud_3f2@0.0-6.1",
+          "text": "Pfahl 7, ab 4 Meter Fels, Bohrgerät kommt kaum runter"
+        }
+      ]
+    },
+    "expected_supported": true
+  },
+  {
+    "id": "review_08",
+    "item": {
+      "field_key": "drilling_time_h",
+      "label_de": "Bohrzeit P07 (h)",
+      "value": 4.6,
+      "cited_chunks": [
+        {
+          "source_ref": "drill:P07",
+          "text": "P07, 06:45 bis 11:20, 4,6 m, ab 4 m Fels; Fels (Kalkstein) von 4,0 m bis 12,0 m"
+        }
+      ]
+    },
+    "expected_supported": true
+  },
+  {
+    "id": "review_09",
+    "item": {
+      "field_key": "ordered_by",
+      "label_de": "Angeordnet durch",
+      "value": "Staatliches Bauamt, Herr Müller",
+      "cited_chunks": [
+        {
+          "source_ref": "msg:msg_81a",
+          "text": "Bagger steht seit 10 Uhr wegen Hydraulikschaden"
+        }
+      ]
+    },
+    "expected_supported": false
+  },
+  {
+    "id": "review_10",
+    "item": {
+      "field_key": "quantity",
+      "label_de": "Menge",
+      "value": "50 %",
+      "cited_chunks": [
+        {
+          "source_ref": "mail:mail_02#L3",
+          "text": "Teillieferung 50 %, Rest voraussichtlich 20.11."
+        }
+      ]
+    },
+    "expected_supported": true
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "nachtragsmeldung": {
+    "minutes": 90,
+    "source": "Annahme, Bestätigung durch Partnerin offen"
+  },
+  "bautagesbericht": {
+    "minutes": 45,
+    "source": "Annahme, Bestätigung durch Partnerin offen"
+  },
+  "behinderungsanzeige": {
+    "minutes": 30,
+    "source": "Annahme, Bestätigung durch Partnerin offen"
+  },
+  "mehrkostenanzeige": {
+    "minutes": 30,
+    "source": "Annahme, Bestätigung durch Partnerin offen"
+  },
+  "maengelanzeige": {
+    "minutes": 25,
+    "source": "Annahme, Bestätigung durch Partnerin offen"
+  }
+}

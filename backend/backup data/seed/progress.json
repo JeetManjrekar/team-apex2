@@ -1,0 +1,44 @@
+[
+  {
+    "date": "2026-11-12",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P01: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-12",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P02: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-13",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P03: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-13",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P04: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-16",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P05: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-16",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P06: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-17",
+    "activity": "W1_BP",
+    "qty": 4.6,
+    "note": "P07: ab 4 m Fels (Stand 11:20)"
+  }
+]

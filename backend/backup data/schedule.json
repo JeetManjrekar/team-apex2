@@ -1,0 +1,90 @@
+[
+  {
+    "id": "W1_BP",
+    "name": "Bohrpfähle Widerlager 1 (8 × 12 m)",
+    "unit": "m",
+    "total": 96.0,
+    "start": "2026-11-12",
+    "end": "2026-11-17",
+    "concrete": false,
+    "zone": "W1",
+    "crew_role": "bohrgeraetefuehrer"
+  },
+  {
+    "id": "W1_BET",
+    "name": "Betonieren Widerlager 1",
+    "unit": "Vorgang",
+    "total": 1,
+    "start": "2026-11-19",
+    "end": "2026-11-19",
+    "concrete": true,
+    "zone": "W1",
+    "crew_role": "helfer"
+  },
+  {
+    "id": "A1_BP",
+    "name": "Bohrpfähle Achse 1 (4 × 12 m)",
+    "unit": "m",
+    "total": 48.0,
+    "start": "2026-11-18",
+    "end": "2026-11-19",
+    "concrete": false,
+    "zone": "A1",
+    "crew_role": "bohrgeraetefuehrer"
+  },
+  {
+    "id": "A1_BET",
+    "name": "Betonieren Achse 1",
+    "unit": "Vorgang",
+    "total": 1,
+    "start": "2026-11-23",
+    "end": "2026-11-23",
+    "concrete": true,
+    "zone": "A1",
+    "crew_role": "helfer"
+  },
+  {
+    "id": "A2_BP",
+    "name": "Bohrpfähle Achse 2 (4 × 12 m)",
+    "unit": "m",
+    "total": 48.0,
+    "start": "2026-11-23",
+    "end": "2026-11-24",
+    "concrete": false,
+    "zone": "A2",
+    "crew_role": "bohrgeraetefuehrer"
+  },
+  {
+    "id": "A2_BET",
+    "name": "Betonieren Achse 2",
+    "unit": "Vorgang",
+    "total": 1,
+    "start": "2026-12-01",
+    "end": "2026-12-01",
+    "concrete": true,
+    "zone": "A2",
+    "crew_role": "helfer"
+  },
+  {
+    "id": "W2_BP",
+    "name": "Bohrpfähle Widerlager 2 (8 × 12 m)",
+    "unit": "m",
+    "total": 96.0,
+    "start": "2026-11-26",
+    "end": "2026-12-01",
+    "concrete": false,
+    "zone": "W2",
+    "crew_role": "bohrgeraetefuehrer"
+  },
+  {
+    "id": "W2_BET",
+    "name": "Betonieren Widerlager 2",
+    "unit": "Vorgang",
+    "total": 1,
+    "start": "2026-12-02",
+    "end": "2026-12-02",
+    "concrete": true,
+    "zone": "W2",
+    "crew_role": "helfer"
+  }
+]

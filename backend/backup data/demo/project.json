@@ -1,0 +1,14 @@
+{
+  "id": "bw12_muehlbach",
+  "name_de": "Ersatzneubau Straßenbrücke BW 12 über den Mühlbach",
+  "location": "Oberbayern (fiktive Baustelle)",
+  "lat": 48.3069,
+  "lon": 11.9081,
+  "bauherr": "Staatliches Bauamt (fiktiv)",
+  "contractor": "Muster Bau GmbH (fiktiv)",
+  "site_manager": "Markus Brandl",
+  "polier": "Josef Huber",
+  "nachtragsmanager": "Sabine Keller",
+  "contract_ref": "Bauvertrag Nr. 2026-117, VOB/B vereinbart",
+  "demo_today": "2026-11-17"
+}
