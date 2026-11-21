@@ -18,7 +18,8 @@ def chat(body: dict = Body(...)):
     text = (body.get("text") or "").strip()
     if not text:
         raise ApiError(400, "empty message")
-    return assistant.handle(text, voice=bool(body.get("voice")))
+    ids = body.get("photo_ids")
+    return assistant.handle(text, voice=bool(body.get("voice")), photo_ids=ids if isinstance(ids, list) else None)
 
 
 def _doc(doc_id):
@@ -58,6 +59,29 @@ def edit_field(doc_id: str, key: str, body: dict = Body(...)):
     if d["status"] == "sent":
         raise ApiError(409, "Document was already sent")
     docs.set_field(d, key, body.get("value", ""), {"type": "user", "quote": "manual edit"}, by="user")
+    return docs.public(docs.put(d))
+
+
+@router.post("/docs/{doc_id}/fields")
+def add_field(doc_id: str, body: dict = Body(...)):
+    """Add a free-text field to this draft (body: {"label": "Ort", "value": "Achse 3"}); an existing field of that name is reused."""
+    d = _doc(doc_id)
+    try:
+        key, _ = docs.add_field(d, body.get("label") or "")
+    except ValueError as e:
+        raise ApiError(409 if d["status"] == "sent" else 400, str(e))
+    if body.get("value"):
+        docs.set_field(d, key, body["value"], {"type": "user", "quote": "manual edit"}, by="user")
+    return docs.public(docs.put(d))
+
+
+@router.delete("/docs/{doc_id}/fields/{key}")
+def remove_field(doc_id: str, key: str):
+    d = _doc(doc_id)
+    try:
+        docs.remove_field(d, key)
+    except ValueError as e:
+        raise ApiError(409 if d["status"] == "sent" else 400, str(e))
     return docs.public(docs.put(d))
 
 

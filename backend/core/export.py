@@ -10,7 +10,7 @@ from docx.oxml import parse_xml
 from docx.shared import Cm, Mm, Pt, RGBColor
 from PIL import Image, ImageDraw
 from . import llm_bridge
-from .docs import DOC_TYPES, missing
+from .docs import DOC_TYPES, fields_of, missing
 from .store import ROOT, load, DATA, SITE, env
 
 SRC_DE = {"voice": "Diktat", "project": "Projektstammdaten", "document": "Unterlage", "calendar": "Kalender", "message": "Chat-Nachricht", "answer": "Antwort im Chat", "user": "manuell bearbeitet", "timestamp": "Zeitstempel",
@@ -118,7 +118,7 @@ def _photo_entries(doc, tpl=None):
 
 def build_context(doc, tpl=None) -> dict:
     """Everything a template (or the fallback writer) needs; plain data except photo images."""
-    t = DOC_TYPES[doc["type"]]
+    t = dict(DOC_TYPES[doc["type"]], fields=fields_of(doc))     # incl. fields the user added to this draft
     return {"title": t["title"], "basis": t["basis"], "draft": doc["status"] == "draft", "status": doc["status"],
             "header": _header_rows(doc, t), "rows": _field_rows(doc, t), "closing": t.get("closing") or "",
             "checklist": _checklist(doc, t),
@@ -366,7 +366,7 @@ def build_templates(dest: Path | None = None) -> list[Path]:
 
 
 def print_html(doc) -> str:
-    t = DOC_TYPES[doc["type"]]
+    t = dict(DOC_TYPES[doc["type"]], fields=fields_of(doc))
     photos = {p["id"]: p for p in load("photos", [])}
     e = html.escape
     rows = "".join(f"<tr><th>{e(label)}{' *' if req else ''}</th><td>{e(doc['fields'][k]['value'] or '— (offen)').replace(chr(10), '<br>')}</td></tr>"

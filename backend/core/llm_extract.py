@@ -235,8 +235,10 @@ def extract(doc_type: str, chunks: list[SourceChunk], only_fields: list[str] | N
 
     mapping: dict = {}                                 # one shared PII mapping for the whole prompt
     masked = [c.model_copy(update={"text": sanitizer.mask(c.text, mapping)[0]}) for c in chunks]
-    note = ("GEZIELTE NACHEXTRAKTION: Fülle nur die Felder der Feldliste aus den neuen Quellen. "
-            "Die Antwort des Bauleiters auf die Rückfrage steht unter den Quellen.\n") if only_fields else ""
+    note = ("GEZIELTE NACHEXTRAKTION: Die Antwort des Bauleiters auf die Rückfrage steht unter den Quellen. Sie kann "
+            "beliebig viele Felder der Feldliste in beliebiger Reihenfolge enthalten, auch andere als das zuletzt "
+            "erfragte (z. B. Ort und Uhrzeit in einem Satz). Fülle jedes Feld der Feldliste, das die Antwort belegt; "
+            "alle übrigen bleiben null.\n") if only_fields else ""
     text = (prompt(spec["prompt"]).replace("{rules}", prompt("extraction_rules.md"))
             .replace("{today}", today.isoformat()).replace("{only_fields_note}", note)
             .replace("{fields}", _render_fields(fields)).replace("{sources}", _render_sources(masked, derived)))

@@ -123,7 +123,7 @@ def _drafts_with_evidence(evidence_id: str, prefix: bool = False) -> list:
 
 
 def _draft_entry(d, *, merged, filled=(), proposals=(), gaps=()) -> dict:
-    lab = lambda keys: [docs.field_meta(d["type"], k)["label"] for k in keys if docs.field_meta(d["type"], k)]
+    lab = lambda keys: [docs.field_meta(d, k)["label"] for k in keys if docs.field_meta(d, k)]
     return {"id": d["id"], "type": d["type"], "title": d["title"], "status": d["status"], "url": f"/api/docs/{d['id']}",
             "created": not merged, "merged": merged, "filled": list(filled), "proposals": list(proposals),
             "filled_labels": lab(filled), "proposal_labels": lab(proposals), "gap_labels": lab(gaps)}

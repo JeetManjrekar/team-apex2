@@ -44,16 +44,16 @@ function msgHtml(m){const acts=(m.actions||[]).map((a,i)=>`<button class="s" dat
 function bindMsgs(){$("#msgs").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>showAssistDoc(b.dataset.open));
   $("#msgs").querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const a=JSON.parse(b.dataset.act);b.disabled=true;
     const d=await api("/api/docs",{json:{type:a.type,text:a.text,source:"message"}});showAssistDoc(d.id);});}
-window.NW={dictated:false};
+window.NW={dictated:false};let pendingPhotos=[];   // ids of photos added in the chat, sent with the next message
 async function loadMsgs(){const r=await api("/api/messages");
   $("#msgs").innerHTML=r.messages.length?r.messages.map(msgHtml).join(""):`<div class="empty">Tell me what happened on site. Type, dictate with 🎤, or tap an example below.<br><br>Try: rock at pile 7 → I draft a Mehrkostenanzeige and ask for what is missing.</div>`;
   bindMsgs();$("#msgs").scrollTop=1e9;if(r.active)showAssistDoc(r.active);}
-async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=NW.dictated;NW.dictated=false;
-  try{const r=await api("/api/chat",{json:{text,voice}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
+async function send(){const text=$("#inp").value.trim();if(!text)return;$("#inp").value="";$("#send").disabled=true;const voice=NW.dictated;NW.dictated=false;const photo_ids=pendingPhotos;pendingPhotos=[];
+  try{const r=await api("/api/chat",{json:{text,voice,photo_ids}});await loadMsgs();if(r.active)showAssistDoc(r.active);}
   catch(e){$("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant err">${esc(e.message)}</div>`)}$("#send").disabled=false;}
 $("#send").onclick=send;$("#inp").onkeydown=e=>{if(e.key=="Enter"&&!e.shiftKey){e.preventDefault();send()}};
 chatPhotos.onchange=async()=>{const fd=new FormData();[...chatPhotos.files].forEach(f=>fd.append("files",f));
-  try{const r=await api("/api/photos",{method:"POST",body:fd});
+  try{const r=await api("/api/photos",{method:"POST",body:fd});pendingPhotos.push(...r.map(p=>p.id));
     $("#msgs").insertAdjacentHTML("beforeend",`<div class="m assistant">Added ${r.length} photo(s): ${esc(r.map(p=>p.category+(p.detections.length?" ("+p.detections.map(d=>d.class).join(", ")+")":"")).join("; "))}. They will be attached to matching drafts and today's daily report.</div>`);
     $("#msgs").scrollTop=1e9;loadPhotos();}catch(e){alert(e.message)}chatPhotos.value="";};
 /* ---------- document view ---------- */
@@ -64,7 +64,7 @@ function renderDoc(el,d){
   const fields=d.meta.fields.map(m=>{const f=d.fields[m.key],miss=m.required&&!f.value,low=f.value&&f.by=="ai"&&f.confidence!=null&&f.confidence<0.7;
     const s=f.source;const srcTxt=s?(SRC[s.type]||s.type):"";
     return `<div class="f ${miss?"miss":""} ${low?"low":""}" data-k="${m.key}">
-      <label>${esc(m.label)}${m.required?' <span style="color:var(--bad)">*</span>':""}${m.critical?' <span class="mut" title="critical field">●</span>':""}${f.locked?' <span title="Edited by you, AI will not overwrite">🔒</span>':""}${REV[f.review?.status]?` <span class="rev ${f.review.status}" title="${esc(f.review.note_de||REV[f.review.status])}">${REV[f.review.status]}</span>`:""}</label>
+      <label>${esc(m.label)}${m.required?' <span style="color:var(--bad)">*</span>':""}${m.critical?' <span class="mut" title="critical field">●</span>':""}${f.locked?' <span title="Edited by you, AI will not overwrite">🔒</span>':""}${m.custom?` <span class="mut" title="Field you added">eigenes Feld</span>${ro?"":` <button class="s" data-rmf="${m.key}" title="Remove this field">×</button>`}`:""}${REV[f.review?.status]?` <span class="rev ${f.review.status}" title="${esc(f.review.note_de||REV[f.review.status])}">${REV[f.review.status]}</span>`:""}</label>
       <textarea rows="${Math.min(6,Math.max(1,Math.ceil((f.value||"").length/70)+(f.value||"").split("\n").length-1))}" ${ro?"disabled":""} placeholder="${miss?"missing, required":"empty"}">${esc(f.value)}</textarea>
       ${finds[m.key]?finds[m.key].map(x=>`<div class="prop bad">Reviewer (${esc(x.issue)}): ${esc(x.explanation_de)} → ${esc(x.suggested_action_de)}</div>`).join(""):""}
       ${f.value?`<div class="src">${s?`<a data-q>source: ${esc(srcTxt)}${s.locator?" · "+esc(s.locator):""}</a>${s.evidence_id?`<code style="font-size:10.5px">${esc(s.evidence_id.length>40?s.evidence_id.slice(0,40)+"…":s.evidence_id)}</code>`:""}`:""}${low?'<span style="color:var(--warn)">low confidence, please check</span>':""}${f.by=="ai"&&f.confidence!=null?`<span>conf ${Math.round(f.confidence*100)}%</span>`:""}</div>
@@ -87,6 +87,7 @@ function renderDoc(el,d){
     <div class="err" id="derr"></div>
     ${d.missing.length?`<div class="mut" style="margin-bottom:4px">Missing required: ${esc(d.missing.map(k=>d.meta.fields.find(f=>f.key==k).label).join(", "))}</div>`:""}
     ${fields}
+    ${ro?"":`<button class="s" id="addField" style="margin:2px 0 8px" title="Add a field this document type does not have">+ Feld hinzufügen</button>`}
     <details ${d.photos.length?"open":""}><summary>Photos (${d.photos.length})</summary><div class="thumbs">${thumbs}</div>
       ${ro?"":`<button class="s" id="pickPh" style="margin-top:6px">Choose photos</button><div class="thumbs" id="phPick" style="display:none;margin-top:6px"></div>`}</details>
     <details><summary>Edit log</summary><div class="log">${log}</div></details>
@@ -98,6 +99,11 @@ function renderDoc(el,d){
     const q=fe.querySelector("[data-q]");if(q)q.onclick=()=>{const x=fe.querySelector(".quote");x.style.display=x.style.display=="block"?"none":"block"};});
   el.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>reload(await api(`/api/docs/${d.id}/fields/${b.dataset.acc}/accept`,{json:{}})));
   el.querySelectorAll("[data-undo]").forEach(b=>b.onclick=async()=>reload(await api(`/api/docs/${d.id}/undo/${b.dataset.undo}`,{json:{}})));
+  const err=e=>el.querySelector("#derr").textContent=e.message;
+  const af=el.querySelector("#addField");if(af)af.onclick=async()=>{const label=(prompt("Name des neuen Feldes (z. B. Ort):")||"").trim();if(!label)return;
+    const value=prompt(`Wert für „${label}“ (optional):`)||"";try{reload(await api(`/api/docs/${d.id}/fields`,{json:{label,value}}))}catch(e){err(e)}};
+  el.querySelectorAll("[data-rmf]").forEach(b=>b.onclick=async()=>{if(!confirm("Feld entfernen?"))return;
+    try{reload(await api(`/api/docs/${d.id}/fields/${b.dataset.rmf}`,{method:"DELETE"}))}catch(e){err(e)}});
   el.querySelectorAll("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(d.id,b));
   el.querySelectorAll("[data-st]").forEach(b=>b.onclick=async()=>{try{reload(await api(`/api/docs/${d.id}/status`,{json:{status:b.dataset.st}}))}catch(e){el.querySelector("#derr").textContent=e.message}});
   const pk=el.querySelector("#pickPh");if(pk)pk.onclick=()=>{const box=el.querySelector("#phPick");box.style.display="flex";const sel=new Set(d.photos);

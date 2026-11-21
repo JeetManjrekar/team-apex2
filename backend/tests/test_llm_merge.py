@@ -291,3 +291,51 @@ def test_recent_uncategorized_photo_is_attached_and_marked():
     assert "rock.jpg (Kategorie nicht geprüft" in d["fields"]["photos"]["value"]
     d2 = docs.get(assistant.handle("Bagger steht seit 10 Uhr wegen Hydraulikschaden")["active"])
     assert "rock" not in d2["photos"]                               # already attached to the open Nachtrag draft
+
+
+# ---------------------------------------------------------------- classifier output -> LLM (attached photos)
+def _det_photo(pid, taken_at, dets, category="progress"):
+    return {"id": pid, "file": f"uploads/{pid}.jpg", "original_name": f"{pid}.jpg", "category": category, "caption_de": "",
+            "detections": [{"class": c, "confidence": conf, "x": 1, "y": 1, "width": 1, "height": 1} for c, conf in dets],
+            "taken_at": taken_at, "uploaded_at": taken_at}
+
+
+def test_attached_photo_detections_reach_extraction_prompt(monkeypatch):
+    llm_mode(monkeypatch)
+    # EXIF date from last year: the day-based selection would miss it, the explicit attachment must not
+    store.save("photos", [_det_photo("p1", "2025-05-01T09:00:00", [("excavator", 0.91), ("excavator", 0.62), ("person", 0.78)])])
+    fake = FakeLLM(fields={"location": {"value": "Pfahl 7", "source_refs": ["photo:p1"], "confidence": 0.9}})
+    monkeypatch.setattr(llm_extract, "complete_json", fake)
+    before = [c.model_dump() for c in assistant.context_chunks()]
+    d = docs.get(assistant.handle("Pfahl 7 ab 4 m Fels", photo_ids=["p1", "unknown"])["active"])
+    prompt = fake.prompts[-1]
+    assert "<<photo:p1>>" in prompt and "excavator ×2 (max 91 %), person ×1 (78 %)" in prompt
+    assert "p1" in d["photos"] and d["fields"]["location"]["source"]["evidence_id"] == "photo:p1"
+    assert store.load("messages", [])[-2]["photos"] == ["p1"]                     # unknown ids are dropped
+    # no attachment -> context (and so the payload) unchanged, the old photo is not in it
+    assert [c.model_dump() for c in assistant.context_chunks()] == before and "photo:p1" not in str(before)
+
+
+def test_daily_report_llm_step_fills_gaps_and_only_proposes_over_rules(monkeypatch):
+    llm_mode(monkeypatch)
+    day = assistant.llm_today().isoformat()
+    store.save("photos", [_det_photo("p1", f"{day}T09:00:00", [("excavator", 0.9)])])
+    fake = FakeLLM(fields={"deliveries": {"value": ["Betonmischer"], "source_refs": ["photo:p1"], "confidence": 0.8},
+                           "equipment": {"value": ["2 Bagger"], "source_refs": ["photo:p1"], "confidence": 0.8}})
+    monkeypatch.setattr(llm_extract, "complete_json", fake)
+    d = docs.get(assistant.handle("Tagesbericht", photo_ids=["p1"])["active"])
+    assert "excavator ×1 (90 %)" in fake.prompts[-1]
+    assert "Betonmischer" in d["fields"]["deliveries"]["value"]                # empty field -> filled by the LLM
+    assert d["fields"]["equipment"]["value"].startswith("excavator")           # rule value stays ...
+    assert "2 Bagger" in d["fields"]["equipment"]["proposal"]["value"]         # ... the LLM only proposes
+    assert d["extraction_mode"] == "llm"
+
+
+def test_daily_report_without_llm_is_rules_only(monkeypatch):
+    cfg = dataclasses.replace(llm_extract.CFG, api_key="", cache_mode="off")     # no key, no replay -> rule-based only
+    for mod in (llm_extract, llm_bridge):
+        monkeypatch.setattr(mod, "CFG", cfg)
+    calls = []
+    monkeypatch.setattr(llm_extract, "complete_json", lambda *a, **k: calls.append(1))
+    d = assistant.daily_report()
+    assert not calls and d.get("extraction_mode") != "llm"

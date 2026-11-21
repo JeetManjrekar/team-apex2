@@ -28,6 +28,8 @@ LOC = re.compile(r"(?:bored\s+)?(?:pile|bohrpfahl|pfahl|axis|achse|abutment|wide
                  r"bauteil|block|floor|geschoss)\s*(?:no\.?\s*|nr\.?\s*)?[A-Za-z]?\d+[a-z]?(?:\s*(?:south|north|east|west|süd|nord|ost))?"
                  r"|(?:abutment|widerlager)\s+(?:south|north|east|west|süd|nord|ost|west)", I)
 TIME = re.compile(r"(?:since|seit|from|ab|at|um)\s+(\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|uhr|h)\b|\d{1,2}[:.]\d{2})", I)
+# follow-up answers often give a bare time ("heute 10:30", "um 10" is covered by TIME); not a date (21.11.) or a measure (4.50 m)
+BARE_TIME = re.compile(r"\b(\d{1,2}[:.]\d{2}(?![.\d])(?!\s*(?:m\b|meter|metern|metres?|%|€|eur))(?:\s*uhr\b)?|\d{1,2}\s*uhr\b)", I)
 CAUSE = re.compile(r"(?:because(?:\s+of)?|due\s+to|caused\s+by|weil|wegen|aufgrund(?:\s+von)?|da\s+(?=die|der|das|wir|es|kein))\s+([^.;!?\n]+)", I)
 DURATION = re.compile(r"\d+(?:[.,]\d+)?\s*(?:hours?|hrs?|h\b|stunden|std\.?|days?|tagen?|tage|weeks?|wochen)", I)
 EQUIP = re.compile(r"\b(?:\d+\s+)?(?:excavators?|bagger|cranes?|kran|(?:drilling\s+)?rig|bohrgerät|trucks?|lkw|concrete pump|betonpumpe|"
@@ -84,9 +86,11 @@ def strip_mail(text):
 DEPTH = re.compile(r"(?:ab|bei|in|at|from)\s+(\d+(?:[.,]\d+)?)\s*(?:m\b|meter|metern|metres?)", I)
 
 
-def rules(dtype, text, ts):
+def rules(dtype, text, ts, strict=False):
     """Rule-based fallback. Returns {key: (value, quote, confidence)}; quote is a verbatim span of the text.
-    Fields whose value comes from the message time get quote None (host labels them as timestamp)."""
+    Fields whose value comes from the message time get quote None (host labels them as timestamp).
+    strict (follow-up answers): only pattern matches, no catch-all fallbacks that copy the first clause or the
+    whole text into a free-text field (an answer like "10:30 an Achse 3" is not a Sachverhalt)."""
     out = {}
     text = strip_mail(text) or text
 
@@ -104,7 +108,7 @@ def rules(dtype, text, ts):
     cl = clauses(text)
     first = cl[0] if cl else text
     first_main = re.split(CAUSE.pattern, first, flags=I)[0].strip(" .,") or first
-    tm = TIME.search(text)
+    tm = TIME.search(text) or (BARE_TIME.search(text) if strict else None)
     date_txt, date_q = _date_from_text(DEADLINE.sub("", text), ts)
     when = None
     if tm:
@@ -115,7 +119,8 @@ def rules(dtype, text, ts):
     if dtype == "nachtragsmeldung":
         if when:
             out["occurred_at"] = when
-        out["description"] = (first, first, 0.7)
+        if not strict:
+            out["description"] = (first, first, 0.7)
         clause("expected_ground", EXPECT_KW)
         clause("found_ground", FOUND_KW, exclude=EXPECT_KW)
         d = DEPTH.search(text)
@@ -130,12 +135,14 @@ def rules(dtype, text, ts):
         if "cause" not in out:
             clause("cause", FOUND_KW, exclude=EXPECT_KW)
         clause("additional_effort", re.compile(r"bohrzeit|drilling time|mehraufwand|zusätzlich|\d+(?:[.,]\d+)?\s*(?:h|hours?|stunden|std|m3|m³|t)\b", I), 0.6)
-        out["affected_work"] = (first_main, first_main, 0.6)
+        if not strict:
+            out["affected_work"] = (first_main, first_main, 0.6)
     elif dtype == "behinderungsanzeige":
         if when:
             out["occurred_at"] = when
         cause = CAUSE.search(text)
-        out["cause"] = ((cause.group(1) if cause else first_main).strip(" ."), (cause.group(0) if cause else first).strip(" ."), 0.7)
+        if cause or not strict:
+            out["cause"] = ((cause.group(1) if cause else first_main).strip(" ."), (cause.group(0) if cause else first).strip(" ."), 0.7)
         imp = first_clause(text, re.compile(r"idle|stillstand|steht still|stehen still|standing still|cannot|kann nicht|delay|verzug|"
                                             r"steht seit|stehen seit", I))
         if imp:
@@ -160,9 +167,11 @@ def rules(dtype, text, ts):
             clause("concern_description", re.compile(r"concern|bedenken|unsafe|unsicher|not feasible|nicht ausführbar|doubt|zweifel", I), 0.6)
         put("proposed_clarification", PROPOSE.search(text), conf=0.6)
     elif dtype == "aktennotiz":
-        out["date"] = (date_txt, date_q, 0.9 if date_q else 0.6)
-        out["subject"] = (first_main, first_main, 0.6)
-        out["facts"] = (text.strip(), text.strip(), 0.7)
+        if date_q or not strict:
+            out["date"] = (date_txt, date_q, 0.9 if date_q else 0.6)
+        if not strict:
+            out["subject"] = (first_main, first_main, 0.6)
+            out["facts"] = (text.strip(), text.strip(), 0.7)
         p = re.search(r"(?:mit|with)\s+((?:Hr\.|Fr\.|Herrn?|Frau|Mr\.|Ms\.)?\s*[A-ZÄÖÜ][\w.\-]+(?:\s+[A-ZÄÖÜ][\w.\-]+)?)", text)
         if p:
             out["participants"] = (p.group(1), p.group(0), 0.6)
@@ -197,11 +206,12 @@ def _primary_ref(primary, quote):
     return primary[0].ref
 
 
-def extract(dtype, text, primary, context, locked=None, ts=None, run_id="run", only_fields=None, focus=None):
+def extract(dtype, text, primary, context, locked=None, ts=None, run_id="run", only_fields=None, focus=None, followup=False):
     """Extract fields for one document type.
     primary: SourceChunks of this turn (message / dictation segments / e-mail); context: project data, Gutachten, ...
     Returns {"fields": {key: {"value", "refs", "confidence", "quote"}}, "gaps", "followups", "message", "mode", "result"}.
-    `fields` never contains locked keys; AI writes go through docs.set_field, which never overwrites a lock either."""
+    `fields` never contains locked keys; AI writes go through docs.set_field, which never overwrites a lock either.
+    followup: the text answers a Rückfrage; the rules fallback then skips its catch-all fields (see rules(strict=True))."""
     from . import llm_bridge, llm_extract
     from .llm_settings import CFG
     from .registry import doc_spec
@@ -219,7 +229,7 @@ def extract(dtype, text, primary, context, locked=None, ts=None, run_id="run", o
         followups = [f.model_dump() for f in res.followups if f.field_key not in locked]
         return {"fields": fields, "gaps": gaps, "followups": followups, "message": res.assistant_message_de, "mode": "llm", "result": res}
     with llm_bridge.Timer("rules_extraction", run_id, document_type=dtype):
-        base = rules(dtype, text, ts)
+        base = rules(dtype, text, ts, strict=followup)
         derived = llm_extract.derive(dtype, chunks, focus or {})
     out, gaps = {}, []
     for k, (val, quote, conf) in base.items():

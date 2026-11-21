@@ -8,6 +8,7 @@ intent_keywords:
   - [bautagesbericht]
 fields:
   - {key: date, label_de: Datum, type: date, required: true, critical: false}
+  - {key: location, label_de: Ort / Bauabschnitt, type: text, required: false, critical: false}
   - {key: weather, label_de: Wetter, type: text, required: true, critical: false}
   - {key: temperature_min_c, label_de: Temperatur min (°C), type: number, required: false, critical: false}
   - {key: temperature_max_c, label_de: Temperatur max (°C), type: number, required: false, critical: false}
