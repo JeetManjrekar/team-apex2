@@ -448,9 +448,14 @@ def greeting(lang="en"):
             "Guten Morgen" if hour < 12 else "Guten Tag" if hour < 18 else "Guten Abend")
     facts = _t(lang, f"{len(behind)} {'activity' if len(behind) == 1 else 'activities'} behind plan, {len(inc)} open incident{'' if len(inc) == 1 else 's'}.",
                f"{len(behind)} Vorgänge hinter Plan, {len(inc)} offene Vorfälle.")
-    return {"text": _t(lang, f"{hi}. I'm your AI Site Manager for {SITE['name']}. I've read the latest site data: {facts} "
+    name = SITE["name"]
+    if not name:
+        return {"text": _t(lang, f"{hi}. I'm your AI Site Manager. How can I help you today?",
+                           f"{hi}. Ich bin Ihr KI-Bauleiter. Wie kann ich Ihnen helfen?"),
+                "behind": 0, "incidents": 0, "as_of": st["as_of"]}
+    return {"text": _t(lang, f"{hi}. I'm your AI Site Manager for {name}. I've read the latest site data: {facts} "
                              "Shall I review today's progress or check for safety issues?",
-                       f"{hi}. Ich bin Ihr KI-Bauleiter für {SITE['name']}. Aktueller Stand: {facts} "
+                       f"{hi}. Ich bin Ihr KI-Bauleiter für {name}. Aktueller Stand: {facts} "
                        "Soll ich den Fortschritt prüfen oder nach Sicherheitsproblemen suchen?"),
             "behind": len(behind), "incidents": len(inc), "as_of": st["as_of"]}
 

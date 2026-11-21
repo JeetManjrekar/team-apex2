@@ -18,6 +18,8 @@ def isolated(tmp_path, monkeypatch):
     (tmp_path / "uploads").mkdir()
     monkeypatch.setattr(assistant.plan, "weather", lambda: None)   # no network
     monkeypatch.setattr(llm_bridge.METRICS, "_path", tmp_path / "metrics.jsonl")
+    monkeypatch.setattr(assistant.plan, "DATA", tmp_path)
+    assistant.plan.load_demo()      # a project is only cited once loaded (blank state cites nothing)
     yield tmp_path
 
 

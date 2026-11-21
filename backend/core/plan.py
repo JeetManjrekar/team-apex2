@@ -1,5 +1,5 @@
 """Plan vs actual, weather and early warnings."""
-import csv, datetime as dt, time
+import csv, datetime as dt, json, time
 import requests
 from .llm_settings import today as demo_today
 from .store import DATA, load, save, SITE
@@ -77,6 +77,7 @@ def _demo_client_docs():
 
 
 def load_demo():
+    save("project", json.loads((DEMO_DIR / "project.json").read_text(encoding="utf-8")))
     save("client_docs", _demo_client_docs())
     save("schedule", _demo_schedule())
     save("progress", _demo_progress())

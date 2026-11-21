@@ -22,7 +22,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from .llm_settings import CFG
-from .store import load
+from .store import load, project as store_project
 
 _PAGE_RE = re.compile(r"\[\[SEITE\s+(\d+)\]\]")
 _PILE_RE = re.compile(r"\b(?:Bohr)?pfahl\s*(?:nr\.?\s*)?(\d+)\b|\bpile\s*(\d+)\b|\bP0?(\d{1,2})\b", re.I)
@@ -102,15 +102,16 @@ def _demo(*parts):
     return CFG.demo_dir.joinpath(*parts)
 
 
-@lru_cache
 def project() -> dict:
-    f = _demo("project.json")
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    """Loaded project master data only; {} on a fresh/reset instance (never falls back to the bundled demo)."""
+    return store_project()
 
 
 def context_chunks(today: dt.date) -> list[SourceChunk]:
     chunks: list[SourceChunk] = []
     proj = project()
+    if not proj:        # no project loaded: nothing from the bundled demo may be cited
+        return chunks
     if proj:
         chunks.append(SourceChunk(
             ref="doc:project@p1", kind="project", label_de="Projektstammdaten", locator="Seite 1",

@@ -47,8 +47,6 @@ def demo_load():
 
 @router.post("/demo/reset")
 def demo_reset():
-    """Clears chat, documents, notes and incidents (photos stay; incidents are re-detected from them)."""
-    for n, v in [("messages", []), ("chat_state", {}), ("docs", []), ("notes", []), ("incidents", [])]:
-        save(n, v)
-    plan.load_demo()
-    return {"ok": True}
+    """Resets everything (chat, documents, notes, photos, schedule, site layout, uploads) to the empty fresh-start state."""
+    from core import demo
+    return demo.reset()

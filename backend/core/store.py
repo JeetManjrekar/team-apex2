@@ -40,20 +40,32 @@ def today():
     return dt.date.today().isoformat()
 
 
-def _project():
-    """Demo project master data (data/demo/project.json): the one dataset the LLM cites, the eval and the seed use."""
-    try:
-        return json.loads((DATA / "demo" / "project.json").read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+def project() -> dict:
+    """Master data of the LOADED project (data/project.json, written by plan.load_demo / cleared by demo.reset).
+    Empty on a fresh install or after a reset, so nothing project-specific leaks into prompts, greetings or exports."""
+    p = load("project", {})
+    return p if isinstance(p, dict) else {}
 
 
-_P = _project()
-# SITE_* env vars override; empty = taken from data/demo/project.json
-SITE = {
-    "lat": float(env("SITE_LAT") or _P.get("lat", 48.3069)),
-    "lon": float(env("SITE_LON") or _P.get("lon", 11.9081)),
-    "name": env("SITE_NAME") or _P.get("name_de", "Ersatzneubau Straßenbrücke BW 12"),
-    "client": env("SITE_CLIENT") or _P.get("bauherr", "Bauherr / Auftraggeber"),
-    "manager": env("SITE_MANAGER") or (f"{_P['site_manager']}, Bauleitung" if _P.get("site_manager") else "Bauleitung"),
-}
+class _Site(dict):
+    """Site header data, resolved at access time from the loaded project (env SITE_* overrides win). Neutral when none is loaded."""
+    def _resolve(self):
+        P = project()
+        return {
+            "lat": float(env("SITE_LAT") or P.get("lat", 48.3069)),
+            "lon": float(env("SITE_LON") or P.get("lon", 11.9081)),
+            "name": env("SITE_NAME") or P.get("name_de", ""),
+            "client": env("SITE_CLIENT") or P.get("bauherr", ""),
+            "manager": env("SITE_MANAGER") or (f"{P['site_manager']}, Bauleitung" if P.get("site_manager") else ""),
+        }
+    def __getitem__(self, k): return self._resolve()[k]
+    def get(self, k, d=None): return self._resolve().get(k, d)
+    def keys(self): return self._resolve().keys()
+    def items(self): return self._resolve().items()
+    def values(self): return self._resolve().values()
+    def __iter__(self): return iter(self._resolve())
+    def __len__(self): return len(self._resolve())
+    def copy(self): return self._resolve()
+
+
+SITE = _Site()

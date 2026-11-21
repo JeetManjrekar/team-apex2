@@ -337,7 +337,8 @@ function build() {
   const L = S.data.layout;
 
   // bounds
-  const xs = L.boundary.map(p => p[0]), ys = L.boundary.map(p => p[1]);
+  const bnd = L.boundary.length >= 3 ? L.boundary : [[-30, -20], [30, -20], [30, 20], [-30, 20]];   // empty layout: neutral view window only, nothing drawn
+  const xs = bnd.map(p => p[0]), ys = bnd.map(p => p[1]);
   const b = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
   const unplaced = S.data.photos.filter(p => !p.plan_xy);
   const stripY = b.y0 - 14;
@@ -364,13 +365,13 @@ function build() {
   root.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(major), new THREE.LineBasicMaterial({ color: C.gridMajor })));
 
   // site surface + boundary (property line: thick dash-dot) + fence in 3D
-  const siteFloor = poly(L.boundary, C.site, 0.0, { m: { roughness: 0.38, metalness: 0.5, envMapIntensity: 0.32 } });   // reflective deck
-  root.add(siteFloor);
-  root.add(ribbon(L.boundary, 0.7, C.ink, 0.06, { closed: true }));
+  const hasBoundary = L.boundary.length >= 3;
+  const siteFloor = hasBoundary ? poly(L.boundary, C.site, 0.0, { m: { roughness: 0.38, metalness: 0.5, envMapIntensity: 0.32 } }) : null;   // reflective deck
+  if (hasBoundary) { root.add(siteFloor); root.add(ribbon(L.boundary, 0.7, C.ink, 0.06, { closed: true })); }
   siteBounds = b;
   addSweep(b);
   const fence = new THREE.Group();
-  L.boundary.forEach((a, i) => {
+  (hasBoundary ? L.boundary : []).forEach((a, i) => {
     const c = L.boundary[(i + 1) % L.boundary.length], len = Math.hypot(c[0] - a[0], c[1] - a[1]);
     const f = new THREE.Mesh(new THREE.PlaneGeometry(len, 2.4), flat(C.holo, { transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
     f.position.copy(P((a[0] + c[0]) / 2, (a[1] + c[1]) / 2, 1.2)); f.rotation.y = Math.atan2(c[1] - a[1], c[0] - a[0]);

@@ -217,7 +217,7 @@ def _is_chat(text, hit):
 
 
 def _chat_context(state):
-    lines = [f"Projekt: {sources.project().get('name_de') or SITE['name']}", f"Bauleiter: {SITE['manager']}"]
+    lines = [f"Projekt: {SITE['name']}", f"Bauleiter: {SITE['manager']}"] if SITE["name"] else []
     open_docs = [d for d in docs.all_docs() if d["status"] != "sent"][-5:]
     if open_docs:
         lines.append("Offene Entwürfe: " + "; ".join(f"{d['title']} ({len(docs.missing(d))} Angaben offen)" for d in open_docs))
