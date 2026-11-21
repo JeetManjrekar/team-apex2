@@ -83,7 +83,7 @@ function renderDoc(el,d){
     <div class="row" style="margin-bottom:6px">
       ${st=="draft"?`<button class="p" data-st="checked" ${d.missing.length?"title='Fill required fields first'":""}>Mark as checked</button>`:""}
       ${st=="checked"?`<button class="p" data-st="sent">Approve & mark as sent</button>`:""}
-      <a href="${API}/api/docs/${d.id}/docx"><button>Word</button></a><a href="${API}/api/docs/${d.id}/print" target="_blank"><button>PDF</button></a><span data-id="${d.id}" style="display:none"></span></div>
+      <a href="${API}/api/docs/${d.id}/docx"><button>Word</button></a><button data-pdf>PDF</button><span data-id="${d.id}" style="display:none"></span></div>
     <div class="err" id="derr"></div>
     ${d.missing.length?`<div class="mut" style="margin-bottom:4px">Missing required: ${esc(d.missing.map(k=>d.meta.fields.find(f=>f.key==k).label).join(", "))}</div>`:""}
     ${fields}
@@ -98,6 +98,7 @@ function renderDoc(el,d){
     const q=fe.querySelector("[data-q]");if(q)q.onclick=()=>{const x=fe.querySelector(".quote");x.style.display=x.style.display=="block"?"none":"block"};});
   el.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>reload(await api(`/api/docs/${d.id}/fields/${b.dataset.acc}/accept`,{json:{}})));
   el.querySelectorAll("[data-undo]").forEach(b=>b.onclick=async()=>reload(await api(`/api/docs/${d.id}/undo/${b.dataset.undo}`,{json:{}})));
+  el.querySelectorAll("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(d.id,b));
   el.querySelectorAll("[data-st]").forEach(b=>b.onclick=async()=>{try{reload(await api(`/api/docs/${d.id}/status`,{json:{status:b.dataset.st}}))}catch(e){el.querySelector("#derr").textContent=e.message}});
   const pk=el.querySelector("#pickPh");if(pk)pk.onclick=()=>{const box=el.querySelector("#phPick");box.style.display="flex";const sel=new Set(d.photos);
     box.innerHTML=photos.map(p=>`<img src="${API}/data/${p.file}" data-id="${p.id}" class="${sel.has(p.id)?"sel":""}" title="${esc(p.category)} ${esc(p.taken_at)}">`).join("")+`<button class="s p" id="phSave">Save</button>`;
@@ -189,3 +190,18 @@ let armed=false;$("#resetBtn").onclick=async()=>{if(!armed){armed=true;$("#reset
 init();
 // slots for the other workstreams (js/voice.js, inbox.js, replan.js, tile.js)
 Object.assign(window.NW,{api,esc,$,loadMsgs,showAssistDoc,TAB});
+
+// PDF: headless-LibreOffice export (with ENTWURF watermark); 503/any failure falls back to the browser print view.
+// The tab is opened synchronously (inside the click) so popup blockers allow it; it is then pointed at the PDF blob or the print view.
+async function openPdf(id,btn){
+  const w=window.open("","_blank"),print=`${API}/api/docs/${id}/print`;
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch(`${API}/api/docs/${id}/pdf`);
+    if(!r.ok||!/pdf/i.test(r.headers.get("content-type")||""))throw new Error(r.status);
+    const url=URL.createObjectURL(await r.blob());
+    if(w)w.location.href=url;else{const a=document.createElement("a");a.href=url;a.download=`${id}.pdf`;a.click()}
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){if(w)w.location.href=print;else window.location.href=print}
+  finally{if(btn)btn.disabled=false}
+}
