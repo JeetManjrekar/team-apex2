@@ -222,3 +222,5 @@ body[data-ai="responding"] .bb-dorb { background: radial-gradient(circle at 35% 
 @media (max-width: 340px) { .bb-tool span { display: none; } .bb-mic { width: 46px; height: 46px; } }
 @media (max-height: 640px) and (min-width: 761px) { .bb-orb-wrap { max-width: 120px; } .bb-rail { display: none; } }
 @media (prefers-reduced-motion: reduce) { .bb-mic .bb-ring, .bb-dorb span, .bbz.hl-red polygon, .bbz.hl-amber polygon, .bb-livedot { animation: none !important; } }
+
+.bb-layout ul{margin:4px 0 6px 18px;padding:0;font-size:13px}.bb-layout li{margin:2px 0}.bb-warn{color:var(--bad,#c62828)}

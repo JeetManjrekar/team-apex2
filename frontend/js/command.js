@@ -89,7 +89,7 @@
           <button class="bb-tool" id="bbFileBtn" title="${L("Upload files", "Dateien hochladen")}">${ICON.clip}<span>${L("Files", "Dateien")}</span></button>
         </div>
         <input type="file" id="bbPhotoIn" accept="image/*" multiple hidden>
-        <input type="file" id="bbFileIn" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv" multiple hidden>
+        <input type="file" id="bbFileIn" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv,.geojson,.json" multiple hidden>
       </div>
     </div>
     <div class="bb-work"><div id="bbCards" class="bb-cards"></div></div>
@@ -275,6 +275,11 @@
     const atts = (o.attach || []).map(a => a.url ? `<img src="${esc(a.url)}" alt="${esc(a.name)}" title="${esc(a.name)}">` : `<b>${ICON.clip}${esc(a.name)}</b>`).join("");
     el.innerHTML = `${text ? `<div>${esc(text)}</div>` : ""}${atts ? `<div class="bb-atts">${atts}</div>` : ""}${btns ? `<div class="bb-macts">${btns}</div>` : ""}${o.masked?.length ? `<small class="bb-mask">${L("Masked before AI", "Vor KI-Aufruf maskiert")}: ${esc(o.masked.join(", "))}</small>` : ""}<span>${esc((o.at || "").slice(11, 16) || new Date().toTimeString().slice(0, 5))}</span>`;
     qa("[data-open]", el).forEach(b => b.onclick = () => NW.openDocInTab(b.dataset.open));
+    if (o.buttons?.length) {                               // client-side buttons (e.g. "Generate site layout")
+      let box = q(".bb-macts", el);
+      if (!box) { box = document.createElement("div"); box.className = "bb-macts"; el.insertBefore(box, el.querySelector("span:last-child")); }
+      o.buttons.forEach(x => { const b = document.createElement("button"); b.className = "s"; b.textContent = x.label; b.onclick = () => x.run(b); box.appendChild(b); });
+    }
     qa("[data-act]", el).forEach(b => b.onclick = async () => {
       const a = JSON.parse(b.dataset.act); b.disabled = true;
       try { const d = await api("/api/docs", { json: { type: a.type, text: a.text, source: "message" } }); NW.openDocInTab(d.id); } catch (e) { b.disabled = false; toast(e.message, "bad"); }
@@ -295,7 +300,14 @@
   /* ------------------------------------------------------------------ 2D plan (same layout, zones and photo positions as the 3D twin) */
   function renderPlan() {
     const tw = S.twin; if (!tw) return;
-    const Ly = tw.layout, pts = Ly.boundary;
+    const Ly = tw.layout;
+    // bounds: boundary, else zone corners, else placed photos; with nothing at all show how to create a layout
+    const pts = Ly.boundary.length >= 3 ? Ly.boundary : Ly.zones.flatMap(z => z.polygon).concat(tw.photos.filter(p => p.plan_xy).map(p => p.plan_xy));
+    if (pts.length < 2) {
+      q("#bbPlan").innerHTML = `<div class="mut pad">${L("No site layout yet. Open the 3D twin → Layout and use “Suggest layout from data” (site documents with coordinates or geotagged photos), or enter one by hand.",
+        "Noch kein Lageplan. Im 3D-Zwilling → Layout „Suggest layout from data“ nutzen (Dokumente mit Koordinaten oder Fotos mit GPS) oder den Plan von Hand eingeben.")}</div>`;
+      return;
+    }
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), pad = 8;
     const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
     const P = p => `${(p[0] - x0).toFixed(1)},${(y1 - p[1]).toFixed(1)}`;
@@ -309,7 +321,7 @@
     const photos = tw.photos.filter(p => p.plan_xy).map(p => `<circle class="bbp" cx="${P(p.plan_xy).split(",")[0]}" cy="${P(p.plan_xy).split(",")[1]}" r="2.2"><title>${esc(p.original_name || p.id)}</title></circle>`).join("");
     const unplaced = tw.photos.filter(p => !p.plan_xy).length;
     q("#bbPlan").innerHTML = `<svg viewBox="0 0 ${(x1 - x0).toFixed(1)} ${(y1 - y0).toFixed(1)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${L("Site plan", "Lageplan")}">
-      <polygon class="bbb" points="${pts.map(P).join(" ")}"/>${zones}${photos}</svg>
+      ${Ly.boundary.length >= 3 ? `<polygon class="bbb" points="${Ly.boundary.map(P).join(" ")}"/>` : ""}${zones}${photos}</svg>
       ${unplaced ? `<div class="bb-note">${unplaced} ${L("photos have no plan position yet (place them in the 3D twin)", "Fotos noch ohne Planposition (im 3D-Zwilling verorten)")}</div>` : ""}`;
     qa("[data-zone]", q("#bbPlan")).forEach(g => g.onclick = () => command(L(`Show me ${zoneName(g.dataset.zone)}`, `Zeig mir ${zoneName(g.dataset.zone)}`)));
   }
@@ -354,13 +366,43 @@
     if (c.kind === "zone") return `<div class="card bb-card"><div class="bb-h"><b>${esc(c.name)}</b><button class="s" data-fly="${esc(c.id)}">${L("Fly there in 3D", "Im 3D anfliegen")}</button></div>
       ${c.activities.map(a => `<div class="bb-prog ${a.light}"><div class="bb-pl"><span>${esc(a.name)}</span><b>${a.actual}/${a.total} ${esc(a.unit)}</b></div><div class="bb-bar"><i style="--w:${a.total ? Math.min(100, a.actual / a.total * 100) : 0}%"></i></div></div>`).join("") || `<p class="mut">${L("No scheduled activity in this zone.", "Kein geplanter Vorgang in dieser Zone.")}</p>`}
       ${c.machinery.length ? `<p>${L("Detected", "Erkannt")}: ${c.machinery.map(m => `${m.count}× ${esc(cls(m.class))} (${L("max", "max.")} ${pct(m.max_confidence)})`).join(", ")}</p>` : ""}</div>`;
+    if (c.kind === "layout") {
+      const r = c.report, li = a => a.length ? `<ul>${a.join("")}</ul>` : "";
+      return `<div class="card bb-card bb-layout"><div class="bb-h"><b>${L("Site layout draft", "Lageplan-Entwurf")}</b><span class="mut">${L("not saved", "nicht gespeichert")}</span></div>
+        <p class="bb-fine">${L("Origin", "Ursprung")}: ${esc(r.origin_source)}${r.boundary_source ? ` · ${L("Boundary", "Grenze")}: ${esc(r.boundary_source)}` : ""}</p>
+        ${li(r.zones.map(z => `<li><b>${esc(z.name)}</b> <span class="mut">${esc(z.source)}${z.activities.length ? " · " + esc(z.activities.join(", ")) : ""}</span></li>`))}
+        ${r.structures.length ? `<p>${L("Markers", "Markierungen")}: ${esc(r.structures.map(s => s.name).join(", "))}</p>` : ""}
+        ${r.outliers.length ? `<p class="bb-warn">${L("Left out (too far away)", "Ausgelassen (zu weit entfernt)")}: ${esc(r.outliers.map(o => `${o.label} (${Math.round(o.distance_m / 1000).toLocaleString()} km)`).join(", "))}</p>` : ""}
+        ${r.unmatched_activities.length ? `<p class="mut">${L("Schedule ids without a zone", "Vorgänge ohne Zone")}: ${esc(r.unmatched_activities.join(", "))}</p>` : ""}
+        ${li(r.warnings.map(w => `<li class="bb-warn">${esc(w)}</li>`))}
+        <div class="bb-acts"><button class="p s" data-lay="save">${L("Save layout", "Lageplan speichern")}</button><button class="s" data-lay="edit">${L("Review in 3D editor", "Im 3D-Editor prüfen")}</button></div></div>`;
+    }
     if (c.kind === "notice") return `<div class="card bb-card bb-notice">${esc(c.text)}</div>`;
     if (c.kind === "report") return `<div class="card bb-card bb-report"><div class="bb-h"><b>${esc(c.title)}</b><span class="mut">${c.incidents} ${L("findings", "Befunde")} · ${c.photos} ${L("photos", "Fotos")}</span></div>
       <p>${L("Compiled from the data in this conversation. Open it and use “Save as PDF”.", "Aus den Daten dieses Gesprächs erstellt. Öffnen und „Als PDF speichern“ wählen.")}</p>
       <a class="p s bb-btn" href="${API}${esc(c.url)}" target="_blank" rel="noopener">${L("Open report (PDF)", "Bericht öffnen (PDF)")}</a></div>`;
     return "";
   }
+  function layoutButton() {
+    return { label: L("Generate site layout", "Lageplan erstellen"), run: b => { b.disabled = true; command(L("Generate the site layout from the uploaded documents", "Erstelle den Lageplan aus den hochgeladenen Dokumenten")); } };
+  }
+  async function saveLayoutDraft(btn) {
+    const d = S.layoutDraft; if (!d) return;
+    btn.disabled = true;
+    try {
+      await api("/api/site/layout", { method: "PUT", json: d.layout });
+      await loadTwin(); await window.SiteTwin?.reload?.();
+      toast(L(`Site layout saved: ${d.report.zones.length} zones.`, `Lageplan gespeichert: ${d.report.zones.length} Zonen.`));
+      btn.textContent = L("Saved ✓", "Gespeichert ✓");
+    } catch (e) { btn.disabled = false; toast(e.message, "bad"); }
+  }
   function bindCards(root) {
+    qa("[data-lay]", root).forEach(b => b.onclick = async () => {
+      if (b.dataset.lay === "save") return saveLayoutDraft(b);
+      NW.TAB("twin");
+      for (let i = 0; i < 60 && !window.SiteTwin?.openLayoutDraft; i++) await sleep(100);
+      window.SiteTwin?.openLayoutDraft(S.layoutDraft.layout, S.layoutDraft.report);
+    });
     qa("[data-inc]", root).forEach(el => el.onclick = () => openIncident(el.dataset.inc));
     qa("[data-fly]", root).forEach(b => b.onclick = () => flyZone(b.dataset.fly));
     qa("[data-photo]", root).forEach(f => f.onclick = () => openPhoto(f.dataset.photo));
@@ -513,6 +555,8 @@
     setState("analysing");
     S.ctx = r.ctx || S.ctx;
     const stepsDone = showSteps(r.steps);
+    const lc = (r.cards || []).find(c => c.kind === "layout");
+    if (lc) S.layoutDraft = { layout: lc.layout, report: lc.report };
     q("#bbCards").innerHTML = (r.cards || []).map(card).join("");
     bindCards(q("#bbCards"));
     await stepsDone;
@@ -607,6 +651,12 @@
     pendingPhotos.push(...r.map(p => p.id));
     window.loadPhotos?.(); loadTwin();
     const what = r.map(p => p.category + (p.detections?.length ? " (" + p.detections.map(d => d.class).join(", ") + ")" : "")).join("; ");
+    const gps = r.filter(p => p.location_source === "exif").length;
+    if (gps && !(S.twin?.layout?.zones || []).length) {
+      const t = L(`Added ${r.length} photo(s): ${what}. ${gps} of them carry GPS, and there is no site layout yet – I can draft one from the photo positions and any site documents.`,
+        `${r.length} Foto(s) hinzugefügt: ${what}. ${gps} davon haben GPS, und es gibt noch keinen Lageplan – ich kann aus den Fotopositionen und Baustellendokumenten einen Entwurf erstellen.`);
+      return { text: t, buttons: [layoutButton()] };
+    }
     return L(`Added ${r.length} photo(s): ${what}. They will be attached to matching drafts and today's daily report.`, `${r.length} Foto(s) hinzugefügt: ${what}. Sie werden passenden Entwürfen und dem Tagesbericht beigefügt.`);
   }
   async function importFiles(files) {
@@ -616,7 +666,14 @@
     items.forEach(m => (m.drafts || []).forEach(d => docs.set(d.id, { id: d.id, title: d.title })));
     const lines = items.map(m => `• ${m.subject || m.file}${m.duplicate ? " (" + L("already imported", "bereits importiert") + ")" : ""}${(m.open_items || []).length ? " · " + m.open_items.length + " " + L("open items", "offene Punkte") : ""}`)
       .concat((r.reminders || []).map(x => "• " + x.message), (r.skipped || []).map(x => `• ${x.file}: ${x.reason}`));
-    return { text: lines.join("\n") || L("Nothing imported.", "Nichts importiert."), docs: [...docs.values()] };
+    const site = r.site || {}, buttons = [];
+    const geoFiles = [...(site.new_files || []), ...(site.known_files || [])];
+    if (geoFiles.length) {
+      const n = site.files_with_coordinates.filter(f => geoFiles.includes(f.file)).reduce((a, f) => a + f.points, 0);
+      lines.push(L(`• Site coordinates: ${n} found in ${geoFiles.length} file(s) (${geoFiles.join(", ")}).`, `• Baustellenkoordinaten: ${n} in ${geoFiles.length} Datei(en) gefunden (${geoFiles.join(", ")}).`));
+      buttons.push(layoutButton());
+    }
+    return { text: lines.join("\n") || L("Nothing imported.", "Nichts importiert."), docs: [...docs.values()], buttons };
   }
 
   let sending = false;
@@ -638,11 +695,11 @@
       staged = failed.concat(staged); renderTray();
       if (text) inp.value = text;
     }
-    if (f.status === "fulfilled" && f.value) hist("ai", f.value.text, { docs: f.value.docs });
+    if (f.status === "fulfilled" && f.value) hist("ai", f.value.text, { docs: f.value.docs, buttons: f.value.buttons });
     sending = false;
     if (failed.length) return setState("idle");
     if (text) return command(text, { echo: false });
-    if (p.value) hist("ai", p.value);
+    if (p.value) typeof p.value === "string" ? hist("ai", p.value) : hist("ai", p.value.text, { buttons: p.value.buttons });
     setState("idle");
   }
   q("#bbSend").onclick = send;

@@ -5,7 +5,7 @@ import shutil
 
 from .store import DATA, UPLOADS, _lock
 
-STATE = ["project", "incidents", "chat_state", "client_docs", "docs", "messages", "notes", "photos", "progress", "schedule", "site_layout"]
+STATE = ["project", "incidents", "chat_state", "client_docs", "docs", "messages", "notes", "photos", "progress", "schedule", "site_layout", "site_points"]
 
 
 def reset(keep_metrics: bool = True) -> dict:

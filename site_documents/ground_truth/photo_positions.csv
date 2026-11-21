@@ -1,0 +1,8 @@
+photo_id;file;breite;laenge;richtung_grad;richtung_bezug;genauigkeit_m;aufgenommen;erwartete_zone;erwartet_x_m;erwartet_y_m;hinweis
+ecae8902;site_ecae8902.jpg;48,2935181;11,8884059;90;T;4,0;2026-11-18 08:05:00;w1;-44,0;2,0;Aushub Widerlager 1, Blick nach Osten
+8d694186;site_8d694186.jpg;48,2935326;11,8884221;;;5,0;2026-11-18 08:07:00;w1;-42,8;3,6;gleiche Stelle wie ecae8902 (2 m, innerhalb GPS-Genauigkeit)
+07179547;site_07179547.jpg;48,2935362;11,8888312;180;T;3,0;2026-11-18 10:12:00;a1;-12,5;4,0;Achse 1
+a7b1a4f1;site_a7b1a4f1.jpg;48,2935362;11,8891688;;;3,0;2026-11-18 10:40:00;a2;12,5;4,0;Achse 2, genau 25,0 m von 07179547
+1c92357b;site_1c92357b.jpg;48,2935090;11,8895941;270;M;4,0;2026-11-18 13:30:00;w2;44,0;1,0;Widerlager 2, Richtung magnetisch Nord (M)
+6342cd1c;site_6342cd1c.jpg;48,2932286;11,8882979;45;T;6,0;2026-11-18 15:02:00;be;-52,0;-30,0;Bagger in der Baustelleneinrichtung
+4d007fe8;site_4d007fe8.jpg;35,6812000;139,7671000;;;10,0;2026-11-18 16:00:00;;;;falsche GPS-Position (Tokio): muss als Ausreißer erkannt werden

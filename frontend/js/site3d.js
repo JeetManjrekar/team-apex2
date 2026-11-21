@@ -120,6 +120,12 @@ function bindToolbar() {
     await api("/api/site/layout/reset", { method: "POST" }); $("#twDlg").close(); await load(true);
   };
   $("#twLayCancel").onclick = () => $("#twDlg").close();
+  $("#twSrcFiles").onchange = addSiteDocs;
+  $("#twSuggest").onclick = suggestLayout;
+  $("#twSrcClear").onclick = async () => {
+    if (!confirm("Forget all uploaded site documents? (The saved layout is not changed.)")) return;
+    await api("/api/site/sources", { method: "DELETE" }); await refreshSrcInfo(); $("#twGenRep").hidden = true;
+  };
 }
 
 function resize() {
@@ -418,7 +424,7 @@ function build() {
   if (unplaced.length) {
     const gap = Math.max(8, Math.min(16, (b.x1 - b.x0 - 12) / Math.max(1, unplaced.length - 1)));
     root.add(ribbon([[b.x0, stripY + 5], [b.x0 + Math.max(60, unplaced.length * gap + 10), stripY + 5]], 0.15, 0x8a8780, 0.03, { dash: [1.5, 1] }));
-    label(`<div class="tl">PHOTOS WITHOUT GPS — select one, then “Place on plan”</div>`, "strip", b.x0, stripY + 8, 0.1, "photo");
+    label(`<div class="tl">PHOTOS WITHOUT A PLAN POSITION (no GPS, or GPS far outside the site) — select one, then “Place on plan”</div>`, "strip", b.x0, stripY + 8, 0.1, "photo");
     unplaced.forEach((p, i) => buildPhoto(p, [b.x0 + 6 + i * gap, stripY], true));
   }
 
@@ -504,6 +510,12 @@ function buildStructure(s) {
       d.castShadow = false;
       g.add(place(d, 0, 0, (s.z || 6) + s.h / 2));
       place(g, s.x, s.y, 0, s.rot || 0); lx = s.x + s.w / 2 + 6; lz = (s.z || 6) + s.h + 1; break;
+    }
+    case "marker": {      // survey point / borehole / crane position read from a site document
+      const pole = cyl(0.25, 3, 0x2f6db5); pole.position.y = 1.5; g.add(pole);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.4, 32), flat(0x2f6db5, { transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; g.add(ring);
+      place(g, s.x, s.y); lz = 3.6; break;
     }
     case "heap": {
       const cone = new THREE.Mesh(new THREE.ConeGeometry(s.r || 6, s.h || 3, 28), mat(0x8a6a44, { roughness: 0.8, metalness: 0 }));
@@ -859,10 +871,11 @@ function renderPhoto(el, id) {
     <h4>Record</h4><table class="tw-kv">
       <tr><th>Evidence ID</th><td><code>${esc(p.evidence_id)}</code></td></tr>
       <tr><th>Timestamp</th><td>${esc((p.taken_at || "").replace("T", " "))}</td></tr>
-      <tr><th>GPS</th><td>${p.gps_is_real ? `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} <span class="mut">(${p.location_source === "exif" ? "EXIF" : "set by user"})</span>` : `<span class="mut">none in photo</span>`}</td></tr>
+      <tr><th>GPS</th><td>${p.gps_is_real ? `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} <span class="mut">(${p.location_source === "exif" ? "EXIF" : "set by user"}${p.gps_accuracy_m != null ? `, ±${p.gps_accuracy_m} m` : ""})</span>${p.position_method === "outside_site" ? `<br><span style="color:var(--bad)">far outside this site – not drawn</span>` : ""}` : `<span class="mut">none in photo</span>`}</td></tr>
       <tr><th>Plan position</th><td>${p.plan_xy ? `x ${p.plan_xy[0].toFixed(1)} m, y ${p.plan_xy[1].toFixed(1)} m <span class="mut">(${p.position_method === "gps" ? "from GPS" : "placed on plan"})</span>${p.plan_gps && !p.gps_is_real ? `<br><span class="mut">≈ ${p.plan_gps[0].toFixed(6)}, ${p.plan_gps[1].toFixed(6)} derived from plan</span>` : ""}` : `<span class="mut">not placed</span>`}</td></tr>
       <tr><th>Direction</th><td>${p.heading != null ? `${p.heading}° <span class="mut">(${esc(p.heading_source || "")})</span>` : `<span class="mut">unknown</span>`}</td></tr>
       <tr><th>Zone</th><td><select id="twZoneSel"><option value="">auto (from position)${p.zone && p.zone_source === "auto" ? ` – ${esc(zone(p.zone)?.name)}` : ""}</option>${zones.map(z => `<option value="${z.id}" ${p.zone_source === "user" && p.zone === z.id ? "selected" : ""}>${esc(z.name)}</option>`).join("")}</select></td></tr>
+      ${(p.neighbours || []).length ? `<tr><th>Nearest photos</th><td>${p.neighbours.map(n => `<a href="#" data-sel="photo:${esc(n.id)}">${esc(S.photoNo[n.id] || n.id)}</a> ${n.distance_m} m @ ${n.bearing_deg}°${n.within_accuracy ? ` <span class="mut">(same spot within ±${n.accuracy_m} m GPS)</span>` : ""}`).join("<br>")}</td></tr>` : ""}
       ${p.docs.length ? `<tr><th>Used in</th><td>${p.docs.map(d => `${esc(d.title)} <span class="mut">(${esc(d.status)})</span>`).join("<br>")}</td></tr>` : ""}
     </table>
     <div class="tw-actions">
@@ -1011,7 +1024,58 @@ async function openLayoutEditor() {
   const lay = await api("/api/site/layout");
   $("#twLayTxt").value = JSON.stringify(lay, null, 2);
   $("#twLayErr").textContent = "";
+  $("#twGenRep").hidden = true;
+  refreshSrcInfo();
   $("#twDlg").showModal();
+}
+async function refreshSrcInfo() {
+  try {
+    const r = await api("/api/site/sources");
+    const n = r.files.reduce((s, f) => s + f.points.length, 0);
+    $("#twSrcInfo").textContent = r.files.length ? `${r.files.length} document${r.files.length === 1 ? "" : "s"} · ${n} coordinates` : "no site documents yet";
+  } catch (e) { $("#twSrcInfo").textContent = e.message; }
+}
+async function addSiteDocs(e) {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length) return;
+  const fd = new FormData(); files.forEach(f => fd.append("files", f));
+  $("#twSrcInfo").textContent = "reading…";
+  try {
+    const r = await api("/api/site/sources", { method: "POST", body: fd });
+    const lines = r.added.map(a => `<li><b>${esc(a.file)}</b>: ${a.points} coordinate${a.points === 1 ? "" : "s"}${a.activities.length ? `, ${a.activities.length} schedule ids` : ""}</li>`)
+      .concat(r.duplicates.map(d => `<li class="mut">${esc(d)}: already added</li>`))
+      .concat(r.skipped.map(x => `<li class="warn">${esc(x.file)}: ${esc(x.reason)}</li>`));
+    $("#twGenRep").innerHTML = `<b>Documents</b><ul>${lines.join("")}</ul>`; $("#twGenRep").hidden = false;
+  } catch (err) { $("#twLayErr").textContent = err.message; }
+  refreshSrcInfo();
+}
+async function suggestLayout() {
+  $("#twLayErr").textContent = "";
+  try {
+    const { layout, report } = await api("/api/site/layout/suggest", { method: "POST" });
+    showDraft(layout, report);
+  } catch (e) { $("#twLayErr").textContent = e.message; }
+}
+function showDraft(layout, r) {
+  $("#twLayTxt").value = JSON.stringify(layout, null, 2);
+  const li = a => a.length ? `<ul>${a.join("")}</ul>` : "";
+  $("#twGenRep").innerHTML = `<b>Draft layout – review, then “Save layout”</b> <span class="mut">(not saved yet)</span>
+      <div>Origin: ${r.origin_source ? esc(r.origin_source) : `<span class="warn">none</span>`}${r.boundary_source ? ` · Boundary: ${esc(r.boundary_source)}` : ""}</div>
+      <div>Inputs: ${r.inputs.files.length} document(s), ${r.inputs.document_points} coordinates, ${r.inputs.photos_with_gps} photo(s) with GPS${r.photos_on_site != null ? `, ${r.photos_on_site} on site` : ""}</div>
+      ${r.zones.length ? `<div>Zones:</div>${li(r.zones.map(z => `<li><b>${esc(z.name)}</b> <span class="mut">(${esc(z.id)}) – ${esc(z.source)}${z.activities.length ? ` · ${esc(z.activities.join(", "))}` : ""}</span></li>`))}` : ""}
+      ${r.structures.length ? `<div>Markers: ${r.structures.map(s => esc(s.name)).join(", ")}</div>` : ""}
+      ${r.outliers.length ? `<div class="warn">Left out (more than 1 km away):</div>${li(r.outliers.map(o => `<li>${esc(o.kind)} ${esc(o.label)} – ${o.distance_m.toLocaleString()} m</li>`))}` : ""}
+      ${r.unmatched_activities.length ? `<div class="mut">Schedule ids without a zone: ${esc(r.unmatched_activities.join(", "))}</div>` : ""}
+      ${li(r.warnings.map(w => `<li class="warn">${esc(w)}</li>`))}`;
+  $("#twGenRep").hidden = false;
+}
+// opened from the AI manager's layout card: same dialog, prefilled with the draft the agent built
+async function openLayoutDraft(layout, report) {
+  if (!renderer) await window.SiteTwin.show();
+  $("#twLayErr").textContent = "";
+  refreshSrcInfo();
+  showDraft(layout, report);
+  if (!$("#twDlg").open) $("#twDlg").showModal();
 }
 async function saveLayout() {
   let obj;
@@ -1180,7 +1244,7 @@ function snapshot() {
 
 /* ------------------------------------------------------------------ public */
 window.SiteTwin = {
-  focusZone, focusPhoto, snapshot,
+  focusZone, focusPhoto, snapshot, openLayoutDraft,
   highlight(list) { S.hl = {}; (list || []).forEach(h => { if (h?.id) S.hl[h.id] = h.level || "amber"; }); applyHighlights(); },
   clearHighlights() { S.hl = {}; applyHighlights(); },
   reload() { return S.visible ? load(true) : Promise.resolve(); },

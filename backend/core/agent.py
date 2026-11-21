@@ -18,7 +18,7 @@ import html
 import re
 import time
 
-from . import plan, site_twin
+from . import layout_suggest, plan, site_twin
 from .llm_settings import today as demo_today
 from .store import DATA, SITE, load, new_id, now, save
 
@@ -29,13 +29,19 @@ INCIDENT_WORDS = re.compile(r"unfall|umgekippt|eingebrochen|gestürzt|abgestürz
                                 r"in (?:die|der) grube|into the (?:pit|excavation)", re.I)
 SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
 
-# zone vocabulary -> layout zone ids (matched against the layout names too)
+# zone vocabulary -> candidate layout zone ids, most specific first. Works for the seed layout (erd/a10/wls/be/wln) and for
+# generated layouts (w1/a1/a2/w2/be). The first candidate id that exists in the current layout wins.
+# "exact" rules name one specific place (north section, abutment 2, pier 1): if that zone doesn't exist the answer is
+# "which area?" rather than a different zone.
 ZONE_WORDS = [
-    (re.compile(r"excavat|aushub|erdbau|earthwork|\bpit\b|grube", re.I), "erd"),
-    (re.compile(r"pile|pfahl|pfähl|widerlager 1|abutment(?! north)", re.I), "a10"),
-    (re.compile(r"achse|axis|foundation|fundament", re.I), "wls"),
-    (re.compile(r"facilit|einrichtung|container|office|büro", re.I), "be"),
-    (re.compile(r"nord|north|2\. bauabschnitt|second section", re.I), "wln"),
+    (re.compile(r"\bnord|\bnorth|2\. bauabschnitt|second (?:section|phase)", re.I), ["wln"], True),
+    (re.compile(r"widerlager 2|abutment 2|\bw2\b", re.I), ["w2"], True),
+    (re.compile(r"achse 1|axis 1|pier 1|pfeiler 1|\ba1\b", re.I), ["a1", "wls"], True),
+    (re.compile(r"achse 2|axis 2|pier 2|pfeiler 2|\ba2\b", re.I), ["a2"], True),
+    (re.compile(r"\bpiles?\b|pfahl|pfähl|bohrpf|widerlager 1|abutment 1|\bw1\b|\babutment\b", re.I), ["a10", "w1"], False),
+    (re.compile(r"achse|axis|\bpier|foundation|fundament", re.I), ["wls", "a1"], False),
+    (re.compile(r"excavat|aushub|erdbau|earthwork|\bpit\b|grube", re.I), ["erd"], False),
+    (re.compile(r"facilit|einrichtung|container|office|büro", re.I), ["be"], False),
 ]
 
 INTENTS = [
@@ -46,6 +52,11 @@ INTENTS = [
     ("incidents", re.compile(r"incident|vorfall|vorfälle|unfall|accident|injur|verletz|alarm|detected|erkannt|detection", re.I)),
     ("changes", re.compile(r"chang|since yesterday|seit gestern|what'?s new|was ist neu|änderung|neu seit|new since", re.I)),
     ("progress", re.compile(r"progress|fortschritt|\bstand\b|plan(?:ned)? vs|soll.?ist|planned|behind|verzug|schedule|bauzeitenplan|on track|status", re.I)),
+    # verb + layout noun (either order), so "show me the site plan" stays a focus request
+    ("layout", re.compile(r"(?:generat|creat|build|make|suggest|propos|draft|erstell|generier|erzeug|vorschlag|baue?\b|bilde)\w*\b.{0,40}?"
+                          r"(?:layout|lageplan|site ?plan|baustellenplan|grundriss)|(?:layout|lageplan|site ?plan|baustellenplan|grundriss)\w*\b.{0,40}?"
+                          r"(?:generat|creat|erstell|generier|erzeug|vorschlag|aus (?:den|meinen) (?:dokumenten|daten|fotos))"
+                          r"|\bschlag\w*\b.{0,40}?(?:layout|lageplan|baustellenplan)\w*\s+vor\b", re.I)),     # "schlag mir einen Lageplan vor"
     ("focus", re.compile(r"show|zeig|navigate|go to|fly|3d|twin|plan|zone|area|bereich|inspect|prüf", re.I)),
 ]
 # drafting / diary commands stay with the document assistant
@@ -202,12 +213,20 @@ def set_status(iid, status):
 
 # ---------------------------------------------------------------- tools
 def _zone_from_text(text, layout):
-    for rx, zid in ZONE_WORDS:
-        if rx.search(text) and any(z["id"] == zid for z in layout["zones"]):
-            return zid
-    for z in layout["zones"]:
-        if z["name"].lower() in text.lower():
+    """Zone named in the text: full zone name, then an id with a digit as a word (W1, A2), then vocabulary aliases."""
+    t = (text or "").lower()
+    ids = {z["id"] for z in layout["zones"]}
+    for z in sorted(layout["zones"], key=lambda z: -len(z["name"])):          # longest name first ("Achse 1 – Fundament")
+        if z["name"] and z["name"].lower() in t:
             return z["id"]
+    for z in layout["zones"]:
+        if re.search(r"\d", z["id"]) and re.search(rf"\b{re.escape(z['id'].lower())}\b", t):
+            return z["id"]
+    for rx, cands, exact in ZONE_WORDS:
+        if rx.search(text or ""):
+            hit = next((c for c in cands if c in ids), None)
+            if hit or exact:
+                return hit
     return None
 
 
@@ -329,6 +348,8 @@ def route(text):
     if DRAFT_RX.search(text or "") and not re.search(r"report|bericht|show|zeig|safety|sicherheit|progress|fortschritt", text or "", re.I):
         return ["chat"]
     found = [name for name, rx in INTENTS if rx.search(text or "")]
+    if "layout" in found:
+        return ["layout"]
     if "helmet" in found:
         found = ["helmet", "safety"] + [f for f in found if f not in ("helmet", "safety")]
     return found or ["chat"]
@@ -343,6 +364,9 @@ def run(text: str, ctx: dict | None = None, lang_hint: str | None = None) -> dic
         intents = ["reported"]
     if intents == ["chat"]:
         return {"handoff": "chat", "intents": intents, "lang": lang, "steps": steps.rows, "ctx": ctx}
+
+    if intents == ["layout"]:
+        return _layout(text, ctx, lang, steps)
 
     st = steps.run("plan", _t(lang, "Read schedule and progress", "Bauzeitenplan und Leistung lesen"), lambda: plan.status())
     tw = steps.run("twin", _t(lang, "Load site twin, photos and detections", "Digitalen Zwilling, Fotos und Erkennungen laden"), site_twin.twin)
@@ -454,6 +478,38 @@ def run(text: str, ctx: dict | None = None, lang_hint: str | None = None) -> dic
     ctx["last_intents"] = intents
     return {"intents": intents, "lang": lang, "steps": steps.rows, "cards": cards, "actions": actions,
             "speech": " ".join(s for s in speech if s), "ctx": ctx, "generated_at": now()}
+
+
+def _layout(text, ctx, lang, steps):
+    """Draft a site layout from the uploaded site documents and photo GPS. Nothing is saved: the UI offers Save / Review."""
+    res = steps.run("layout", _t(lang, "Build a layout draft from documents and photo GPS", "Lageplan-Entwurf aus Dokumenten und Foto-GPS erstellen"),
+                    layout_suggest.suggest)
+    base = {"intents": ["layout"], "lang": lang, "steps": steps.rows, "ctx": ctx, "generated_at": now()}
+    if res is None:
+        err = next((r.get("error") for r in steps.rows if r["key"] == "layout"), "")
+        return {**base, "cards": [], "actions": [],
+                "speech": _t(lang, f"I couldn't build a layout from the uploaded data: {err}", f"Aus den hochgeladenen Daten ließ sich kein Lageplan erstellen: {err}")}
+    lay, rep = res["layout"], res["report"]
+    if not rep.get("origin_source"):
+        return {**base, "cards": [{"kind": "notice", "level": "info", "text": rep["warnings"][0]}], "actions": [],
+                "speech": _t(lang, "I can't build a layout yet: there are no coordinates. Attach a survey point list, a plan or report with "
+                                   "coordinates (CSV, Excel, Word, PDF, GeoJSON) or photos with GPS, then ask again.",
+                             "Noch kein Lageplan möglich: Es fehlen Koordinaten. Bitte eine Punktliste, einen Plan oder ein Gutachten mit "
+                             "Koordinaten (CSV, Excel, Word, PDF, GeoJSON) oder Fotos mit GPS anhängen und erneut fragen.")}
+    zn = ", ".join(z["name"] for z in rep["zones"]) or _t(lang, "none", "keine")
+    n_out = len(rep["outliers"])
+    say = _t(lang, f"I drafted a site layout with {len(rep['zones'])} zone{'s' if len(rep['zones']) != 1 else ''} ({zn}) and "
+                   f"{len(rep['structures'])} marker{'s' if len(rep['structures']) != 1 else ''}. "
+                   f"{rep.get('photos_on_site', 0)} photos are on site" + (f", {n_out} item{'s' if n_out != 1 else ''} left out as too far away" if n_out else "") + ". "
+                   + (f"{len(rep['warnings'])} warning{'s' if len(rep['warnings']) != 1 else ''} to check. " if rep["warnings"] else "")
+                   + "It is not saved yet: review it and press Save layout.",
+             f"Ich habe einen Lageplan-Entwurf mit {len(rep['zones'])} Zone{'n' if len(rep['zones']) != 1 else ''} ({zn}) und "
+             f"{len(rep['structures'])} Markierung{'en' if len(rep['structures']) != 1 else ''} erstellt. "
+             f"{rep.get('photos_on_site', 0)} Fotos liegen auf der Baustelle" + (f", {n_out} zu weit entfernt und ausgelassen" if n_out else "") + ". "
+             + (f"{len(rep['warnings'])} Hinweis{'e' if len(rep['warnings']) != 1 else ''} prüfen. " if rep["warnings"] else "")
+             + "Noch nicht gespeichert: bitte prüfen und „Lageplan speichern“ drücken.")
+    steps.rows.append({"key": "actions", "label": _t(lang, "Offer the draft for review", "Entwurf zur Prüfung anbieten"), "ms": 0, "ok": True})
+    return {**base, "cards": [{"kind": "layout", "layout": lay, "report": rep}], "actions": [{"type": "layout.offer"}], "speech": say}
 
 
 def greeting(lang="en"):
