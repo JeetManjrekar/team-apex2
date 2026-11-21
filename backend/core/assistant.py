@@ -1,13 +1,19 @@
-"""Chat handling (host side): builds evidence lists, calls the extraction layer, persists proposals, asks follow-ups,
-handles edits by chat, daily report and proposals from alerts. All status changes stay with the user."""
-import re, datetime as dt
-from . import docs, plan, sanitizer, llm_bridge, replanner
-from .extract import detect_intents, extract, DAILY_RX, EDIT_RX, LOC
+"""Chat handling (host side): builds source chunks, calls the extraction layer, persists proposals, asks follow-ups,
+handles edits by chat, daily report and proposals from alerts. All status changes stay with the user.
+
+Voice and LLM meet here: a dictation arrives with its Whisper segments (evidence_meta from routes/voice.py); every
+segment becomes its own source chunk (audio:<id>@<start>-<end>), so a field extracted from speech cites the exact
+moment of the recording ("Diktat 00:04–00:11")."""
+import os, re, datetime as dt
+from . import docs, plan, sanitizer, llm_bridge, replanner, sources
+from .extract import detect_intents, extract, to_text, DAILY_RX, EDIT_RX, LOC
+from .llm_settings import today as llm_today
+from .registry import related_fields
 from .store import load, save, new_id, now, today, SITE
 
 # Statements that are site diary notes, not answers to an open question
 NOTE_RX = re.compile(r"\b(arrived|delivered|geliefert|angeliefert|done|finished|completed|fertig|erledigt|betoniert|poured|started|begonnen)\b", re.I)
-SKIP_RX = re.compile(r"^\s*(skip|weiter|überspringen|unknown|unbekannt|keine ahnung|n/?a|-)\s*$", re.I)
+SKIP_RX = re.compile(r"^\s*(skip|weiter|überspringen|unknown|unbekannt|keine ahnung|weiß (?:ich )?nicht|weiss (?:ich )?nicht|n/?a|-)\s*$", re.I)
 KIND_TO_SRC = llm_bridge.KIND_TO_SRC
 
 
@@ -23,6 +29,7 @@ def _norm_loc(v):
 
 
 def _find_mergeable(dtype, location):
+    """Hero merge (one incident = one draft per type): same type, same location, not sent yet."""
     if not location:
         return None
     for d in reversed(docs.all_docs()):
@@ -32,107 +39,133 @@ def _find_mergeable(dtype, location):
 
 
 # ---------- evidence ----------
-def photo_evidence(day):
-    ev = []
-    for p in load("photos", []):
-        if p.get("taken_at", "")[:10] != day:
-            continue
-        dets = ", ".join(sorted({d["class"] for d in p.get("detections", [])})) or "keine"
-        ev.append({"id": f"photo-{p['id']}", "kind": "photo", "locator": f"Foto {p['original_name']}",
-                   "excerpt": f"Foto vom {p['taken_at'][:16].replace('T', ' ')}, Kategorie {p['category']}, erkannt: {dets}. {p.get('caption_de', '')}".strip()})
-    return ev
+def primary_chunks(text, source_kind="text", source_ref=None, locator=None, evidence_meta=None):
+    """Source chunks for what the user sent this turn. Voice -> one chunk per Whisper segment."""
+    ref = source_ref or new_id()
+    if source_kind == "audio" and evidence_meta and (evidence_meta.get("segments") or text):
+        return sources.audio_chunks(ref, evidence_meta.get("segments") or [], evidence_meta.get("audio_file"), text)
+    return [sources.message_chunk(ref, text, "email" if source_kind == "email" else "text", locator)]
 
 
-def schedule_evidence():
-    st = plan.status()
-    return [{"id": f"sched-{a['id']}", "kind": "schedule_row", "locator": f"Bauzeitenplan: {a['name']}",
-             "excerpt": f"{a['name']} {a['start']} bis {a['end']}: Soll {a['planned']:g}, Ist {a['actual']:g} {a['unit']}, Verzug {a['delay_days']} Tage (Stand {st['as_of']})"}
-            for a in st["activities"] if a["light"] != "grey"]
+def context_chunks():
+    days = list(dict.fromkeys([today(), llm_today().isoformat()]))
+    return sources.context_chunks(llm_today()) + [c for d in days for c in sources.photo_chunks(d)]
 
 
-def document_evidence():
-    return [{"id": d["id"], "kind": "document_page", "locator": d["locator"], "excerpt": d["excerpt"]} for d in load("client_docs", [])]
-
-
-def build_evidence(primary):
-    """primary: {"id","kind","locator","excerpt"} for the message / email being processed."""
-    return [primary] + document_evidence() + schedule_evidence() + photo_evidence(today())
-
-
-def _source_for(ev_by_id, f):
-    eid = f["evidence_id"]
-    if eid == "timestamp":
+def _source_for(by_ref, f):
+    refs = [r for r in f["refs"] if r in by_ref]
+    if not refs:
         return {"type": "timestamp", "evidence_id": None, "locator": "Zeitpunkt der Meldung", "quote": now()[:16].replace("T", " ")}
-    e = ev_by_id.get(eid, {})
-    return {"type": KIND_TO_SRC.get(e.get("kind"), "message"), "evidence_id": eid, "locator": e.get("locator", ""),
-            "quote": f.get("quote") or (e.get("excerpt") or "")[:300]}
+    return sources.field_source(refs, by_ref, f.get("quote"))
+
+
+UNVERIFIED_CAT = "uncategorized"
+PHOTO_WINDOW_MIN = int(os.environ.get("PHOTO_ATTACH_WINDOW_MIN", "120"))
+
+
+def attach_photos(doc):
+    """Attach today's photos that fit the document type (category = registry photo_cat).
+    Also attach recent photos nobody could categorise (no vision model / Roboflow saw nothing): uploaded within
+    PHOTO_ATTACH_WINDOW_MIN minutes and not attached to another open draft. They are marked "Kategorie nicht geprüft"
+    in the draft and the export until the site manager confirms or removes them."""
+    cat = docs.DOC_TYPES[doc["type"]]["photo_cat"]
+    cutoff = (dt.datetime.now() - dt.timedelta(minutes=PHOTO_WINDOW_MIN)).isoformat(timespec="seconds")
+    taken_elsewhere = {pid for d in docs.all_docs() if d["id"] != doc["id"] and d["status"] != "sent" for pid in d.get("photos", [])}
+    days = {today(), llm_today().isoformat()}       # real date and DEMO_TODAY (demo photos carry the demo day in EXIF)
+    for p in load("photos", []):
+        if p["id"] in doc["photos"]:
+            continue
+        if (cat is None or p["category"] == cat) and p.get("taken_at", "")[:10] in days:
+            doc["photos"].append(p["id"])
+        elif p["category"] == UNVERIFIED_CAT and p.get("uploaded_at", "") >= cutoff and p["id"] not in taken_elsewhere:
+            doc["photos"].append(p["id"])        # just uploaded in this session: upload time counts, not the EXIF date
+
+
+def _photo_label(p):
+    cat = "Kategorie nicht geprüft" if p["category"] == UNVERIFIED_CAT else p["category"]
+    return f"{p['original_name']} ({cat}, {p['taken_at'][11:16]})"
 
 
 def _host_fields(doc):
-    """Deterministic host data: project master data and the list of attached evidence."""
+    """Deterministic host data, filled only when empty: project master data (cited as doc:project@p1) and attached photos."""
     f = doc["fields"]
-    if "project" in f and not f["project"]["value"]:
-        docs.set_field(doc, "project", SITE["name"], {"type": "project", "evidence_id": None, "locator": "Projektstammdaten", "quote": SITE["name"]}, "ai", 1.0)
+    proj = sources.project()
+    pchunk = next((c for c in sources.context_chunks(llm_today()) if c.ref == "doc:project@p1"), None)
+    for key, val in (("project", proj.get("name_de") or SITE["name"]), ("addressee", proj.get("bauherr")),
+                     ("contract_ref", proj.get("contract_ref"))):
+        if key in f and not f[key]["value"] and val:
+            src = sources.field_source([pchunk.ref], {pchunk.ref: pchunk}, val) if pchunk else \
+                {"type": "project", "evidence_id": None, "locator": "Projektstammdaten", "quote": val}
+            docs.set_field(doc, key, val, src, "ai", 1.0, fill_only=True)
     photos = {p["id"]: p for p in load("photos", [])}
     pics = [photos[i] for i in doc["photos"] if i in photos]
-    key = "photo_evidence" if "photo_evidence" in f else ("evidence" if "evidence" in f else None)
+    key = next((k for k in ("photos", "photo_evidence", "evidence") if k in f), None)
     if key and pics:
-        val = "; ".join(f"{p['original_name']} ({p['category']}, {p['taken_at'][11:16]})" for p in pics)
-        docs.set_field(doc, key, f"{len(pics)} Foto(s): {val}", {"type": "photo", "evidence_id": ",".join(f"photo-{p['id']}" for p in pics),
+        val = "; ".join(_photo_label(p) for p in pics)
+        docs.set_field(doc, key, f"{len(pics)} Foto(s): {val}", {"type": "photo", "evidence_id": ",".join(f"photo:{p['id']}" for p in pics),
                                                                  "locator": "Fotoablage", "quote": val}, "ai", 1.0)
 
 
 def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None, evidence_meta: dict | None = None):
-    """Extract fields from text into a new or matching draft (one incident = one draft per type)."""
-    masked, mapping = sanitizer.mask(text)
+    """Extract fields from text into a new or matching draft (one incident = one draft per type).
+    Returns (doc, filled, proposals, merged, gaps, mode)."""
     run_id = f"{dtype}-{new_id()}"
-    primary = {"id": f"{'mail' if source_kind == 'email' else 'msg'}-{source_ref or new_id()}", "kind": source_kind,
-               "locator": locator or {"email": "E-Mail", "audio": "Diktat (Spracherkennung)"}.get(source_kind, f"Chat-Nachricht {now()[11:16]}"),
-               "excerpt": masked}
-    if evidence_meta:
-        primary["meta"] = evidence_meta   # audio segments, mail headers (W1/W2)
-    evidence = build_evidence(primary)
+    primary = primary_chunks(text, source_kind, source_ref, locator, evidence_meta)
+    context = context_chunks()
+    by_ref = {c.ref: c for c in primary + context}
+    for c in primary + context:
+        for a in c.aliases:
+            by_ref.setdefault(a, c)
     # find an open draft for the same incident first, so its user edits are passed as locked fields
-    pre = rules_loc(text)
-    doc = _find_mergeable(dtype, pre)
+    doc = _find_mergeable(dtype, rules_loc(text))
     merged = doc is not None
     locked = {k: v["value"] for k, v in (doc["fields"].items() if doc else []) if v["locked"]}
-    fields, gaps, mode, extraction = extract(dtype, masked, evidence, locked, run_id=run_id)
-    fields = {k: dict(v, value=sanitizer.unmask(v["value"], mapping), quote=sanitizer.unmask(v.get("quote") or "", mapping)) for k, v in fields.items()}
+    res = extract(dtype, text, primary, context, locked, run_id=run_id, focus={"pile_id": sources.pile_id(text)})
+    fields, gaps, mode = res["fields"], res["gaps"], res["mode"]
     if not doc:
         doc = _find_mergeable(dtype, (fields.get("location") or {}).get("value"))
         merged = doc is not None
     if not doc:
         doc = docs.create(dtype, origin=origin)
-    ev_by_id = {e["id"]: sanitizer.unmask(e, mapping) for e in evidence}
     filled, proposals = [], []
     for k, f in fields.items():
         if k not in doc["fields"]:
             continue
-        r = docs.set_field(doc, k, f["value"], _source_for(ev_by_id, f), "ai", f["confidence"], fill_only=merged)
+        r = docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"], fill_only=merged)
         (filled if r == "set" else proposals if r == "proposal" else []).append(k)
-    cat = docs.DOC_TYPES[dtype]["photo_cat"]
-    for p in load("photos", []):
-        if p.get("taken_at", "")[:10] == today() and (cat is None or p["category"] == cat) and p["id"] not in doc["photos"]:
-            doc["photos"].append(p["id"])
-    if mode == "rules" and "expected_ground_page" in doc["fields"] and re.search(r"gutachten|soil report", text, re.I):
-        g = next((e for e in evidence if e["id"].startswith("gutachten")), None)
+    attach_photos(doc)
+    if mode == "rules" and "expected_ground_ref" in doc["fields"] and re.search(r"gutachten|soil report|fels|rock", text, re.I):
+        g = by_ref.get("doc:bgg@p14")
         if g:
-            docs.set_field(doc, "expected_ground_page", g["locator"], {"type": "document", "evidence_id": g["id"], "locator": g["locator"], "quote": g["excerpt"]}, "ai", 0.7, fill_only=True)
+            docs.set_field(doc, "expected_ground_ref", g.label_de, sources.field_source([g.ref], by_ref, g.text), "ai", 0.7, fill_only=True)
     _host_fields(doc)
     doc["extraction_mode"] = mode
-    if extraction is not None and llm_bridge.SETTINGS.reviewer_enabled:
-        doc["review"] = {"status": "running", "findings": []}
-        did = doc["id"]
-
-        def done(result):
-            d = docs.get(did)
-            if d:
-                d["review"] = result
-                docs.put(d)
-        llm_bridge.review_in_background(extraction, evidence, done)
+    # LLM follow-up wording per field (the registry question is the fallback); used by _ask_next
+    doc["followup_q"] = {**doc.get("followup_q", {}), **{f["field_key"]: f["question_de"] for f in res["followups"] if f.get("field_key")}}
+    doc["assistant_message_de"] = res["message"]
     docs.put(doc)
+    if mode == "llm":
+        llm_bridge.start_review(doc["id"])     # background, critical fields only; no-op unless the reviewer is enabled
+        doc = docs.get(doc["id"])
     return doc, filled, proposals, merged, gaps, mode
+
+
+def answer_followup(doc, key, text, msg_id):
+    """LLM mode: targeted re-extraction of the asked field (+ registry `followup_related`) from the answer only.
+    Returns the list of filled keys (empty = the answer did not contain the value; the question stays open)."""
+    only = [key] + related_fields(doc["type"], key)
+    primary = [sources.message_chunk(msg_id, text, locator=f"Antwort im Chat {now()[11:16]}")]
+    locked = {k: v["value"] for k, v in doc["fields"].items() if v["locked"]}
+    res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only)
+    by_ref = {c.ref: c for c in primary}
+    filled = []
+    for k, f in res["fields"].items():
+        if k in doc["fields"] and f["value"] and docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"]) == "set":
+            filled.append(k)
+    docs.put(doc)
+    if filled:
+        llm_bridge.start_review(doc["id"])
+    return filled
 
 
 def rules_loc(text):
@@ -148,28 +181,95 @@ def _ask_next(doc, state):
         return "Alle Pflichtangaben sind gefüllt. Bitte prüfen Sie den Entwurf (Quelle je Feld antippen) und markieren Sie ihn dann als geprüft."
     k = miss[0]
     state["pending"] = {"doc": doc["id"], "field": k}
-    return f"{docs.field_meta(doc['type'], k)['question']} (oder „skip“)"
+    q = doc.get("followup_q", {}).get(k) or docs.field_meta(doc["type"], k)["question"]
+    return f"{q} (oder „skip“)"
+
+
+def _intents(text, state):
+    """Document types this message asks for. Registry keywords and the bilingual regexes first; the LLM intent
+    router only when nothing matched and no follow-up question is waiting (an answer must not become a new draft)."""
+    found = detect_intents(text)
+    hit = llm_bridge.detect_intent(text) if not found and not state.get("pending") else None
+    if hit is None:
+        from .llm_extract import rule_intent
+        hit = rule_intent(text)
+    if hit and hit.doc_type and hit.doc_type != "bautagesbericht" and hit.doc_type not in found:
+        found = ([hit.doc_type] + found) if hit.by == "rule" else found + [hit.doc_type]
+    return found, hit
+
+
+# ---------- non-incident messages: chat answer vs. diary note ----------
+SITE_RX = re.compile(r"\b(pfahl|pile|achse|axis|widerlager|abutment|bagger|excavator|kran|crane|beton|concrete|schalung|formwork|"
+                     r"bewehrung|rebar|lieferung|delivery|geliefert|delivered|kolonne|crew|polier|nachunternehmer|baustelle|site|"
+                     r"aushub|bohr|drill|regen|rain|frost|wetter|weather|lkw|truck|material|m3|m³|meter|uhr)\b", re.I)
+CHAT_RX = re.compile(r"\?\s*$|^\s*(hi|hallo|hello|hey|servus|moin|guten (morgen|tag|abend)|danke|thanks|thank you|test|testing)\b|"
+                     r"\b(wer bist du|who are you|was kannst du|what can you do|hilfe|help|how are you|wie geht)\b", re.I)
+DE_RX = re.compile(r"[äöüß]|\b(ich|du|wir|ist|nicht|und|der|die|das|wie|was|wer|bitte|danke|hallo|kannst)\b", re.I)
+
+
+def _is_chat(text, hit):
+    """True if the message asks/greets/tests instead of reporting something from the site."""
+    if NOTE_RX.search(text):
+        return False
+    if hit is not None and hit.by == "llm":
+        return hit.intent == "smalltalk"
+    return bool(CHAT_RX.search(text)) and not SITE_RX.search(text)
+
+
+def _chat_context(state):
+    lines = [f"Projekt: {sources.project().get('name_de') or SITE['name']}", f"Bauleiter: {SITE['manager']}"]
+    open_docs = [d for d in docs.all_docs() if d["status"] != "sent"][-5:]
+    if open_docs:
+        lines.append("Offene Entwürfe: " + "; ".join(f"{d['title']} ({len(docs.missing(d))} Angaben offen)" for d in open_docs))
+    p = state.get("pending")
+    if p and docs.get(p["doc"]):
+        pd = docs.get(p["doc"])
+        lines.append(f"Offene Rückfrage an den Bauleiter: {pd.get('followup_q', {}).get(p['field']) or docs.field_meta(pd['type'], p['field'])['question']}")
+    return "\n".join(lines)
+
+
+def _help_text(text):
+    if DE_RX.search(text):
+        return ("Ich bin Ihr Baustellen-Assistent: Ich mache aus Sprachnachrichten, Texten und Fotos Entwürfe wie Nachtragsmeldung, "
+                "Behinderungsanzeige oder Bautagesbericht, mit Quelle je Feld. Sagen Sie mir zum Beispiel: „Pfahl 7, ab 4 Meter Fels“ "
+                "oder „Bagger steht seit 10 Uhr wegen Hydraulikschaden“.")
+    return ("I'm your site assistant: I turn voice notes, texts and photos into drafts such as a Nachtragsmeldung, "
+            "Behinderungsanzeige or daily report, with a source for every field. Try for example: \"Pfahl 7, ab 4 Meter Fels\" "
+            "or \"Bagger steht seit 10 Uhr wegen Hydraulikschaden\".")
+
+
+def chat_reply(text, state):
+    return llm_bridge.converse(text, _chat_context(state)) or _help_text(text)
 
 
 def _labels(doc, keys):
     return ", ".join(docs.field_meta(doc["type"], k)["label"] for k in keys if docs.field_meta(doc["type"], k))
 
 
-def handle(text, voice=False):
+def handle(text, voice=False, evidence_meta: dict | None = None):
+    """evidence_meta (voice): {"audio_file", "segments", "duration_s", "stt_model"} from core.stt."""
     with llm_bridge.Timer("chat_turn_end_to_end"):
-        return _handle(text, voice)
+        return _handle(text, voice, evidence_meta)
 
 
-def _handle(text, voice):
+def _audio_locator(meta):
+    from .stt import fmt_ts
+    segs = meta.get("segments") or []
+    end = segs[-1]["end"] if segs else meta.get("duration_s", 0)
+    return f"Diktat 00:00–{fmt_ts(end)}" + (f" · {meta['audio_file']}" if meta.get("audio_file") else "")
+
+
+def _handle(text, voice, evidence_meta=None):
     msgs, state = load("messages", []), load("chat_state", {})
-    user = _msg("user", text, voice=voice)
+    extra = {"audio": evidence_meta.get("audio_file"), "audio_s": evidence_meta.get("duration_s")} if evidence_meta else {}
+    user = _msg("user", text, voice=voice, **extra)
     _, mapping = sanitizer.mask(text)
     if mapping:
         user["masked"] = sorted(mapping.keys())
     msgs.append(user)
     out = []
     active = docs.get(state.get("active")) if state.get("active") else None
-    intents = detect_intents(text)
+    intents, hit = _intents(text, state)
 
     if DAILY_RX.search(text) and len(text) < 120:
         doc = daily_report()
@@ -189,9 +289,13 @@ def _handle(text, voice):
             out.append(_msg("assistant", f"Ich finde kein Feld „{name}“ in der {active['title']}.", doc=active["id"]))
     elif intents:
         primary = intents[0]
-        doc, filled, proposals, merged, gaps, mode = apply_text(primary, text, "audio" if voice else "text", user["id"])
+        doc, filled, proposals, merged, gaps, mode = apply_text(primary, text, "audio" if voice else "text", user["id"],
+                                                                locator=_audio_locator(evidence_meta) if evidence_meta else None,
+                                                                evidence_meta=evidence_meta)
         state["active"] = doc["id"]
         parts = [f"{'Zum bestehenden Entwurf hinzugefügt' if merged else 'Entwurf erstellt'}: {doc['title']}."]
+        if doc.get("assistant_message_de"):
+            parts.append(doc["assistant_message_de"])
         if filled:
             parts.append(f"Aus Ihrer Nachricht übernommen: {_labels(doc, filled)}.")
         if proposals:
@@ -200,7 +304,7 @@ def _handle(text, voice):
             parts.append(f"Nicht ausreichend belegt und daher leer gelassen: {_labels(doc, gaps)}.")
         if doc["photos"]:
             parts.append(f"{len(doc['photos'])} Foto(s) von heute angehängt.")
-        if doc.get("review", {}).get("status") == "running":
+        if (doc.get("review") or {}).get("status") == "running":
             parts.append("Kritische Felder werden im Hintergrund geprüft.")
         parts.append(_ask_next(doc, state))
         extra = intents[1:] + (["mehrkostenanzeige"] if primary == "nachtragsmeldung" and "mehrkostenanzeige" not in intents else [])
@@ -209,18 +313,35 @@ def _handle(text, voice):
         out.append(_msg("assistant", " ".join(parts), doc=doc["id"], actions=actions, mode=mode))
     elif SKIP_RX.match(text) and not state.get("pending"):
         out.append(_msg("assistant", "Es gibt gerade keine offene Frage."))
+    elif state.get("pending") and docs.get(state["pending"]["doc"]) and CHAT_RX.search(text) and not SITE_RX.search(text):
+        pd = docs.get(state["pending"]["doc"])
+        q = pd.get("followup_q", {}).get(state["pending"]["field"]) or docs.field_meta(pd["type"], state["pending"]["field"])["question"]
+        out.append(_msg("assistant", f"{chat_reply(text, state)} Noch offen: {q} (oder „skip“)", doc=pd["id"], kind="chat"))
     elif state.get("pending") and docs.get(state["pending"]["doc"]) and not NOTE_RX.search(text):
         p = state["pending"]
         doc = docs.get(p["doc"])
         if SKIP_RX.match(text):
             state.setdefault("skipped", {}).setdefault(doc["id"], []).append(p["field"])
             reply = "Übersprungen. " + _ask_next(doc, state)
+        elif doc.get("extraction_mode") == "llm" and llm_bridge.status()["mode"] == "llm":
+            # APEX 2 flow: re-extract the asked field (+ related fields) from the answer; never invent a value
+            filled = answer_followup(doc, p["field"], text, user["id"])
+            doc = docs.get(doc["id"])
+            label = docs.field_meta(doc["type"], p["field"])["label"]
+            if p["field"] in filled:
+                more = [k for k in filled if k != p["field"]]
+                reply = f"Danke, {label} ist ergänzt" + (f" (auch: {_labels(doc, more)})" if more else "") + ". " + _ask_next(doc, state)
+            else:
+                q = doc.get("followup_q", {}).get(p["field"]) or docs.field_meta(doc["type"], p["field"])["question"]
+                reply = f"Daraus konnte ich die Angabe noch nicht entnehmen, die Rückfrage bleibt offen. {q} (oder „skip“)"
         else:
-            docs.set_field(doc, p["field"], text, {"type": "answer", "evidence_id": f"msg-{user['id']}", "locator": f"Antwort im Chat {now()[11:16]}", "quote": text}, by="user")
+            docs.set_field(doc, p["field"], text, {"type": "answer", "evidence_id": f"msg:{user['id']}", "locator": f"Antwort im Chat {now()[11:16]}", "quote": text}, by="user")
             docs.put(doc)
             reply = f"Übernommen als {docs.field_meta(doc['type'], p['field'])['label']}. " + _ask_next(doc, state)
         state["active"] = doc["id"]
         out.append(_msg("assistant", reply, doc=doc["id"]))
+    elif _is_chat(text, hit):
+        out.append(_msg("assistant", chat_reply(text, state), kind="chat"))
     else:
         notes = load("notes", [])
         notes.append({"id": user["id"], "date": today(), "at": now(), "text": text})
@@ -228,7 +349,8 @@ def _handle(text, voice):
         reply = "Im Bautagebuch notiert, geht in den Bautagesbericht ein. Sagen Sie „Tagesbericht“, wenn Sie den Entwurf möchten."
         p = state.get("pending")
         if p and docs.get(p["doc"]):
-            reply += f" Noch offen: {docs.field_meta(docs.get(p['doc'])['type'], p['field'])['question']}"
+            pd = docs.get(p["doc"])
+            reply += f" Noch offen: {pd.get('followup_q', {}).get(p['field']) or docs.field_meta(pd['type'], p['field'])['question']}"
         out.append(_msg("assistant", reply))
     msgs.extend(out)
     save("messages", msgs)
@@ -242,7 +364,7 @@ def daily_report(day=None):
 
 
 def _daily_report(day=None):
-    day = day or today()
+    day = day or llm_today().isoformat()     # DEMO_TODAY pins the demo day; empty = real date
     doc = next((d for d in docs.all_docs() if d["type"] == "bautagesbericht" and d["date"] == day and d["status"] != "sent"), None) \
         or docs.create("bautagesbericht", origin="daily")
     doc["date"] = day
@@ -252,7 +374,8 @@ def _daily_report(day=None):
     if w:
         docs.set_field(doc, "weather", f"{w['text']}, Niederschlag {w['rain']:.1f} mm, Wind bis {w['wind']:.0f} km/h",
                        S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
-        docs.set_field(doc, "temperature", f"{w['tmin']:.0f} bis {w['tmax']:.0f} °C", S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
+        docs.set_field(doc, "temperature_min_c", f"{w['tmin']:.0f}", S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
+        docs.set_field(doc, "temperature_max_c", f"{w['tmax']:.0f}", S("weather", f"Open-Meteo {day}", plan.weather_text(w), "weather-api"), "ai", 0.9)
     photos = [p for p in load("photos", []) if p.get("taken_at", "")[:10] == day]
     counts = {}
     for p in photos:
@@ -260,27 +383,29 @@ def _daily_report(day=None):
             counts[c] = counts.get(c, 0) + 1
     if counts:
         docs.set_field(doc, "equipment", ", ".join(f"{k} (auf {v} Foto{'s' if v > 1 else ''})" for k, v in sorted(counts.items())),
-                       S("photo", "Objekterkennung (Roboflow)", "Erkennung auf Fotos von heute", ",".join("photo-" + p["id"] for p in photos)), "ai", 0.7)
+                       S("photo", "Objekterkennung (Roboflow)", "Erkennung auf Fotos von heute", ",".join("photo:" + p["id"] for p in photos)), "ai", 0.7)
     notes = [n for n in load("notes", []) if n["date"] == day]
     prog = [p for p in load("progress", []) if p["date"] == day]
     sched = {s["id"]: s for s in load("schedule", [])}
     st = plan.status(day)
     work = [n["text"] for n in notes] + [f"{sched.get(p['activity'], {}).get('name', p['activity'])}: {p['qty']:g} {sched.get(p['activity'], {}).get('unit', '')}"
                                           + (f" ({p['note']})" if p["note"] else "") for p in prog]
-    work += [f"Umplanung (bestätigt): {r['text']}" if isinstance(r, dict) and r.get("text") else str(r) for r in replanner.accepted_for(day)]
+    moves = [r["text"] if isinstance(r, dict) and r.get("text") else str(r) for r in replanner.accepted_for(day)]
+    if moves:
+        docs.set_field(doc, "reassignments", "\n".join(moves), S("documents", "Bestätigte Umplanungen (Replanner)", f"{len(moves)} Umsetzung(en)"), "ai", 1.0)
     status_lines = [f"Leistungsstand {a['name']}: Ist {a['actual']:g} / Soll {a['planned']:g} {a['unit']}" for a in st["activities"] if a["light"] != "grey"]
     if work or status_lines:
-        docs.set_field(doc, "work_performed", "\n".join(work + status_lines),
-                       S("diary", "Bautagebuch und Bauzeitenplan", "Einträge und Leistungsmeldungen von heute", ",".join("msg-" + n["id"] for n in notes) or "sched"), "ai", 0.8)
+        docs.set_field(doc, "work_done", "\n".join(work + status_lines),
+                       S("diary", "Bautagebuch und Bauzeitenplan", "Einträge und Leistungsmeldungen von heute", ",".join("msg:" + n["id"] for n in notes) or "sched"), "ai", 0.8)
     deliveries = [p for p in photos if p["category"] == "delivery"]
     if deliveries:
         docs.set_field(doc, "deliveries", f"{len(deliveries)} Lieferung(en) fotografisch dokumentiert", S("photo", "Fotos Kategorie delivery", ", ".join(p["original_name"] for p in deliveries)), "ai", 0.6)
-    notices = [d for d in docs.all_docs() if d["type"] != "bautagesbericht" and d["created_at"][:10] == day]
+    notices = [d for d in docs.all_docs() if d["type"] != "bautagesbericht" and d.get("date", d["created_at"][:10]) == day]
     inc = [f"{d['title']}: {d['fields'].get('location', {}).get('value') or ''}".strip(": ") for d in notices] + [a["text"] for a in st["alerts"]]
     if inc:
-        docs.set_field(doc, "obstructions_incidents", "\n".join(inc), S("documents", "Anzeigen von heute und Soll-Ist-Vergleich", f"{len(notices)} Anzeige(n), {len(st['alerts'])} Warnung(en)"), "ai", 0.8)
+        docs.set_field(doc, "incidents", "\n".join(inc), S("documents", "Anzeigen von heute und Soll-Ist-Vergleich", f"{len(notices)} Anzeige(n), {len(st['alerts'])} Warnung(en)"), "ai", 0.8)
     if photos:
-        docs.set_field(doc, "photo_captions", "\n".join(f"{p['original_name']} ({p['taken_at'][11:16]}): {p.get('caption_de') or p['category']}" for p in photos),
+        docs.set_field(doc, "photos", "\n".join(f"{p['original_name']} ({p['taken_at'][11:16]}): {p.get('caption_de') or p['category']}" for p in photos),
                        S("photo", "Fotoablage", f"{len(photos)} Fotos von heute"), "ai", 0.8)
     doc["photos"] = [p["id"] for p in photos]
     return docs.put(doc)
@@ -291,7 +416,7 @@ def propose_from_alert(alert):
     a = next((x for x in st["activities"] if x["id"] == alert.get("activity")), None)
     if not a:
         raise ValueError("unknown activity")
-    S = {"type": "schedule", "evidence_id": f"sched-{a['id']}", "locator": f"Bauzeitenplan: {a['name']}",
+    S = {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": f"Bauzeitenplan: {a['name']}",
          "quote": f"{a['name']}: Soll {a['planned']:g}, Ist {a['actual']:g} {a['unit']} (Stand {st['as_of']})"}
     if alert.get("kind") == "frost":
         al = next((x for x in st["alerts"] if x["kind"] == "frost" and x["activity"] == a["id"]), None)
@@ -303,13 +428,13 @@ def propose_from_alert(alert):
             docs.set_field(doc, "technical_basis", f"Wetterprognose Open-Meteo: {al['text']}", W, "ai", 0.9)
     else:
         doc = docs.create("behinderungsanzeige", origin="alert")
-        docs.set_field(doc, "affected_activity", a["name"], S, "ai", 0.9)
-        docs.set_field(doc, "impact_on_work", f"{a['delay_days']} Arbeitstage Rückstand zum Bauzeitenplan (Soll {a['planned']:g} {a['unit']}, Ist {a['actual']:g} {a['unit']}).", S, "ai", 0.9)
+        # cause stays empty on purpose: the schedule shows the delay, not why -> follow-up question
+        docs.set_field(doc, "affected_work", f"{a['name']}: {a['delay_days']} Arbeitstage Rückstand zum Bauzeitenplan (Soll {a['planned']:g} {a['unit']}, Ist {a['actual']:g} {a['unit']}).", S, "ai", 0.9)
         notes = [p["note"] for p in load("progress", []) if p["activity"] == a["id"] and p["note"]]
         if notes:
             loc = LOC.search(notes[-1])
             if loc:
-                docs.set_field(doc, "location", loc.group(0), {"type": "schedule", "evidence_id": f"sched-{a['id']}", "locator": "Leistungsmeldung", "quote": notes[-1]}, "ai", 0.7)
+                docs.set_field(doc, "location", loc.group(0), {"type": "schedule", "evidence_id": f"sched:{a['id']}", "locator": "Leistungsmeldung", "quote": notes[-1]}, "ai", 0.7)
     _host_fields(doc)
     doc["proposal_from"] = alert.get("kind")
     return docs.put(doc)

@@ -339,3 +339,9 @@ body.autopilot::after{content:"";position:fixed;inset:0;pointer-events:none;z-in
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .aurora{display:none}
 }
+
+/* reviewer badges (core/review.py) */
+.rev{font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:9px;margin-left:4px;white-space:nowrap}
+.rev.being_verified{background:rgba(148,163,184,.18);color:var(--mut,#94a3b8)}
+.rev.verified{background:rgba(52,211,153,.16);color:#2f9e6e}
+.rev.flagged{background:rgba(248,113,113,.16);color:var(--bad,#e05252)}

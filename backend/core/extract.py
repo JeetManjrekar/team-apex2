@@ -1,6 +1,9 @@
-"""Turns free text (dictation, chat, email) into document fields for the shared registry.
-With OPENAI_API_KEY the team's nachweis_llm package extracts (evidence-ID and confidence gates in code);
-otherwise the rule-based fallback below runs under the same gates."""
+"""Turns free text (dictation, chat, email) into document fields of the registry (backend/registry/doc_types/*.yaml).
+
+With a configured model (LLM_MODEL_EXTRACT + key, or LLM_CACHE_MODE=replay) the merged APEX 2 extractor runs
+(core.llm_extract: source-ref gate, confidence gate, Python derivations). Otherwise the rule-based fallback below runs
+under the same gates: every value cites a source chunk, values below CONFIDENCE_THRESHOLD become follow-up questions,
+derived numbers come from Python only."""
 import re, datetime as dt
 
 
@@ -13,7 +16,7 @@ INTENTS = [
     ("behinderungsanzeige", re.compile(r"\bidle\b|stillstand|steht still|stehen still|standing still|waiting|wartet|warten|blocked|behinder|\bdelay|"
                                        r"verzög|obstruct|cannot (?:continue|start|work)|can't (?:continue|start|work)|kann nicht|können nicht|"
                                        r"keine freigabe|no (?:plan )?release|missing (?:plans?|release|approval)|fehlende? (?:pläne|plan|freigabe)", I)),
-    ("maengelanzeige", re.compile(r"defect|\bmangel|mängel|\bcrack|\briss|damage|schaden|beschädig|\bleak|undicht|"
+    ("maengelanzeige", re.compile(r"defect|\bmangel|mängel|\bcrack|\briss|damage|\bschaden|beschädig|\bleak|undicht|"
                                   r"wrong(?:ly)? (?:installed|built|placed)|falsch (?:eingebaut|ausgeführt|verlegt)", I)),
     ("bedenkenanmeldung", re.compile(r"concern|bedenken|unsafe|unsicher|not feasible|nicht ausführbar|\bdoubt|zweifel", I)),
     ("aktennotiz", re.compile(r"aktennotiz|note for the file|file note|telefonat|phone call with|besprechung mit|meeting with", I)),
@@ -40,7 +43,7 @@ ORDER = re.compile(r"(?:ordered|instructed|requested)\s+by\s+[^.;!?\n]+|(?:auf a
 MEASURES = re.compile(r"(?:we|wir)\s+(?:have\s+)?(?:informed|notified|moved|relocated|called|haben\s+\w+\s+(?:informiert|umgesetzt|verständigt))[^.;!?\n]*", I)
 EXPECT_KW = re.compile(r"expected|erwartet|according to|laut |lt\. |soil report|gutachten", I)
 FOUND_KW = re.compile(r"\brock\b|\bfels|boulder|findling|groundwater|grundwasser|contaminat|altlast|obstacle|hindernis|hit |angetroffen|gestoßen", I)
-DEFECT_KW = re.compile(r"defect|mangel|mängel|crack|riss|damage|schaden|beschädig|leak|undicht|wrong|falsch", I)
+DEFECT_KW = re.compile(r"defect|mangel|mängel|crack|riss|damage|\bschaden|beschädig|leak|undicht|wrong|falsch", I)
 RISK_KW = re.compile(r"risk|risiko|gefahr|danger|could|könnte|damage|schäden", I)
 PROPOSE = re.compile(r"(?:we\s+)?(?:suggest|propose|recommend|schlagen vor|empfehlen|vorschlag)[^.;!?\n]*", I)
 
@@ -78,6 +81,9 @@ def strip_mail(text):
     return HEADER_RX.sub("", text).strip()
 
 
+DEPTH = re.compile(r"(?:ab|bei|in|at|from)\s+(\d+(?:[.,]\d+)?)\s*(?:m\b|meter|metern|metres?)", I)
+
+
 def rules(dtype, text, ts):
     """Rule-based fallback. Returns {key: (value, quote, confidence)}; quote is a verbatim span of the text.
     Fields whose value comes from the message time get quote None (host labels them as timestamp)."""
@@ -100,46 +106,53 @@ def rules(dtype, text, ts):
     first_main = re.split(CAUSE.pattern, first, flags=I)[0].strip(" .,") or first
     tm = TIME.search(text)
     date_txt, date_q = _date_from_text(DEADLINE.sub("", text), ts)
+    when = None
     if tm:
-        out["event_datetime"] = (f"{date_txt}, {tm.group(1)}", tm.group(0).strip(), 0.8)
+        when = (f"{date_txt}, {tm.group(1)}", tm.group(0).strip(), 0.8)
     elif date_q:
-        out["event_datetime"] = (date_txt, date_q, 0.8)
+        when = (date_txt, date_q, 0.8)
 
     if dtype == "nachtragsmeldung":
+        if when:
+            out["occurred_at"] = when
         out["description"] = (first, first, 0.7)
         clause("expected_ground", EXPECT_KW)
         clause("found_ground", FOUND_KW, exclude=EXPECT_KW)
-        put("instruction_by", ORDER.search(text), conf=0.6)
-        clause("drilling_times", re.compile(r"(?:bohrzeit|drilling time)\w*[^.;\n]*\d|\d+(?:[.,]\d+)?\s*(?:h|hours?|stunden|std)\b", I))
-        put("equipment", EQUIP.search(text), conf=0.7)
-        if ORDER.search(text):
-            put("related_instruction", ORDER.search(text), conf=0.6)
+        d = DEPTH.search(text)
+        if d and FOUND_KW.search(text):
+            out["depth_rock_m"] = (d.group(1).replace(",", "."), d.group(0), 0.8)
+        put("ordered_by", ORDER.search(text), conf=0.6)
+        put("rig", re.search(r"(?:bohrgerät|drilling rig|rig)\s+([A-Z]{1,4}-?\d+\w*)", text), 1, 0.7)   # needs an ID, e.g. BG-01
     elif dtype == "mehrkostenanzeige":
-        out["description"] = (first_main, first_main, 0.7)
+        if when:
+            out["occurred_at"] = when
         put("cause", CAUSE.search(text), 1, 0.7)
         if "cause" not in out:
             clause("cause", FOUND_KW, exclude=EXPECT_KW)
-        clause("additional_effort", re.compile(r"bohrzeit|drilling time|\d+(?:[.,]\d+)?\s*(?:h|hours?|stunden|std|m3|m³|t)\b", I), 0.6)
-        put("instruction_by", ORDER.search(text), conf=0.6)
+        clause("additional_effort", re.compile(r"bohrzeit|drilling time|mehraufwand|zusätzlich|\d+(?:[.,]\d+)?\s*(?:h|hours?|stunden|std|m3|m³|t)\b", I), 0.6)
+        out["affected_work"] = (first_main, first_main, 0.6)
     elif dtype == "behinderungsanzeige":
+        if when:
+            out["occurred_at"] = when
         cause = CAUSE.search(text)
-        desc = first if cause and cause.group(0) in first else (first_main + (f", {cause.group(0)}" if cause else ""))
-        out["obstruction_description"] = (desc, first, 0.7)
-        imp = first_clause(text, re.compile(r"idle|stillstand|steht still|stehen still|standing still|cannot|kann nicht|delay|verzug", I))
-        if imp and imp != first:
-            out["impact_on_work"] = (imp, imp, 0.6)
+        out["cause"] = ((cause.group(1) if cause else first_main).strip(" ."), (cause.group(0) if cause else first).strip(" ."), 0.7)
+        imp = first_clause(text, re.compile(r"idle|stillstand|steht still|stehen still|standing still|cannot|kann nicht|delay|verzug|"
+                                            r"steht seit|stehen seit", I))
+        if imp:
+            out["affected_work"] = (imp, imp, 0.6)
         put("expected_duration", DURATION.search(text), conf=0.6)
-        r = RESP.search(cause.group(0)) if cause else None
-        if r:
-            out["instruction_by"] = (r.group(1), cause.group(0).strip(" ."), 0.6)
+        put("measures", MEASURES.search(text), conf=0.6)
     elif dtype == "maengelanzeige":
+        if when:
+            out["detected_at"] = when
         clause("defect_description", DEFECT_KW)
         s_ = SUB.search(text)
         if s_:
-            out["responsible_party"] = (s_.group(1), s_.group(0), 0.8)
-        put("affected_trade", re.search(r"formwork|schalung|rebar|bewehrung|concrete|beton|masonry|mauerwerk|drywall|trockenbau|electric\w*|elektro|plumbing|sanitär", text, I), conf=0.6)
-        put("measure_taken", MEASURES.search(text), conf=0.6)
+            out["responsible_company"] = (s_.group(1), s_.group(0), 0.8)
+        put("deadline", DEADLINE.search(text), 1, 0.7)
     elif dtype == "bedenkenanmeldung":
+        if when:
+            out["occurred_at"] = when
         c = CAUSE.search(text)
         if c:
             out["concern_description"] = (c.group(1).strip(" ."), c.group(0).strip(" ."), 0.6)
@@ -157,29 +170,66 @@ def rules(dtype, text, ts):
     return out
 
 
-def extract(dtype, text, evidence, locked=None, ts=None, run_id="run"):
+# ---------------------------------------------------------------- value formatting (document fields are text)
+def to_text(value, ftype="text"):
+    """Registry-typed value -> the text stored on a document field (numbers '4', '3.5'; ISO datetimes as German date)."""
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        return "; ".join(to_text(v) for v in value if v not in (None, ""))
+    if isinstance(value, float):
+        return f"{value:g}"
+    if ftype in ("datetime", "date") and isinstance(value, str):
+        try:
+            d = dt.datetime.fromisoformat(value)
+            return d.strftime("%d.%m.%Y, %H:%M") if ftype == "datetime" and ("T" in value or " " in value) else d.strftime("%d.%m.%Y")
+        except ValueError:
+            return value
+    return str(value)
+
+
+def _primary_ref(primary, quote):
+    """Rules mode: cite the primary chunk that contains the quote (for voice: the Whisper segment that said it)."""
+    q = (quote or "").lower()
+    for c in primary:
+        if q and (q in c.text.lower() or c.text.lower() in q):
+            return c.ref
+    return primary[0].ref
+
+
+def extract(dtype, text, primary, context, locked=None, ts=None, run_id="run", only_fields=None, focus=None):
     """Extract fields for one document type.
-    evidence: list of {"id","kind","locator","excerpt"}; evidence[0] is the primary source (the message/email).
-    Returns (fields {key: {value, evidence_id, confidence, quote}}, gaps, mode, extraction_result_or_None)."""
-    from . import llm_bridge
-    ts = ts or dt.datetime.now()
+    primary: SourceChunks of this turn (message / dictation segments / e-mail); context: project data, Gutachten, ...
+    Returns {"fields": {key: {"value", "refs", "confidence", "quote"}}, "gaps", "followups", "message", "mode", "result"}.
+    `fields` never contains locked keys; AI writes go through docs.set_field, which never overwrites a lock either."""
+    from . import llm_bridge, llm_extract
+    from .llm_settings import CFG
+    from .registry import doc_spec
+    from .llm_settings import today as demo_today
+    ts = ts or dt.datetime.combine(demo_today(), dt.datetime.now().time())   # DEMO_TODAY: "seit 10 Uhr" = demo day
     locked = locked or {}
-    res = llm_bridge.extract(dtype, text, evidence, locked, run_id)
+    chunks = list(primary) + list(context)
+    types = {f["key"]: f.get("type", "text") for f in doc_spec(dtype)["fields"]}
+    res = llm_bridge.extract(dtype, chunks, run_id, only_fields=only_fields, focus=focus)
     if res is not None:
-        fields, gaps, extraction = res
-        by_id = {e["id"]: e for e in evidence}
-        return ({k: dict(v, quote=(by_id.get(v["evidence_id"], {}).get("excerpt") or "")[:300]) for k, v in fields.items()},
-                gaps, "llm", extraction)
+        fields = {k: {"value": to_text(v.value, types.get(k, "text")), "refs": v.source_refs, "confidence": v.confidence,
+                      "quote": None, "derived": v.derived}
+                  for k, v in res.fields.items() if v.value is not None and k not in locked}
+        gaps = [k for k, v in res.fields.items() if v.value is None and k not in locked]
+        followups = [f.model_dump() for f in res.followups if f.field_key not in locked]
+        return {"fields": fields, "gaps": gaps, "followups": followups, "message": res.assistant_message_de, "mode": "llm", "result": res}
     with llm_bridge.Timer("rules_extraction", run_id, document_type=dtype):
         base = rules(dtype, text, ts)
-    primary = evidence[0]["id"]
-    thr = llm_bridge.SETTINGS.confidence_threshold
+        derived = llm_extract.derive(dtype, chunks, focus or {})
     out, gaps = {}, []
     for k, (val, quote, conf) in base.items():
-        if k in locked:
+        if k in locked or k not in types or (only_fields and k not in only_fields):
             continue
-        if conf < thr:             # same gate as the package: below threshold becomes a gap
+        if conf < CFG.confidence_threshold:        # same gate as the LLM path: below threshold becomes a gap
             gaps.append(k)
             continue
-        out[k] = {"value": val, "evidence_id": primary if quote else "timestamp", "confidence": conf, "quote": quote}
-    return out, gaps, "rules", None
+        out[k] = {"value": val, "refs": [_primary_ref(primary, quote)] if quote else ["timestamp"], "confidence": conf, "quote": quote}
+    for k, v in derived.items():
+        if k not in locked and (not only_fields or k in only_fields):
+            out[k] = {"value": to_text(v.value, "number"), "refs": v.source_refs, "confidence": 1.0, "quote": None, "derived": True}
+    return {"fields": out, "gaps": gaps, "followups": [], "message": "", "mode": "rules", "result": None}

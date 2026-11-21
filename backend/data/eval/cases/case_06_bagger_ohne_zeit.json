@@ -1,0 +1,26 @@
+{
+  "id": "case_06_bagger_ohne_zeit",
+  "doc_type": "behinderungsanzeige",
+  "input": {
+    "text": "Bagger kaputt",
+    "audio": null,
+    "photos": [],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "contract_ref": {
+      "match": "contains_all",
+      "terms": [
+        "2026-117"
+      ],
+      "value": "Bauvertrag Nr. 2026-117"
+    }
+  },
+  "must_be_empty": [
+    "occurred_at"
+  ],
+  "expected_followup_fields": [
+    "occurred_at"
+  ]
+}

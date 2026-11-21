@@ -9,7 +9,7 @@ from .store import load, DATA, SITE
 
 SRC_DE = {"voice": "Diktat", "project": "Projektstammdaten", "document": "Unterlage", "calendar": "Kalender", "message": "Chat-Nachricht", "answer": "Antwort im Chat", "user": "manuell bearbeitet", "timestamp": "Zeitstempel",
           "weather": "Wetterdienst (Open-Meteo)", "photo": "Fotos", "schedule": "Bauzeitenplan", "diary": "Bautagebuch",
-          "documents": "Anzeigen", "email": "E-Mail", "minutes": "Protokoll"}
+          "documents": "Anzeigen", "email": "E-Mail", "minutes": "Protokoll", "drilling": "Bohrzeitenliste Polier"}
 
 
 def _fmt(ts):
@@ -36,7 +36,8 @@ def annotated(p):
 def _photo_caption(p):
     loc = "GPS aus Foto" if p["location_source"] == "exif" else "Standort Baustelle (kein GPS im Foto)"
     dets = ", ".join(f"{b['class']} {b['confidence']:.0%}" for b in p.get("detections", [])) or "keine"
-    return f"{p['original_name']} · {p['taken_at'].replace('T', ' ')} · {p['lat']:.5f}, {p['lon']:.5f} ({loc}) · Erkennung: {dets}"
+    unverified = " · Kategorie nicht geprüft, bitte bestätigen" if p.get("category") == "uncategorized" else ""
+    return f"{p['original_name']} · {p['taken_at'].replace('T', ' ')} · {p['lat']:.5f}, {p['lon']:.5f} ({loc}) · Erkennung: {dets}{unverified}"
 
 
 def _footer(doc):
@@ -66,7 +67,7 @@ def docx(doc) -> Path:
     d.add_paragraph()
     tbl = d.add_table(rows=0, cols=2)
     tbl.style = "Table Grid"
-    for k, label, req, crit, _ in t["fields"]:
+    for k, label, req, crit, *_ in t["fields"]:
         f = doc["fields"][k]
         c = tbl.add_row().cells
         c[0].text = label + (" *" if req else "")

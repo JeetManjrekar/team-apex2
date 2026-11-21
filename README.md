@@ -30,11 +30,23 @@ Frontend hosted separately (optional): `cd frontend && python -m http.server 550
 It calls the API at `http://127.0.0.1:8000` (change in `frontend/config.js`; restrict `CORS_ORIGIN` in `.env` if needed).
 
 ## Architecture
-- `backend/nachweis_llm/` – the team's LLM package, vendored unmodified. Owns extraction, evidence-ID and confidence gates,
-  critical-field reviewer, photo classification and JSONL metrics. Its `registry.py` is the single source of document fields.
-- `backend/core/` – host: chat, evidence IDs, persistence, edit locks, status flow, schedule maths, weather, export, rule fallback.
-- `backend/core/llm_bridge.py` – the only place where host and package meet.
-- Every source gets an evidence ID: `msg-…` (chat), `mail-…`, `photo-…`, `sched-…`, `gutachten-14` (page-tagged client document).
+- `backend/registry/` – **single source of document fields**: `doc_types/*.yaml` (fields, types, required/critical/derived,
+  follow-up questions, intent keywords, checklist) and `prompts/*.md` (German extraction / intent / reviewer prompts). Merged from APEX 2.
+- LLM pipeline (merged from APEX 2), all behind `backend/core/llm_bridge.py`:
+  - `core/llm_extract.py` – intent routing (registry keywords first, LLM second) and extraction (LLM A). In code: a value survives
+    only if it cites a ref from the request and passes `CONFIDENCE_THRESHOLD`; `derived` fields (drilling times, ratio, crew/rig
+    hours) are computed in Python; PII is masked in every chunk before the prompt.
+  - `core/review.py` – critical-field reviewer (LLM B), single or double judge, background, guarded by field lock + version.
+  - `core/llm_adapter.py` – openai | anthropic | groq, JSON repair retry, record/replay cache (`LLM_CACHE_MODE`).
+  - `core/sources.py` – evidence chunks; `core/llm_settings.py` – env config; `core/registry.py` – YAML loader.
+- `core/stt.py` – speech to text: local faster-whisper (default) | openai | groq | elevenlabs. Each Whisper segment becomes its own
+  evidence chunk, so a field extracted from a voice note cites the exact moment (`Diktat 00:04–00:11`).
+- `backend/nachweis_llm/` – vendored unmodified; still used for photo classification and replanner wording.
+- `backend/core/` – host: chat, persistence, edit locks, status flow, schedule maths, weather, export, rule fallback.
+- `backend/data/demo/` – APEX 2 demo dataset the LLM cites (project, Baugrundgutachten pages, drilling list, Bauzeitenplan, daily
+  reports); `backend/data/eval/` – ground truth cases. Tests: `cd backend && python -m pytest tests -q`.
+- Evidence refs: `msg:<id>` (chat), `audio:<id>@<start>-<end>` (dictation segment), `mail:<id>`, `cal:<uid>`, `photo:<id>`,
+  `doc:project@p1`, `doc:bgg@p14` (Baugrundgutachten page), `drill:P07`, `sched:<activity>`, `dr:<date>#personal`.
 
 ## Site twin (2D plan / 3D isometric)
 Tab "Site twin": a Three.js engineering site plan (`frontend/js/site3d.js`, layout + data from `backend/core/site_twin.py`).

@@ -100,7 +100,7 @@ def ingest(files):
         cat, conf = categorize(dets)
         src, caption, confirm = "model", "", conf < 0.5
         dets_txt = ", ".join(sorted({d["class"] for d in dets or []})) or "keine"
-        cls = llm_bridge.classify_photo(raw, mime or "image/jpeg", f"photo-{pid}", f"Objekterkennung: {dets_txt}")
+        cls = llm_bridge.classify_photo(raw, mime or "image/jpeg", f"photo:{pid}", f"Objekterkennung: {dets_txt}")
         if cls is not None:
             caption, confirm = cls.caption_de, cls.needs_human_confirmation
             if cls.category and not cls.needs_human_confirmation:

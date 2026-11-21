@@ -4,7 +4,9 @@ const api=(u,o={})=>{if(o.json){o.method=o.method||"POST";o.headers={"Content-Ty
   return fetch(API+u,o).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||r.statusText);return j})};
 let cfg,photos=[],docsCache=[],activeDoc=null,docsSel=null,filter="all",map,layer;
 const SRC={message:"chat message",voice:"dictation",answer:"your answer in chat",user:"edited by you",timestamp:"message time",weather:"weather service",
-  photo:"photos",schedule:"schedule",diary:"site diary",documents:"notices",email:"e-mail",minutes:"minutes",document:"client document",project:"project data",calendar:"calendar"};
+  photo:"photos",drilling:"drilling list (Polier)",schedule:"schedule",diary:"site diary",documents:"notices",email:"e-mail",minutes:"minutes",document:"client document",project:"project data",calendar:"calendar"};
+// reviewer (LLM B) state per critical field, set by backend/core/review.py
+const REV={being_verified:"⏳ being verified",verified:"✓ verified",flagged:"⚠ check source"};
 // TAB_APPLY switches the view; TAB lets js/fx.js wrap it in a cinematic transition when present
 const TAB=t=>window.FX?FX.tab(t,()=>TAB_APPLY(t)):TAB_APPLY(t);
 const TAB_APPLY=t=>{document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("on",x.dataset.t==t));
@@ -62,7 +64,7 @@ function renderDoc(el,d){
   const fields=d.meta.fields.map(m=>{const f=d.fields[m.key],miss=m.required&&!f.value,low=f.value&&f.by=="ai"&&f.confidence!=null&&f.confidence<0.7;
     const s=f.source;const srcTxt=s?(SRC[s.type]||s.type):"";
     return `<div class="f ${miss?"miss":""} ${low?"low":""}" data-k="${m.key}">
-      <label>${esc(m.label)}${m.required?' <span style="color:var(--bad)">*</span>':""}${m.critical?' <span class="mut" title="critical field">●</span>':""}${f.locked?' <span title="Edited by you, AI will not overwrite">🔒</span>':""}</label>
+      <label>${esc(m.label)}${m.required?' <span style="color:var(--bad)">*</span>':""}${m.critical?' <span class="mut" title="critical field">●</span>':""}${f.locked?' <span title="Edited by you, AI will not overwrite">🔒</span>':""}${REV[f.review?.status]?` <span class="rev ${f.review.status}" title="${esc(f.review.note_de||REV[f.review.status])}">${REV[f.review.status]}</span>`:""}</label>
       <textarea rows="${Math.min(6,Math.max(1,Math.ceil((f.value||"").length/70)+(f.value||"").split("\n").length-1))}" ${ro?"disabled":""} placeholder="${miss?"missing, required":"empty"}">${esc(f.value)}</textarea>
       ${finds[m.key]?finds[m.key].map(x=>`<div class="prop bad">Reviewer (${esc(x.issue)}): ${esc(x.explanation_de)} → ${esc(x.suggested_action_de)}</div>`).join(""):""}
       ${f.value?`<div class="src">${s?`<a data-q>source: ${esc(srcTxt)}${s.locator?" · "+esc(s.locator):""}</a>${s.evidence_id?`<code style="font-size:10.5px">${esc(s.evidence_id.length>40?s.evidence_id.slice(0,40)+"…":s.evidence_id)}</code>`:""}`:""}${low?'<span style="color:var(--warn)">low confidence, please check</span>':""}${f.by=="ai"&&f.confidence!=null?`<span>conf ${Math.round(f.confidence*100)}%</span>`:""}</div>

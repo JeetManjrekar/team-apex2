@@ -8,8 +8,14 @@ PATTERNS = [
 ]
 
 
-def mask(text: str):
-    mapping, counters = {}, {}
+def mask(text: str, mapping: dict | None = None):
+    """Returns (masked_text, mapping). Pass the same `mapping` for several texts of one prompt so a value gets the same
+    placeholder everywhere (it is extended in place)."""
+    mapping = {} if mapping is None else mapping
+    counters = {}
+    for k in mapping:
+        label, _, n = k.rpartition("_")
+        counters[label] = max(counters.get(label, 0), int(n) if n.isdigit() else 0)
     for label, rx in PATTERNS:
         def rep(m):
             val = m.group(0)

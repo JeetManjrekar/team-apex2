@@ -44,8 +44,10 @@ Source of truth: this repository. Domain reference: `Nachweis_Plan.pdf` (Plan v2
 ## 2. Guardrails (binding for every PR)
 
 1. **Evidence or empty.** Every AI-filled field carries an `evidence_id` from the request's allowed evidence list; otherwise it
-   stays empty and becomes a follow-up question. New sources get new ID prefixes: `msg-` (chat/voice), `mail-` (.eml),
-   `cal-` (.ics), `photo-`, `sched-`, `crew-` (roster row), `gutachten-N`.
+   stays empty and becomes a follow-up question. Refs (APEX 2 format, since the LLM merge): `msg:<id>` (chat),
+   `audio:<id>@<start>-<end>` (voice segment), `mail:<id>` (.eml), `cal:<uid>` (.ics), `photo:<id>`, `sched:<id>`,
+   `crew:<id>` (roster row), `doc:bgg@p14`, `doc:project@p1`, `drill:P07`. Build chunks with `core/sources.py`; document
+   fields come from `backend/registry/doc_types/*.yaml`.
 2. **Locks win.** AI writes only through `docs.set_field(..., by="ai")`. Never write `doc["fields"]` directly.
 3. **Mask before LLM.** Every text that reaches an LLM goes through `sanitizer.mask` first (transcripts, mail bodies, ICS
    attendees/descriptions, replanner input). Audio sent to a cloud STT cannot be masked → `STT_PROVIDER=local` is the default;
@@ -203,7 +205,7 @@ MediaRecorder and camera capture need a secure origin. Laptop: `uvicorn app:app 
 | Time | Gate | Pass criteria (demo-able, measured) |
 |---|---|---|
 | 12:20–12:40 | Scaffold | §3 merged, everyone rebased, app boots, `/api/health` ok |
-| **14:30** | **Hero voice + photo → export** | On a phone: record "Pfahl 7 Fels bei 4 m …" + 2 photos → `msg-` evidence with audio locator → Nachtragsmeldung draft with Gutachten p.14 citation, one follow-up asked and answered → Checked → Word + PDF with embedded photos and source appendix. Rows for `stt`, `llm_extraction`, `voice_to_draft_end_to_end`, `export_pdf` in metrics. Works live (key) and in rules mode. |
+| **14:30** | **Hero voice + photo → export** | On a phone: record "Pfahl 7 Fels bei 4 m …" + 2 photos → `audio:` evidence with segment locator → Nachtragsmeldung draft with Gutachten p.14 citation, one follow-up asked and answered → Checked → Word + PDF with embedded photos and source appendix. Rows for `stt`, `llm_extraction`, `voice_to_draft_end_to_end`, `export_pdf` in metrics. Works live (key) and in rules mode. |
 | 16:30 | Mid check | Outlook import creates `mail-` proposals on the pile 7 draft; replanner returns a rules-valid candidate; reset restores seed |
 | **18:30** | **All features wired** | Bagger voice note → Behinderungsanzeige + replanner card (accept → appears in Bautagesbericht); `.eml`/`.ics` import; dashboard tile with live numbers; eval report generated; reviewer on; `POST /api/system/reset` → clean state in < 5 s; phone layout usable end to end |
 | 18:30–21:00 | Hardening | Bugfixes only from the hero/demo path; gate tests green; 3 dry runs of the demo script after reset |
@@ -219,3 +221,39 @@ Cut order if behind (from PDF §8, adapted): Outlook `.ics` reminders → frost 
 - AI writes go through `docs.set_field(by="ai")`; LLM inputs go through `sanitizer.mask`.
 - Works without `OPENAI_API_KEY` (rules/fallback) and with it.
 - Checked once on a 375 px wide viewport if it has UI.
+
+---
+
+## 9. LLM + voice merge (branch `w2`, 21.11. afternoon) — what changed for each workstream
+
+The old `APEX 2/` prototype is **not used**. Its LLM pipeline was ported into `backend/core/`; everything below lives in
+this repo. Rebase on `w2` before merging your part.
+
+**Everyone**
+- Document fields come from `backend/registry/doc_types/*.yaml` (not `nachweis_llm/registry.py`). Field keys changed, e.g.
+  `occurred_at` (was `event_datetime`), `ordered_by` (was `instruction_by`), Bautagesbericht `work_done` / `incidents` /
+  `temperature_min_c` / `temperature_max_c`. `docs.DOC_TYPES[t]["fields"]` tuples now have 7 entries
+  `(key, label, required, critical, question, type, derived)`: unpack with `*_`.
+- Evidence refs use the `prefix:id` format: `msg:`, `audio:<id>@<s>-<e>`, `mail:`, `cal:`, `photo:`, `sched:`, `crew:`,
+  `doc:bgg@p14`, `doc:project@p1`, `drill:P07`. Build them with `core/sources.py`.
+- **One demo dataset: BW 12 Mühlbach** (`backend/data/demo/`). `SITE_*` default to `data/demo/project.json`; `DEMO_TODAY=2026-11-17`
+  pins the demo day (plan vs actual, "seit 10 Uhr"). The seed (`data/seed/`) holds the BW 12 schedule (from
+  `bauzeitenplan.csv`), drilling progress (from `drilling_times.csv`) and Gutachten pages, with no drafts or messages.
+- Metrics: use `llm_bridge.timed(stage, run_id, model=..)` (tokens, cost, `t.add_cost(eur)` for non-token cost) or `Timer`.
+- Tests: `cd backend && python -m pytest tests -q` (offline, fake LLM, isolated data dir).
+
+**W1 (documents, Outlook)**: `core/docs.py` was changed (registry loader, per-field `version` and `review`, `LOCK`, backfill of
+old docs); `core/export.py` only got `*_` unpacking and a `drilling` source label. For `.eml` import call
+`assistant.apply_text(dtype, body, "email", source_ref, origin="email", locator=...)` → `mail:<id>` refs, proposals on open drafts.
+Each field `source` now carries `chunks: [{ref, label_de, text}]`: use it for the citation appendix.
+
+**W3 (frontend)**: fields have `review.status` = `being_verified | verified | flagged` (badge already in `renderDoc`;
+the panel refreshes on reload, add polling while `doc.review.status == "running"` if wanted). New source type `drilling`.
+`site3d.js` matches progress by `sched:<activity>`.
+
+**W4 (replanner, metrics, photos)**: schedule ids are now BW 12 (`W1_BP`, `A1_BP`, `A2_BP`, `W2_BP`, `*_BET`), crew roster in
+`data/demo/crew/crew_roster.json`, equipment in `data/demo/equipment.json`. Eval ground truth in `data/eval/cases/*.json` uses the
+registry keys and refs above. `llm_extract.extract(...)` returns `dropped` per field for the honesty metric.
+
+**W5 (data, reset)**: `core/demo.reset` should restore `data/seed/` (already BW 12) and call nothing else; demo photos for the
+BW 12 story are in `data/demo/photos/`.

@@ -37,3 +37,9 @@ backend/data/*.pdf
 backend/data/uploads/
 backend/data/metrics_archive/
 # kept tracked: backend/data/seed/, backend/data/eval/, backend/data/inbox_samples/, backend/templates/
+
+# Offline ML models (download with: python backend/scripts/download_models.py)
+backend/models/
+
+# Old APEX 2 prototype (not used; its LLM pipeline is merged into backend/core)
+APEX 2/

@@ -1,80 +1,44 @@
 [
   {
-    "date": "2026-11-13",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 1"
+    "date": "2026-11-12",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P01: Sand/Kies, planmäßig"
   },
   {
-    "date": "2026-11-14",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 2"
+    "date": "2026-11-12",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P02: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-13",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P03: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-13",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P04: Sand/Kies, planmäßig"
   },
   {
     "date": "2026-11-16",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 3"
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P05: Sand/Kies, planmäßig"
+  },
+  {
+    "date": "2026-11-16",
+    "activity": "W1_BP",
+    "qty": 12.0,
+    "note": "P06: Sand/Kies, planmäßig"
   },
   {
     "date": "2026-11-17",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 4"
-  },
-  {
-    "date": "2026-11-18",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 5"
-  },
-  {
-    "date": "2026-11-19",
-    "activity": "piles",
-    "qty": 1,
-    "note": "Pfahl 6"
-  },
-  {
-    "date": "2026-11-20",
-    "activity": "piles",
-    "qty": 0,
-    "note": "Pfahl 7: Fels bei 4 m, Bohrfortschritt gering"
-  },
-  {
-    "date": "2026-11-17",
-    "activity": "formwork",
-    "qty": 20,
-    "note": ""
-  },
-  {
-    "date": "2026-11-18",
-    "activity": "formwork",
-    "qty": 20,
-    "note": ""
-  },
-  {
-    "date": "2026-11-19",
-    "activity": "formwork",
-    "qty": 15,
-    "note": ""
-  },
-  {
-    "date": "2026-11-20",
-    "activity": "formwork",
-    "qty": 15,
-    "note": ""
-  },
-  {
-    "date": "2026-11-19",
-    "activity": "rebar",
-    "qty": 1.5,
-    "note": ""
-  },
-  {
-    "date": "2026-11-20",
-    "activity": "rebar",
-    "qty": 1.5,
-    "note": ""
+    "activity": "W1_BP",
+    "qty": 4.6,
+    "note": "P07: ab 4 m Fels (Stand 11:20)"
   }
 ]

@@ -1,0 +1,44 @@
+{
+  "id": "case_03_pfahl7_audio_noisy",
+  "doc_type": "nachtragsmeldung",
+  "input": {
+    "text": null,
+    "audio": "pfahl7_sprachnotiz_laut.m4a",
+    "photos": [
+      "ph_dc_01.jpg"
+    ],
+    "documents": [],
+    "today": "2026-11-17"
+  },
+  "expected_fields": {
+    "location": {
+      "match": "contains_all",
+      "terms": [
+        "Pfahl 7",
+        "Widerlager 1"
+      ],
+      "value": "Widerlager 1, Pfahl 7"
+    },
+    "depth_rock_m": {
+      "value": 4.0,
+      "match": "numeric_tol",
+      "tol": 0.1
+    },
+    "expected_ground_ref": {
+      "value": "doc:bgg@p14",
+      "match": "source_ref"
+    },
+    "drilling_time_ratio": {
+      "value": 3.0,
+      "match": "numeric_tol",
+      "tol": 0.3
+    }
+  },
+  "must_be_empty": [
+    "drilling_log_ref",
+    "ordered_by"
+  ],
+  "expected_followup_fields": [
+    "drilling_log_ref"
+  ]
+}

@@ -11,3 +11,7 @@ openai>=1.40
 docxtpl
 faster-whisper
 icalendar
+websockets
+pyyaml
+anthropic    # only if LLM_PROVIDER=anthropic
+pytest
