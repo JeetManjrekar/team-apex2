@@ -13,6 +13,20 @@ from .store import load, save, new_id, now, today, SITE
 
 # Statements that are site diary notes, not answers to an open question
 NOTE_RX = re.compile(r"\b(arrived|delivered|geliefert|angeliefert|done|finished|completed|fertig|erledigt|betoniert|poured|started|begonnen)\b", re.I)
+FOLLOWUP_BATCH = 3     # missing fields asked together in one Rückfrage
+NEW_RX = re.compile(r"\b(neue[rnms]?|new|another|weitere[rnms]?|zweite[rnms]?|noch eine?[rnms]?)\b", re.I)
+# user-defined fields on the open draft ("Füge Feld Ort hinzu: Achse 3", "add field location: axis 3", "entferne Feld Ort")
+ADD_FIELD_RX = re.compile(
+    r"^\s*(?:bitte\s+)?(?:"
+    r"(?:füge?|fuege?|füg)\s+(?:(?:bitte|noch)\s+)*(?:(?:das|den|die|ein|eine|ein\s+neues|neues|zusätzliches)\s+)?(?:feld\s+)?"
+    r"(?P<a>[^:=]+?)(?:\s+(?:zum|zur|in\s+den|in\s+die|in\s+das|im|ins)\s+[^:=]+?)?\s+hinzu"
+    r"|(?:add|create)\s+(?:(?:a|an|the)\s+)?(?:new\s+)?field\s+(?P<b>[^:=]+?)(?:\s+to\s+(?:the\s+)?[^:=]+?)?"
+    r"|(?:add|create)\s+(?:(?:a|an|the)\s+)?(?:new\s+)?(?P<e>[^:=]+?)\s+field(?:\s+to\s+(?:the\s+)?[^:=]+?)?"
+    r"|(?:neues|zusätzliches)\s+feld\s+(?P<c>[^:=]+?)"
+    r")\s*(?:[:=]\s*(?P<v>\S.*?))?\s*$", re.I)
+REMOVE_FIELD_RX = re.compile(r"^\s*(?:bitte\s+)?(?:entferne|lösche|loesche|remove|delete)\s+(?:(?:das|the)\s+)?(?:feld|field)\s+(?P<l>.+?)\s*$", re.I)
+# "Ort: Achse 3" -- an explicit field assignment (label of at most 4 words)
+LABEL_VALUE_RX = re.compile(r"^\s*(?P<l>[A-Za-zÄÖÜäöüß][\wÄÖÜäöüß /().-]{0,40}?)\s*[:=]\s*(?P<v>\S.*?)\s*$", re.S)
 SKIP_RX = re.compile(r"^\s*(skip|weiter|überspringen|unknown|unbekannt|keine ahnung|weiß (?:ich )?nicht|weiss (?:ich )?nicht|n/?a|-)\s*$", re.I)
 KIND_TO_SRC = llm_bridge.KIND_TO_SRC
 
@@ -47,9 +61,12 @@ def primary_chunks(text, source_kind="text", source_ref=None, locator=None, evid
     return [sources.message_chunk(ref, text, {"email": "email", "document_page": "document"}.get(source_kind, "text"), locator)]
 
 
-def context_chunks():
+def context_chunks(photo_ids=None):
+    """Project context + today's photos; photos attached to this message carry their full detector output."""
     days = list(dict.fromkeys([today(), llm_today().isoformat()]))
-    return sources.context_chunks(llm_today()) + [c for d in days for c in sources.photo_chunks(d)]
+    attached = sources.photo_chunks(ids=photo_ids) if photo_ids else []
+    seen = {c.ref for c in attached}
+    return sources.context_chunks(llm_today()) + attached + [c for d in days for c in sources.photo_chunks(d) if c.ref not in seen]
 
 
 def _source_for(by_ref, f):
@@ -106,12 +123,13 @@ def _host_fields(doc):
                                                                  "locator": "Fotoablage", "quote": val}, "ai", 1.0)
 
 
-def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None, evidence_meta: dict | None = None):
+def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", locator=None, evidence_meta: dict | None = None,
+               photo_ids: list[str] | None = None):
     """Extract fields from text into a new or matching draft (one incident = one draft per type).
     Returns (doc, filled, proposals, merged, gaps, mode)."""
     run_id = f"{dtype}-{new_id()}"
     primary = primary_chunks(text, source_kind, source_ref, locator, evidence_meta)
-    context = context_chunks()
+    context = context_chunks(photo_ids)
     by_ref = {c.ref: c for c in primary + context}
     for c in primary + context:
         for a in c.aliases:
@@ -133,6 +151,7 @@ def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", 
             continue
         r = docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"], fill_only=merged)
         (filled if r == "set" else proposals if r == "proposal" else []).append(k)
+    doc["photos"] += [i for i in photo_ids or [] if i not in doc["photos"]]
     attach_photos(doc)
     if mode == "rules" and "expected_ground_ref" in doc["fields"] and re.search(r"gutachten|soil report|fels|rock", text, re.I):
         g = by_ref.get("doc:bgg@p14")
@@ -150,22 +169,32 @@ def apply_text(dtype, text, source_kind="text", source_ref=None, origin="chat", 
     return doc, filled, proposals, merged, gaps, mode
 
 
-def answer_followup(doc, key, text, msg_id):
-    """LLM mode: targeted re-extraction of the asked field (+ registry `followup_related`) from the answer only.
-    Returns the list of filled keys (empty = the answer did not contain the value; the question stays open)."""
-    only = [key] + related_fields(doc["type"], key)
+def answer_followup(doc, asked, text, msg_id):
+    """Read a Rückfrage answer against the whole draft, not only the asked field: an answer may name any field in any
+    order (time and location in one sentence, another field than the one asked, several facts plus a correction).
+    Asked fields, their registry `followup_related` fields and every empty field are filled from the answer; fields
+    that already hold an AI value only get a proposal (fill_only), locked fields are never touched, nothing is invented
+    (the answer is the only source). Returns (filled, proposals, mode); filled empty = the answer held none of them."""
+    asked = [asked] if isinstance(asked, str) else list(asked)
+    open_keys = set(asked + [r for k in asked for r in related_fields(doc["type"], k)]) | \
+        {k for k, v in doc["fields"].items() if not v["value"]}
+    only = list(dict.fromkeys(asked + sorted(open_keys - set(asked)) + [k for k in doc["fields"] if k not in open_keys]))
     primary = [sources.message_chunk(msg_id, text, locator=f"Antwort im Chat {now()[11:16]}")]
     locked = {k: v["value"] for k, v in doc["fields"].items() if v["locked"]}
-    res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only)
+    only = [k for k in only if k not in locked]
+    res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only, followup=True)
     by_ref = {c.ref: c for c in primary}
-    filled = []
+    filled, proposals = [], []
     for k, f in res["fields"].items():
-        if k in doc["fields"] and f["value"] and docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"]) == "set":
-            filled.append(k)
+        # corrections of filled fields (proposals) only from the model; rule clauses are too coarse for that
+        if k not in doc["fields"] or not f["value"] or (res["mode"] == "rules" and k not in open_keys):
+            continue
+        r = docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"], fill_only=k not in open_keys)
+        (filled if r == "set" else proposals if r == "proposal" else []).append(k)
     docs.put(doc)
     if filled:
         llm_bridge.start_review(doc["id"])
-    return filled
+    return filled, proposals, res["mode"]
 
 
 def rules_loc(text):
@@ -173,16 +202,54 @@ def rules_loc(text):
     return m.group(0) if m else None
 
 
+def _asked(state):
+    """Fields of the open Rückfrage, main question first (older chat states only carry `field`)."""
+    p = state.get("pending") or {}
+    return p.get("fields") or ([p["field"]] if p.get("field") else [])
+
+
+GENERIC_Q = "Bitte ergänzen: "     # registry default when a field has no question_de (docs.DOC_TYPES)
+
+
+def _question(doc, keys):
+    """One Rückfrage for one or several fields: generic "Bitte ergänzen: X" questions are merged into one list."""
+    keys = [k for k in keys if docs.field_meta(doc, k)]
+    qs = [doc.get("followup_q", {}).get(k) or docs.field_meta(doc, k)["question"] for k in keys]
+    if len(qs) <= 1:
+        return f"{''.join(qs)} (oder „skip“)"
+    generic = [q[len(GENERIC_Q):] for q in qs if q.startswith(GENERIC_Q)]
+    parts = [q for q in qs if not q.startswith(GENERIC_Q)] + ([GENERIC_Q + ", ".join(generic) + "."] if generic else [])
+    return " ".join(parts) + " Sie können alles in einer Nachricht beantworten, in beliebiger Reihenfolge (oder „skip“)."
+
+
 def _ask_next(doc, state):
+    """Ask for up to FOLLOWUP_BATCH missing fields at once when a model reads the answer (answer_followup). Without a
+    model one field per question: an answer no rule recognises is stored verbatim, so it needs one unambiguous target.
+    Either way every answer is still read against all empty fields."""
     skipped = state.get("skipped", {}).get(doc["id"], [])
     miss = [k for k in docs.missing(doc) if k not in skipped]
     if not miss:
         state.pop("pending", None)
         return "Alle Pflichtangaben sind gefüllt. Bitte prüfen Sie den Entwurf (Quelle je Feld antippen) und markieren Sie ihn dann als geprüft."
-    k = miss[0]
-    state["pending"] = {"doc": doc["id"], "field": k}
-    q = doc.get("followup_q", {}).get(k) or docs.field_meta(doc["type"], k)["question"]
-    return f"{q} (oder „skip“)"
+    ask = miss[:FOLLOWUP_BATCH if llm_bridge.CFG.llm_ready else 1]
+    state["pending"] = {"doc": doc["id"], "field": ask[0], "fields": ask}
+    return _question(doc, ask)
+
+
+def _locs(v):
+    return {_norm_loc(m.group(0)) for m in LOC.finditer(v or "")}
+
+
+def _answers_pending(intents, text, state):
+    """A message naming the type of the draft whose Rückfrage is open ("Nachtrag: war um 10:30 an Pfahl 7") completes
+    that draft instead of starting or merging another one, unless it says it is a new incident or names a location
+    the draft does not have."""
+    p = state.get("pending")
+    doc = docs.get(p["doc"]) if p else None
+    if not doc or doc["status"] == "sent" or not intents or intents[0] != doc["type"] or NEW_RX.search(text):
+        return False
+    said, have = _locs(text), _locs((doc["fields"].get("location") or {}).get("value"))
+    return not (said and have and not said & have)
 
 
 def _intents(text, state):
@@ -224,7 +291,7 @@ def _chat_context(state):
     p = state.get("pending")
     if p and docs.get(p["doc"]):
         pd = docs.get(p["doc"])
-        lines.append(f"Offene Rückfrage an den Bauleiter: {pd.get('followup_q', {}).get(p['field']) or docs.field_meta(pd['type'], p['field'])['question']}")
+        lines.append(f"Offene Rückfrage an den Bauleiter: {_question(pd, _asked(state))}")
     return "\n".join(lines)
 
 
@@ -243,13 +310,73 @@ def chat_reply(text, state):
 
 
 def _labels(doc, keys):
-    return ", ".join(docs.field_meta(doc["type"], k)["label"] for k in keys if docs.field_meta(doc["type"], k))
+    return ", ".join(docs.field_meta(doc, k)["label"] for k in keys if docs.field_meta(doc, k))
 
 
-def handle(text, voice=False, evidence_meta: dict | None = None):
-    """evidence_meta (voice): {"audio_file", "segments", "duration_s", "stt_model"} from core.stt."""
+def _target(state):
+    """Draft a field command refers to: the one with the open Rückfrage, else the active one (never a sent one)."""
+    for i in ((state.get("pending") or {}).get("doc"), state.get("active")):
+        d = docs.get(i) if i else None
+        if d and d["status"] != "sent":
+            return d
+    return None
+
+
+def _label_value(text):
+    m = LABEL_VALUE_RX.match(text)
+    return (m.group("l").strip(), m.group("v")) if m and len(m.group("l").split()) <= 4 else None
+
+
+def _set_by_user(doc, key, value, text, msg_id):
+    docs.set_field(doc, key, value, {"type": "user", "evidence_id": f"msg:{msg_id}", "locator": f"Angabe im Chat {now()[11:16]}",
+                                     "quote": text}, by="user")
+
+
+def _field_command(text, state, msg_id):
+    """Add / remove a user-defined field on the open draft. Returns the reply text."""
+    doc = _target(state)
+    if not doc:
+        return "Es ist gerade kein Entwurf offen. Erstellen Sie zuerst einen Entwurf, dann kann ich Felder ergänzen."
+    rm = REMOVE_FIELD_RX.match(text)
+    if rm:
+        key = docs.find_field(doc, rm.group("l"))
+        if not key:
+            return f"Ich finde kein Feld „{rm.group('l')}“ in {doc['title']}."
+        label = docs.field_meta(doc, key)["label"]
+        try:
+            docs.remove_field(doc, key)
+        except ValueError:
+            return f"„{label}“ ist ein Standardfeld der {doc['title']} und kann nicht entfernt werden; lassen Sie es einfach leer."
+        docs.put(doc)
+        if (state.get("pending") or {}).get("doc") == doc["id"] and key in _asked(state):
+            _ask_next(doc, state)
+        return f"Feld „{label}“ aus {doc['title']} entfernt."
+    m = ADD_FIELD_RX.match(text)
+    label, value = next(g for g in (m.group("a"), m.group("b"), m.group("c"), m.group("e")) if g), m.group("v")
+    try:
+        key, created = docs.add_field(doc, label)
+    except ValueError as e:
+        return f"Das Feld konnte ich nicht anlegen: {e}."
+    label = docs.field_meta(doc, key)["label"]
+    reply = f"Feld „{label}“ zu {doc['title']} hinzugefügt" if created else f"Das Feld „{label}“ gibt es in {doc['title']} bereits"
+    state["active"] = doc["id"]
+    if value:
+        _set_by_user(doc, key, value, text, msg_id)
+        reply += f" und auf „{value}“ gesetzt."
+    else:
+        state["pending"] = {"doc": doc["id"], "field": key, "fields": [key]}     # the next message is its value
+        reply += f". Was soll dort stehen? (oder „skip“)"
+    docs.put(doc)
+    return reply
+
+
+def handle(text, voice=False, evidence_meta: dict | None = None, photo_ids: list[str] | None = None):
+    """evidence_meta (voice): {"audio_file", "segments", "duration_s", "stt_model"} from core.stt.
+    photo_ids: photos the user attached to this message; their detector output goes into the LLM sources."""
+    known = {p["id"] for p in load("photos", [])}
+    photo_ids = [i for i in dict.fromkeys(photo_ids or []) if isinstance(i, str) and i in known]
     with llm_bridge.Timer("chat_turn_end_to_end"):
-        return _handle(text, voice, evidence_meta)
+        return _handle(text, voice, evidence_meta, photo_ids)
 
 
 def _audio_locator(meta):
@@ -259,9 +386,11 @@ def _audio_locator(meta):
     return f"Diktat 00:00–{fmt_ts(end)}" + (f" · {meta['audio_file']}" if meta.get("audio_file") else "")
 
 
-def _handle(text, voice, evidence_meta=None):
+def _handle(text, voice, evidence_meta=None, photo_ids=None):
     msgs, state = load("messages", []), load("chat_state", {})
     extra = {"audio": evidence_meta.get("audio_file"), "audio_s": evidence_meta.get("duration_s")} if evidence_meta else {}
+    if photo_ids:
+        extra["photos"] = photo_ids
     user = _msg("user", text, voice=voice, **extra)
     _, mapping = sanitizer.mask(text)
     if mapping:
@@ -270,28 +399,49 @@ def _handle(text, voice, evidence_meta=None):
     out = []
     active = docs.get(state.get("active")) if state.get("active") else None
     intents, hit = _intents(text, state)
+    answers = False
 
-    if DAILY_RX.search(text) and len(text) < 120:
-        doc = daily_report()
+    if ADD_FIELD_RX.match(text) or REMOVE_FIELD_RX.match(text):
+        reply = _field_command(text, state, user["id"])
+        out.append(_msg("assistant", reply, doc=state.get("active")))
+    elif DAILY_RX.search(text) and len(text) < 120:
+        doc = daily_report(text=text, msg_id=user["id"], photo_ids=photo_ids)
         state["active"] = doc["id"]
         out.append(_msg("assistant", f"Bautagesbericht-Entwurf für {doc['fields']['date']['value']} erstellt aus Fotos, Notizen, Soll-Ist und Wetter. "
                                      + _ask_next(doc, state), doc=doc["id"]))
     elif EDIT_RX.match(text) and active:
         m = EDIT_RX.match(text)
         name, value = m.group(1).lower(), m.group(2)
-        key = next((f[0] for f in docs.DOC_TYPES[active["type"]]["fields"]
-                    if name in f[0].replace("_", " ") or name in f[1].lower() or f[0].replace("_", " ") in name), None)
+        key = docs.find_field(active, name) or next((f[0] for f in docs.fields_of(active)
+                                                     if name in f[0].replace("_", " ") or name in f[1].lower() or f[0].replace("_", " ") in name), None)
+        added = False
+        if not key and active["status"] != "sent":
+            try:
+                key, added = docs.add_field(active, name)      # "setze Ort auf Achse 3" on a draft without Ort: add it
+            except ValueError:
+                key = None
         if key:
             docs.set_field(active, key, value, {"type": "user", "evidence_id": None, "locator": "Änderung im Chat", "quote": text}, by="user")
             docs.put(active)
-            out.append(_msg("assistant", f"{docs.field_meta(active['type'], key)['label']} geändert auf „{value}“. Das Feld ist jetzt gesperrt, die KI überschreibt es nicht.", doc=active["id"]))
+            label = docs.field_meta(active, key)["label"]
+            out.append(_msg("assistant", (f"Neues Feld „{label}“ hinzugefügt und auf „{value}“ gesetzt." if added else
+                                          f"{label} geändert auf „{value}“.") + " Das Feld ist jetzt gesperrt, die KI überschreibt es nicht.", doc=active["id"]))
         else:
             out.append(_msg("assistant", f"Ich finde kein Feld „{name}“ in der {active['title']}.", doc=active["id"]))
-    elif intents:
+    elif not intents and (lv := _label_value(text)) and (tgt := _target(state)) and (lv_key := docs.find_field(tgt, lv[0])):
+        # "Ort: Achse 3" names a field of the open draft: the user's value, set directly
+        _set_by_user(tgt, lv_key, lv[1], text, user["id"])
+        docs.put(tgt)
+        state["active"] = tgt["id"]
+        reply = f"Übernommen: {docs.field_meta(tgt, lv_key)['label']} = „{lv[1]}“."
+        if (state.get("pending") or {}).get("doc") == tgt["id"]:
+            reply += " " + _ask_next(tgt, state)
+        out.append(_msg("assistant", reply, doc=tgt["id"]))
+    elif intents and not (answers := _answers_pending(intents, text, state)):
         primary = intents[0]
         doc, filled, proposals, merged, gaps, mode = apply_text(primary, text, "audio" if voice else "text", user["id"],
                                                                 locator=_audio_locator(evidence_meta) if evidence_meta else None,
-                                                                evidence_meta=evidence_meta)
+                                                                evidence_meta=evidence_meta, photo_ids=photo_ids)
         state["active"] = doc["id"]
         parts = [f"{'Zum bestehenden Entwurf hinzugefügt' if merged else 'Entwurf erstellt'}: {doc['title']}."]
         if doc.get("assistant_message_de"):
@@ -315,52 +465,69 @@ def _handle(text, voice, evidence_meta=None):
         out.append(_msg("assistant", "Es gibt gerade keine offene Frage."))
     elif state.get("pending") and docs.get(state["pending"]["doc"]) and CHAT_RX.search(text) and not SITE_RX.search(text):
         pd = docs.get(state["pending"]["doc"])
-        q = pd.get("followup_q", {}).get(state["pending"]["field"]) or docs.field_meta(pd["type"], state["pending"]["field"])["question"]
-        out.append(_msg("assistant", f"{chat_reply(text, state)} Noch offen: {q} (oder „skip“)", doc=pd["id"], kind="chat"))
-    elif state.get("pending") and docs.get(state["pending"]["doc"]) and not NOTE_RX.search(text):
-        p = state["pending"]
+        out.append(_msg("assistant", f"{chat_reply(text, state)} Noch offen: {_question(pd, _asked(state))}", doc=pd["id"], kind="chat"))
+    elif state.get("pending") and docs.get(state["pending"]["doc"]) and (answers or not NOTE_RX.search(text)):
+        # a site note (delivered, finished, ...) goes to the diary unless it names the open draft's type
+        p, asked = state["pending"], _asked(state)
         doc = docs.get(p["doc"])
         if SKIP_RX.match(text):
-            state.setdefault("skipped", {}).setdefault(doc["id"], []).append(p["field"])
+            skipped = state.setdefault("skipped", {}).setdefault(doc["id"], [])
+            skipped += [k for k in asked if k not in skipped]
             reply = "Übersprungen. " + _ask_next(doc, state)
-        elif doc.get("extraction_mode") == "llm" and llm_bridge.status()["mode"] == "llm":
-            # APEX 2 flow: re-extract the asked field (+ related fields) from the answer; never invent a value
-            filled = answer_followup(doc, p["field"], text, user["id"])
-            doc = docs.get(doc["id"])
-            label = docs.field_meta(doc["type"], p["field"])["label"]
-            if p["field"] in filled:
-                more = [k for k in filled if k != p["field"]]
-                reply = f"Danke, {label} ist ergänzt" + (f" (auch: {_labels(doc, more)})" if more else "") + ". " + _ask_next(doc, state)
-            else:
-                q = doc.get("followup_q", {}).get(p["field"]) or docs.field_meta(doc["type"], p["field"])["question"]
-                reply = f"Daraus konnte ich die Angabe noch nicht entnehmen, die Rückfrage bleibt offen. {q} (oder „skip“)"
-        else:
-            docs.set_field(doc, p["field"], text, {"type": "answer", "evidence_id": f"msg:{user['id']}", "locator": f"Antwort im Chat {now()[11:16]}", "quote": text}, by="user")
+        elif asked[0] in {c["key"] for c in doc.get("custom_fields", [])}:
+            # a field the user added: no extraction schema knows it, the answer is its value
+            _set_by_user(doc, asked[0], text, text, user["id"])
             docs.put(doc)
-            reply = f"Übernommen als {docs.field_meta(doc['type'], p['field'])['label']}. " + _ask_next(doc, state)
+            reply = f"Übernommen: {_labels(doc, [asked[0]])}. " + _ask_next(doc, state)
+        else:
+            filled, proposals, mode = answer_followup(doc, asked, text, user["id"])
+            doc = docs.get(doc["id"])
+            # "Schalung: 40 m2" names a field this draft does not have (known labels were set before this branch):
+            # not an answer to the question; new fields only on an explicit command, so say how
+            unknown = _label_value(text) if not filled and not proposals else None
+            if not filled and not proposals and mode == "rules" and not unknown:
+                # no model and no pattern matched: the answer itself is the value of the main question
+                docs.set_field(doc, asked[0], text, {"type": "answer", "evidence_id": f"msg:{user['id']}", "locator": f"Antwort im Chat {now()[11:16]}", "quote": text}, by="user")
+                filled = [asked[0]]
+            if photo_ids:
+                doc["photos"] += [i for i in photo_ids if i not in doc["photos"]]
+            docs.put(doc)
+            if unknown:
+                reply = (f"{doc['title']} hat kein Feld „{unknown[0]}“. Mit „Füge Feld {unknown[0]} hinzu: {unknown[1]}“ lege ich es an. "
+                         f"Noch offen: {_question(doc, asked)}")
+            elif filled or proposals:
+                reply = (f"Übernommen: {_labels(doc, filled)}. " if filled else "") + \
+                        (f"Bereits belegt, neue Angabe nur als Vorschlag: {_labels(doc, proposals)}. " if proposals else "") + _ask_next(doc, state)
+            else:
+                reply = f"Daraus konnte ich die Angabe noch nicht entnehmen, die Rückfrage bleibt offen. {_question(doc, asked)}"
         state["active"] = doc["id"]
         out.append(_msg("assistant", reply, doc=doc["id"]))
     elif _is_chat(text, hit):
         out.append(_msg("assistant", chat_reply(text, state), kind="chat"))
     else:
-        notes = load("notes", [])
-        notes.append({"id": user["id"], "date": today(), "at": now(), "text": text})
-        save("notes", notes)
-        reply = "Im Bautagebuch notiert, geht in den Bautagesbericht ein. Sagen Sie „Tagesbericht“, wenn Sie den Entwurf möchten."
-        p = state.get("pending")
-        if p and docs.get(p["doc"]):
-            pd = docs.get(p["doc"])
-            reply += f" Noch offen: {pd.get('followup_q', {}).get(p['field']) or docs.field_meta(pd['type'], p['field'])['question']}"
-        out.append(_msg("assistant", reply))
+        out.append(_msg("assistant", _note(text, user, state)))
     msgs.extend(out)
     save("messages", msgs)
     save("chat_state", state)
     return {"user": user, "replies": out, "active": state.get("active")}
 
 
-def daily_report(day=None):
+def _note(text, user, state):
+    """Store a diary note; repeat the open Rückfrage, if any."""
+    notes = load("notes", [])
+    notes.append({"id": user["id"], "date": today(), "at": now(), "text": text})
+    save("notes", notes)
+    reply = "Im Bautagebuch notiert, geht in den Bautagesbericht ein. Sagen Sie „Tagesbericht“, wenn Sie den Entwurf möchten."
+    p = state.get("pending")
+    if p and docs.get(p["doc"]):
+        reply += f" Noch offen: {_question(docs.get(p['doc']), _asked(state))}"
+    return reply
+
+
+def daily_report(day=None, text=None, msg_id=None, photo_ids=None):
     with llm_bridge.Timer("daily_report_generation"):
-        return _daily_report(day)
+        doc = _daily_report(day)
+    return _daily_report_llm(doc, text, msg_id, photo_ids)
 
 
 def _daily_report(day=None):
@@ -409,6 +576,32 @@ def _daily_report(day=None):
                        S("photo", "Fotoablage", f"{len(photos)} Fotos von heute"), "ai", 0.8)
     doc["photos"] = [p["id"] for p in photos]
     return docs.put(doc)
+
+
+def _daily_report_llm(doc, text=None, msg_id=None, photo_ids=None):
+    """LLM step after the rule-based report (only with a configured model): fills empty fields from the day's sources
+    and attached photos; filled or locked fields only get proposals (fill_only). No model -> report unchanged."""
+    if not llm_bridge.CFG.llm_ready or doc["status"] == "sent" or doc["date"] != llm_today().isoformat():   # sources cover today only
+        return doc
+    text = text or "Bautagesbericht"
+    primary = [sources.message_chunk(msg_id or new_id(), text)]
+    context = context_chunks(photo_ids)
+    by_ref = {c.ref: c for c in primary + context}
+    for c in primary + context:
+        for a in c.aliases:
+            by_ref.setdefault(a, c)
+    locked = {k: v["value"] for k, v in doc["fields"].items() if v["locked"]}
+    res = extract("bautagesbericht", text, primary, context, locked, run_id=f"daily-{doc['id']}")
+    if res["mode"] != "llm":
+        return doc
+    for k, f in res["fields"].items():
+        if k in doc["fields"]:
+            docs.set_field(doc, k, f["value"], _source_for(by_ref, f), "ai", f["confidence"], fill_only=True)
+    doc["photos"] += [i for i in photo_ids or [] if i not in doc["photos"]]
+    doc["extraction_mode"] = "llm"
+    doc = docs.put(doc)
+    llm_bridge.start_review(doc["id"])     # background, no-op unless the reviewer is enabled
+    return docs.get(doc["id"])
 
 
 def propose_from_alert(alert):

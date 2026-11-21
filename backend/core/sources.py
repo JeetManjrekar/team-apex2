@@ -84,14 +84,28 @@ def audio_chunks(audio_id: str, segments: list[dict], audio_file: str | None = N
             for s in segs]
 
 
-def photo_chunks(day: str) -> list[SourceChunk]:
+def _det_summary(dets: list[dict]) -> str:
+    """'excavator ×2 (max 91 %), person ×1 (78 %)'. Detections are already filtered by the photos.MIN_CONF thresholds."""
+    by = {}
+    for d in dets:
+        by.setdefault(d["class"], []).append(d["confidence"])
+    return ", ".join(f"{c} ×{len(v)} ({'max ' if len(v) > 1 else ''}{max(v) * 100:.0f} %)" for c, v in sorted(by.items())) or "keine"
+
+
+def photo_chunks(day: str | None = None, ids: list[str] | None = None) -> list[SourceChunk]:
+    """Photos of `day` (class names only), or the photos the user attached (`ids`: counts + confidence per class)."""
     out = []
     for p in load("photos", []):
-        if p.get("taken_at", "")[:10] != day:
+        if (p["id"] not in ids) if ids else p.get("taken_at", "")[:10] != day:
             continue
-        dets = ", ".join(sorted({d["class"] for d in p.get("detections", [])})) or "keine"
         taken = p["taken_at"][:16].replace("T", " ")
-        text = f"Foto vom {taken}, Kategorie {p['category']}, erkannt: {dets}. {p.get('caption_de', '')}".strip()
+        if ids:      # attached by the user this turn: full detector output + citation hint
+            text = (f"Vom Bauleiter angehängtes Foto. Objekterkennung (Anzahl, Konfidenz): {_det_summary(p.get('detections', []))}. "
+                    f"Kategorie {p['category']}, aufgenommen {taken}. {p.get('caption_de', '')} "
+                    f"Erkennungen sind Hinweise, kein Beweis; Angaben aus diesem Foto mit photo:{p['id']} belegen.")
+        else:
+            dets = ", ".join(sorted({d["class"] for d in p.get("detections", [])})) or "keine"
+            text = f"Foto vom {taken}, Kategorie {p['category']}, erkannt: {dets}. {p.get('caption_de', '')}".strip()
         out.append(SourceChunk(ref=f"photo:{p['id']}", kind="photo", label_de=f"Foto vom {taken}", locator=f"Foto {p['original_name']}",
                                text=text, url=f"/data/{p['file']}"))
     return out

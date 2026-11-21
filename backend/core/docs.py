@@ -1,4 +1,5 @@
 """Document model: every field has value, source, author, lock and an edit log with undo."""
+import re
 import threading
 
 from .store import load, save, new_id, now, today
@@ -51,8 +52,17 @@ DOC_TYPES = _build()
 STATUSES = ["draft", "checked", "sent"]
 
 
-def field_meta(dtype, key):
-    for f in DOC_TYPES[dtype]["fields"]:
+def fields_of(doc):
+    """Field tuples of one document: the registry fields of its type plus the fields the user added to this draft
+    (`custom_fields`, optional free text). Everything that lists, labels or exports fields goes through here."""
+    return DOC_TYPES[doc["type"]]["fields"] + [(c["key"], c["label"], False, False, f"Bitte ergänzen: {c['label']}", "text", False)
+                                               for c in doc.get("custom_fields", [])]
+
+
+def field_meta(doc_or_type, key):
+    """doc_or_type: a document (includes its custom fields) or a type key (registry fields only)."""
+    fields = fields_of(doc_or_type) if isinstance(doc_or_type, dict) else DOC_TYPES[doc_or_type]["fields"]
+    for f in fields:
         if f[0] == key:
             return {"key": f[0], "label": f[1], "required": f[2], "critical": f[3], "question": f[4], "type": f[5], "derived": f[6]}
     return None
@@ -64,8 +74,63 @@ def _empty_field():
 
 def _normalize(doc):
     """Docs stored before the registry merge: add slots for new registry fields (old keys stay, they are just not shown)."""
-    for f in DOC_TYPES[doc["type"]]["fields"]:
+    for f in fields_of(doc):
         doc["fields"].setdefault(f[0], _empty_field())
+    return doc
+
+
+def _tokens(s):
+    return [t for t in re.split(r"[^a-z0-9äöüß]+", (s or "").lower()) if t]
+
+
+def find_field(doc, name):
+    """Field key of `doc` the user means by `name` ("Ort", "location", "Personal je Firma"): exact key or label first,
+    then the name as a whole word group of a label ("ort" -> "Ort / Bauabschnitt"). None if nothing matches."""
+    n = " ".join(_tokens(name))
+    if not n:
+        return None
+    fs = fields_of(doc)
+    for k, label, *_ in fs:
+        if n in (" ".join(_tokens(k)), " ".join(_tokens(label))):
+            return k
+    for k, label, *_ in fs:
+        words = _tokens(label)
+        if any(" ".join(words[i:i + len(n.split())]) == n for i in range(len(words))):
+            return k
+    return None
+
+
+def add_field(doc, label, by="user"):
+    """Add a free-text field to this draft (e.g. "Ort" on a Bautagesbericht). Returns (key, created); an existing
+    field with that name is reused instead of adding a duplicate."""
+    label = re.sub(r"\s+", " ", (label or "").strip(" .:;,\"'„“")).strip()
+    if not label or len(label) > 60:
+        raise ValueError("Feldname fehlt oder ist zu lang")
+    key = find_field(doc, label)
+    if key:
+        return key, False
+    if doc["status"] == "sent":
+        raise ValueError("Document was already sent")
+    base = "custom_" + ("_".join(_tokens(label))[:40] or "feld")
+    key, i = base, 2
+    while key in doc["fields"]:
+        key, i = f"{base}_{i}", i + 1
+    doc.setdefault("custom_fields", []).append({"key": key, "label": label[:1].upper() + label[1:]})
+    doc["fields"][key] = _empty_field()
+    doc["log"].append({"at": now(), "by": by, "kind": "field_added", "field": key, "new": label})
+    return key, True
+
+
+def remove_field(doc, key, by="user"):
+    """Remove a field the user added; registry fields of the type cannot be removed (they can be left empty)."""
+    custom = [c for c in doc.get("custom_fields", []) if c["key"] == key]
+    if not custom:
+        raise ValueError("Nur selbst hinzugefügte Felder können entfernt werden")
+    if doc["status"] == "sent":
+        raise ValueError("Document was already sent")
+    doc["custom_fields"] = [c for c in doc["custom_fields"] if c["key"] != key]
+    old = doc["fields"].pop(key, {}).get("value", "")
+    doc["log"].append({"at": now(), "by": by, "kind": "field_removed", "field": key, "old": old, "new": custom[0]["label"]})
     return doc
 
 
@@ -143,7 +208,7 @@ def accept_proposal(doc, key):
 
 def undo(doc, index):
     e = doc["log"][index]
-    if e.get("kind") != "edit" or e.get("undone"):
+    if e.get("kind") != "edit" or e.get("undone") or e["field"] not in doc["fields"]:   # field removed since
         return doc
     f = doc["fields"][e["field"]]
     doc["log"].append({"at": now(), "by": "user", "kind": "undo", "field": e["field"], "old": f["value"], "new": e["old"]})
@@ -155,7 +220,7 @@ def undo(doc, index):
 
 
 def missing(doc):
-    return [f[0] for f in DOC_TYPES[doc["type"]]["fields"] if f[2] and not doc["fields"][f[0]]["value"]]
+    return [f[0] for f in fields_of(doc) if f[2] and not doc["fields"][f[0]]["value"]]
 
 
 def set_status(doc, status, user="Bauleitung"):
@@ -163,7 +228,7 @@ def set_status(doc, status, user="Bauleitung"):
         raise ValueError("bad status")
     old = doc["status"]
     if status == "checked" and missing(doc):
-        raise ValueError("Required fields missing: " + ", ".join(field_meta(doc["type"], k)["label"] for k in missing(doc)))
+        raise ValueError("Required fields missing: " + ", ".join(field_meta(doc, k)["label"] for k in missing(doc)))
     if status == "sent" and old != "checked":
         raise ValueError("Mark as checked first")
     doc["status"] = status
@@ -179,8 +244,9 @@ def public(doc):
     """Doc plus metadata the UI needs."""
     t = DOC_TYPES[doc["type"]]
     d = dict(doc)
+    custom = {c["key"] for c in doc.get("custom_fields", [])}
     d["meta"] = {"en": t["en"], "basis": t["basis"], "description": t["description"],
-                 "fields": [{"key": f[0], "label": f[1], "required": f[2], "critical": f[3], "type": f[5], "derived": f[6]}
-                            for f in t["fields"]]}
+                 "fields": [{"key": f[0], "label": f[1], "required": f[2], "critical": f[3], "type": f[5], "derived": f[6],
+                             "custom": f[0] in custom} for f in fields_of(doc)]}
     d["missing"] = missing(doc)
     return d
