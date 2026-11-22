@@ -1,6 +1,7 @@
 """Generates the fictitious site documents + geotagged photos used to test site layout generation.
 
-Run from the repo root:   python site_documents/generate.py
+Run from the repo root:   python site_documents/generate.py            (German originals + photos + ground truth)
+                          python site_documents/generate.py --lang en  (English duplicates *_en.*, same geometry)
 Everything is invented (BW 27 über den Erlbach, fictitious). The anchor 48.2935 N / 11.8890 E is deliberately NOT the
 anchor of backend/data (48.3069 / 11.9081): tests can tell which data a layout came from.
 
@@ -24,6 +25,20 @@ sys.path.insert(0, str(ROOT / "backend"))
 from core.geo import wgs84_to_utm                      # noqa: E402
 from core.site_twin import point_in_poly, xy_to_gps   # noqa: E402
 
+SUF = ""                        # "" = German originals, "_en" = English duplicates (python site_documents/generate.py --lang en)
+TX = {   # German text; replaced by EN below when --lang en
+    "anchor_label": "Bezugspunkt BP0 – Brückenachse / Erlbach-Mitte", "note": "Fiktive Baustelle. Lageplan nach Norden ausgerichtet.",
+    "anchor_desc": "Bezugspunkt Brückenachse", "anchor_typ": "bezugspunkt", "boundary_desc": "Grundstücksgrenze", "boundary_typ": "grenze",
+    "corner": "Ecke", "csv_head": ["id", "bezeichnung", "typ", "breite", "laenge"],
+    "xlsx_title": "Bauzeitenplan", "xlsx_head": ["ID", "Vorgang", "Bauteil", "Beginn", "Ende", "Menge", "Einheit", "RW (UTM 32N)", "HW (UTM 32N)"],
+    "rep_title": "Baugrundgutachten – Auszug (fiktiv)", "rep_crs": "Koordinatenbezug: ETRS89 / UTM Zone 32N (EPSG:25832), Lage zusätzlich in WGS84.",
+    "rep_map": "Lageplan der Aufschlüsse im Maßstab 1:500 (Anlage 2).", "rep_cores": "Aufschlüsse (Kernbohrungen):",
+    "rock_from": "Fels ab", "below_ground": "u. GOK", "rep_eval1": "Bewertung: Ab ca. 9 bis 11 m unter Gelände steht verwitterter Kalkstein an.",
+    "rep_eval2": "Für Bohrpfähle im Bereich Widerlager 1 ist mit Felsbohrung zu rechnen.", "rep_fict": "Dieses Dokument ist fiktiv und dient nur zu Testzwecken.",
+    "docx_head": ["Bohrung", "Bezeichnung", "Rechtswert (UTM 32N)", "Hochwert (UTM 32N)", "Breite (WGS84)", "Länge (WGS84)"],
+    "docx_core": "Kernbohrung", "docx_eval": "Bewertung: Ab ca. 9 bis 11 m unter Gelände steht verwitterter Kalkstein an. Dieses Dokument ist fiktiv.",
+    "plan_name": "Lageplan BW 27 (fiktiv)",
+}
 ANCHOR = {"lat": 48.2935, "lon": 11.8890}
 LAY = {"origin": ANCHOR, "rotation_deg": 0}
 NAME = "Ersatzneubau Brücke BW 27 über den Erlbach (fiktiv)"
@@ -36,6 +51,45 @@ ZONES = {   # id: (name, corners in metres SW, SE, NE, NW)
     "BE": ("Baustelleneinrichtung", [(-70, -45), (-40, -45), (-40, -22), (-70, -22)]),
 }
 CORNER_NAMES = ["SW", "SO", "NO", "NW"]
+
+# English duplicates: same ids, geometry and dates; only the words change
+EN = {
+    "NAME": "Replacement bridge BW 27 over the Erlbach (fictitious)",
+    "ZONES": {"W1": "Abutment 1", "A1": "Axis 1", "A2": "Axis 2", "W2": "Abutment 2", "BE": "Site facilities"},
+    "CORNER_NAMES": ["SW", "SE", "NE", "NW"],
+    "CRANE": "Tower crane",
+    "SCHEDULE": {"W1_BP": "Bored piles Abutment 1 (8 × 12 m)", "W1_BET": "Concreting Abutment 1", "A1_BP": "Bored piles Axis 1 (4 × 12 m)",
+                 "A1_BET": "Concreting Axis 1", "A2_BP": "Bored piles Axis 2 (4 × 12 m)", "A2_BET": "Concreting Axis 2",
+                 "W2_BP": "Bored piles Abutment 2 (8 × 12 m)", "W2_BET": "Concreting Abutment 2",
+                 "UB1_MONT": "Superstructure erection (position follows with detailed design)"},
+    "UNIT": {"Vorgang": "activity"},
+    "TX": {"anchor_label": "Reference point BP0 – bridge axis / Erlbach centre", "note": "Fictitious site. Site plan oriented to north.",
+           "anchor_desc": "Reference point bridge axis", "anchor_typ": "reference", "boundary_desc": "Property boundary", "boundary_typ": "boundary",
+           "corner": "corner", "csv_head": ["id", "description", "type", "latitude", "longitude"],
+           "xlsx_title": "Construction schedule", "xlsx_head": ["ID", "Activity", "Element", "Start", "End", "Quantity", "Unit", "Easting (UTM 32N)", "Northing (UTM 32N)"],
+           "rep_title": "Geotechnical report – excerpt (fictitious)", "rep_crs": "Coordinate reference: ETRS89 / UTM zone 32N (EPSG:25832), position also in WGS84.",
+           "rep_map": "Site plan of the boreholes at scale 1:500 (annex 2).", "rep_cores": "Boreholes (core drillings):",
+           "rock_from": "rock from", "below_ground": "below ground", "rep_eval1": "Assessment: weathered limestone from approx. 9 to 11 m below ground.",
+           "rep_eval2": "Rock drilling is to be expected for bored piles at Abutment 1.", "rep_fict": "This document is fictitious and for testing only.",
+           "docx_head": ["Borehole", "Description", "Easting (UTM 32N)", "Northing (UTM 32N)", "Latitude (WGS84)", "Longitude (WGS84)"],
+           "docx_core": "Core drilling", "docx_eval": "Assessment: weathered limestone from approx. 9 to 11 m below ground. This document is fictitious.",
+           "plan_name": "Site plan BW 27 (fictitious)"},
+}
+
+
+def use_english():
+    """Switch the tables above to English (ids, coordinates and dates unchanged) and write *_en files."""
+    global SUF, NAME, CORNER_NAMES, CRANE, SCHEDULE
+    SUF, NAME, CORNER_NAMES = "_en", EN["NAME"], EN["CORNER_NAMES"]
+    for k, v in EN["TX"].items():
+        TX[k] = v
+    for zid in ZONES:
+        ZONES[zid] = (EN["ZONES"][zid], ZONES[zid][1])
+    de_to_en = {de_name: EN["ZONES"][zid] for zid, (de_name, _c) in zip(ZONES, [("Widerlager 1", 0), ("Achse 1", 0), ("Achse 2", 0), ("Widerlager 2", 0), ("Baustelleneinrichtung", 0)])}
+    for bk, (part, xy, rock) in list(BOREHOLES.items()):
+        BOREHOLES[bk] = (de_to_en.get(part, part), xy, rock)
+    CRANE = (CRANE[0], EN["CRANE"], CRANE[2])
+    SCHEDULE = [(a, EN["SCHEDULE"].get(a, n), part, x, y, q, EN["UNIT"].get(u, u)) for a, n, part, x, y, q, u in SCHEDULE]
 BOUNDARY = [(-75, -50), (75, -50), (75, 40), (60, 50), (-75, 50)]
 BOREHOLES = {"BK1": ("Widerlager 1", (-44, 0), 9.8), "BK2": ("Achse 1", (-15, 0), 11.2),
              "BK3": ("Achse 2", (15, 0), 10.5), "BK4": ("Widerlager 2", (44, 0), 8.9)}
@@ -85,20 +139,20 @@ def utm_txt(v):
 
 # ---------------------------------------------------------------- files
 def project_reference():
-    (UP / "project_reference.json").write_text(json.dumps({
+    (UP / f"project_reference{SUF}.json").write_text(json.dumps({
         "name": NAME, "crs": "EPSG:4326 (WGS84)", "rotation_deg": 0,
-        "anchor": {"label": "Bezugspunkt BP0 – Brückenachse / Erlbach-Mitte", **ANCHOR},
-        "note": "Fiktive Baustelle. Lageplan nach Norden ausgerichtet."}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        "anchor": {"label": TX["anchor_label"], **ANCHOR},
+        "note": TX["note"]}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def survey_csv():
-    rows = [("BP0", "Bezugspunkt Brückenachse", "bezugspunkt", (0, 0))]
-    rows += [(f"B{i}", "Grundstücksgrenze", "grenze", p) for i, p in enumerate(BOUNDARY, 1)]
+    rows = [("BP0", TX["anchor_desc"], TX["anchor_typ"], (0, 0))]
+    rows += [(f"B{i}", TX["boundary_desc"], TX["boundary_typ"], p) for i, p in enumerate(BOUNDARY, 1)]
     for zid, (name, corners) in ZONES.items():
-        rows += [(f"{zid}-{i}", f"{name}, Ecke {CORNER_NAMES[i - 1]}", "zone", p) for i, p in enumerate(corners, 1)]
-    with open(UP / "vermessung_punkte.csv", "w", newline="", encoding="utf-8") as f:
+        rows += [(f"{zid}-{i}", f"{name}, {TX['corner']} {CORNER_NAMES[i - 1]}", "zone", p) for i, p in enumerate(corners, 1)]
+    with open(UP / f"vermessung_punkte{SUF}.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, delimiter=";")
-        w.writerow(["id", "bezeichnung", "typ", "breite", "laenge"])
+        w.writerow(TX["csv_head"])
         for pid, desc, typ, p in rows:
             lat, lon = ll(p)
             w.writerow([pid, desc, typ, de(lat), de(lon)])
@@ -108,8 +162,8 @@ def schedule_xlsx():
     from openpyxl import Workbook
     wb = Workbook()
     ws = wb.active
-    ws.title = "Bauzeitenplan"
-    ws.append(["ID", "Vorgang", "Bauteil", "Beginn", "Ende", "Menge", "Einheit", "RW (UTM 32N)", "HW (UTM 32N)"])
+    ws.title = TX["xlsx_title"]
+    ws.append(TX["xlsx_head"])
     for aid, name, part, a, b, q, unit in SCHEDULE:
         if part:
             cx = sum(p[0] for p in ZONES[part][1]) / 4
@@ -120,24 +174,19 @@ def schedule_xlsx():
             ws.append([aid, name, part, a, b, q, unit, None, None])
     for col, wdt in zip("ABCDEFGHI", (10, 46, 9, 12, 12, 8, 9, 15, 14)):
         ws.column_dimensions[col].width = wdt
-    wb.save(UP / "bauzeitenplan.xlsx")
+    wb.save(UP / f"bauzeitenplan{SUF}.xlsx")
 
 
 def report_lines():
-    out = ["Baugrundgutachten – Auszug (fiktiv)", NAME, "",
-           "Koordinatenbezug: ETRS89 / UTM Zone 32N (EPSG:25832), Lage zusätzlich in WGS84.",
-           "Lageplan der Aufschlüsse im Maßstab 1:500 (Anlage 2).", "",
-           "Aufschlüsse (Kernbohrungen):"]
+    out = [TX["rep_title"], NAME, "", TX["rep_crs"], TX["rep_map"], "", TX["rep_cores"]]
     for i, (bk, (part, xy, rock)) in enumerate(BOREHOLES.items()):
         e, n = utm(xy)
         lat, lon = ll(xy)
         if i < 2:      # BK1, BK2: UTM and WGS84 on the line
-            out.append(f"{bk} ({part}): RW 32 {utm_txt(e)} HW {utm_txt(n)} | {de(lat, 6)}° N {de(lon, 6)}° E | Fels ab {de(rock, 1)} m")
+            out.append(f"{bk} ({part}): RW 32 {utm_txt(e)} HW {utm_txt(n)} | {de(lat, 6)}° N {de(lon, 6)}° E | {TX['rock_from']} {de(rock, 1)} m")
         else:          # BK3, BK4: UTM only
-            out.append(f"{bk} ({part}): RW 32 {utm_txt(e)} HW {utm_txt(n)} | Fels ab {de(rock, 1)} m u. GOK")
-    out += ["", "Bewertung: Ab ca. 9 bis 11 m unter Gelände steht verwitterter Kalkstein an.",
-            "Für Bohrpfähle im Bereich Widerlager 1 ist mit Felsbohrung zu rechnen.",
-            "Dieses Dokument ist fiktiv und dient nur zu Testzwecken."]
+            out.append(f"{bk} ({part}): RW 32 {utm_txt(e)} HW {utm_txt(n)} | {TX['rock_from']} {de(rock, 1)} m {TX['below_ground']}")
+    out += ["", TX["rep_eval1"], TX["rep_eval2"], TX["rep_fict"]]
     return out
 
 
@@ -163,25 +212,25 @@ def report_pdf():
     xref = len(out)
     out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode() + b"".join(f"{o:010d} 00000 n \n".encode() for o in offs)
     out += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
-    (UP / "baugrundgutachten.pdf").write_bytes(bytes(out))
+    (UP / f"baugrundgutachten{SUF}.pdf").write_bytes(bytes(out))
 
 
 def report_docx():
     from docx import Document
     d = Document()
-    d.add_heading("Baugrundgutachten – Auszug (fiktiv)", 1)
+    d.add_heading(TX["rep_title"], 1)
     d.add_paragraph(NAME)
-    d.add_paragraph("Koordinatenbezug: ETRS89 / UTM Zone 32N (EPSG:25832), Lage zusätzlich in WGS84.")
+    d.add_paragraph(TX["rep_crs"])
     t = d.add_table(rows=1, cols=6)
-    for c, h in zip(t.rows[0].cells, ["Bohrung", "Bezeichnung", "Rechtswert (UTM 32N)", "Hochwert (UTM 32N)", "Breite (WGS84)", "Länge (WGS84)"]):
+    for c, h in zip(t.rows[0].cells, TX["docx_head"]):
         c.text = h
     for bk, (part, xy, rock) in BOREHOLES.items():
         e, n = utm(xy)
         lat, lon = ll(xy)
-        for c, v in zip(t.add_row().cells, [bk, f"Kernbohrung {part}, Fels ab {de(rock, 1)} m", utm_txt(32_000_000 + e), utm_txt(n), de(lat, 7), de(lon, 7)]):
+        for c, v in zip(t.add_row().cells, [bk, f"{TX['docx_core']} {part}, {TX['rock_from']} {de(rock, 1)} m", utm_txt(32_000_000 + e), utm_txt(n), de(lat, 7), de(lon, 7)]):
             c.text = v
-    d.add_paragraph("Bewertung: Ab ca. 9 bis 11 m unter Gelände steht verwitterter Kalkstein an. Dieses Dokument ist fiktiv.")
-    d.save(UP / "baugrundgutachten.docx")
+    d.add_paragraph(TX["docx_eval"])
+    d.save(UP / f"baugrundgutachten{SUF}.docx")
 
 
 def plan_geojson():
@@ -193,7 +242,7 @@ def plan_geojson():
     lat, lon = ll(CRANE[2])
     feats.append({"type": "Feature", "properties": {"id": CRANE[0], "name": f"{CRANE[1]} {CRANE[0]}", "kind": "marker"},
                   "geometry": {"type": "Point", "coordinates": [round(lon, 8), round(lat, 8)]}})
-    (UP / "lageplan.geojson").write_text(json.dumps({"type": "FeatureCollection", "name": "Lageplan BW 27 (fiktiv)", "features": feats},
+    (UP / f"lageplan{SUF}.geojson").write_text(json.dumps({"type": "FeatureCollection", "name": TX["plan_name"], "features": feats},
                                                       indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
@@ -258,6 +307,11 @@ def expected():
 if __name__ == "__main__":
     UP.mkdir(exist_ok=True)
     GT.mkdir(exist_ok=True)
-    for fn in (project_reference, survey_csv, schedule_xlsx, report_pdf, report_docx, plan_geojson, photos, expected):
+    english = "--lang" in sys.argv and sys.argv[sys.argv.index("--lang") + 1:sys.argv.index("--lang") + 2] == ["en"]
+    if english:
+        use_english()
+    # photos and the ground truth are shared by both languages: only the German run writes them
+    steps = (project_reference, survey_csv, schedule_xlsx, report_pdf, report_docx, plan_geojson) + (() if english else (photos, expected))
+    for fn in steps:
         fn()
         print("ok", fn.__name__)

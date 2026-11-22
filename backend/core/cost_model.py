@@ -155,34 +155,38 @@ def _demo_dir():
 
 
 def drilling_rows() -> list[dict]:
-    p = _demo_dir() / "drilling" / "drilling_times.csv"
+    from .plan import demo_path
+    p = demo_path("drilling", "drilling_times.csv")
     if not p.exists():
         return []
     rows = []
     with p.open(encoding="utf-8") as f:
         for r in csv.DictReader(f):
             start, end = _hhmm(r.get("start")), _hhmm(r.get("end"))
-            stand = re.search(r"Stand\s*(\d{1,2}):(\d{2})", r.get("note_de") or "")
+            note = store.pick(r, "note")
+            stand = re.search(r"(?:Stand|as of)\s*(\d{1,2}):(\d{2})", note)
             until = end if end is not None else (int(stand.group(1)) + int(stand.group(2)) / 60 if stand else None)
-            rock = re.search(r"ab\s*(\d+(?:[.,]\d+)?)\s*m\s*Fels", r.get("note_de") or "", re.I)
+            rock = (re.search(r"ab\s*(\d+(?:[.,]\d+)?)\s*m\s*Fels", note, re.I)
+                    or re.search(r"rock\s+from\s*(\d+(?:[.,]\d+)?)\s*m", note, re.I))
             reached, target = float(r.get("depth_reached_m") or 0), float(r.get("target_depth_m") or 0)
             rows.append({"pile": r["pile_id"], "zone": r["zone_id"], "date": r["date"], "start": start, "until": until,
                          "until_label": r.get("end") or (f"{stand.group(1)}:{stand.group(2)}" if stand else ""),
                          "hours": (until - start) if start is not None and until is not None else None,
                          "reached": reached, "target": target, "crew": int(r.get("crew_count") or 0) or None,
                          "rock_from": float(rock.group(1).replace(",", ".")) if rock else None,
-                         "done": bool(end) and reached >= target > 0, "note": r.get("note_de") or "", "ref": f"drill:{r['pile_id']}"})
+                         "done": bool(end) and reached >= target > 0, "note": note, "ref": f"drill:{r['pile_id']}"})
     return rows
 
 
 def schedule_rows() -> list[dict]:
-    p = _demo_dir() / "schedule" / "bauzeitenplan.csv"
+    from .plan import demo_path
+    p = demo_path("schedule", "bauzeitenplan.csv")
     if not p.exists():
         return []
     out = []
     with p.open(encoding="utf-8") as f:
         for r in csv.DictReader(f):
-            out.append({"id": r["id"], "name": r["name_de"], "zone": r["zone_id"], "start": dt.date.fromisoformat(r["start_planned"]),
+            out.append({"id": r["id"], "name": store.pick(r, "name"), "zone": r["zone_id"], "start": dt.date.fromisoformat(r["start_planned"]),
                         "end": dt.date.fromisoformat(r["end_planned"]), "preds": [x for x in (r["predecessors"] or "").split(";") if x],
                         "per_day": float(r["planned_output_per_day"] or 0), "unit": r["unit"], "days": int(r["duration_days"] or 0),
                         "sensitive": r["weather_sensitive"] == "1", "milestone": r["is_milestone"] == "1"})

@@ -1,0 +1,47 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 1258 >>
+stream
+BT /F1 14 Tf 50 800 Td (Geotechnical report ñ excerpt \(fictitious\)) Tj ET
+BT /F1 9 Tf 50 780 Td (Replacement bridge BW 27 over the Erlbach \(fictitious\)) Tj ET
+BT /F1 9 Tf 50 766 Td () Tj ET
+BT /F1 9 Tf 50 752 Td (Coordinate reference: ETRS89 / UTM zone 32N \(EPSG:25832\), position also in WGS84.) Tj ET
+BT /F1 9 Tf 50 738 Td (Site plan of the boreholes at scale 1:500 \(annex 2\).) Tj ET
+BT /F1 9 Tf 50 724 Td () Tj ET
+BT /F1 9 Tf 50 710 Td (Boreholes \(core drillings\):) Tj ET
+BT /F1 9 Tf 50 696 Td (BK1 \(Abutment 1\): RW 32 714 226,8 HW 5 352 955,3 | 48,293500∞ N 11,888406∞ E | rock from 9,8 m) Tj ET
+BT /F1 9 Tf 50 682 Td (BK2 \(Axis 1\): RW 32 714 255,9 HW 5 352 956,4 | 48,293500∞ N 11,888798∞ E | rock from 11,2 m) Tj ET
+BT /F1 9 Tf 50 668 Td (BK3 \(Axis 2\): RW 32 714 285,9 HW 5 352 957,5 | rock from 10,5 m below ground) Tj ET
+BT /F1 9 Tf 50 654 Td (BK4 \(Abutment 2\): RW 32 714 314,9 HW 5 352 958,6 | rock from 8,9 m below ground) Tj ET
+BT /F1 9 Tf 50 640 Td () Tj ET
+BT /F1 9 Tf 50 626 Td (Assessment: weathered limestone from approx. 9 to 11 m below ground.) Tj ET
+BT /F1 9 Tf 50 612 Td (Rock drilling is to be expected for bored piles at Abutment 1.) Tj ET
+BT /F1 9 Tf 50 598 Td (This document is fictitious and for testing only.) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000344 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1654
+%%EOF

@@ -36,7 +36,7 @@ def summarize_ep(body: dict = Body(...)):
 
 @router.get("/demo/samples")
 def samples():
-    return {"minutes": summarize.SAMPLE_MINUTES, "email": summarize.SAMPLE_EMAIL}
+    return summarize.samples()
 
 
 @router.post("/demo/load")

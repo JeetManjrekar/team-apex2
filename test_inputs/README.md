@@ -12,6 +12,11 @@ this; the "Expected" column is what the system produced, not a wish.
 Audio files are in `test_inputs/audio/`. `00_…` is a real human voice; the others were generated with the Mac's
 built-in voices, so they are a little robotic but understandable.
 
+**Language:** ⋯ menu → English or Deutsch, then Reset demo + Load demo data (or start ▶ Real Time Preview). The demo
+loads in that language: English uses the `_en` duplicates of the demo files (place names **Abutment 1/2, Axis 1/2, Site
+facilities**, project "Replacement road bridge BW 12 over the Mühlbach"); German uses the original files (**Widerlager 1/2,
+Achse 1/2, Baustelleneinrichtung**). In English the inputs below can use either name ("Abutment 1" or "Widerlager 1").
+
 **What may differ between runs:** the AI's wording and the exact number of filled fields (±2). The structure,
 document type, key values and the money numbers in group E must match. The delay risk (E3) uses the live weather
 forecast and can change from day to day.
@@ -22,12 +27,12 @@ forecast and can change from day to day.
 
 | ID | Input | Expected | Pass if |
 |---|---|---|---|
-| A1 | Type: `Excavator idle since 10 am due to hydraulic failure at Widerlager 1, crew of 4 waiting` | "✓ Draft ready: Delay / obstruction notice", chime + green pill. Fields: start **2026-11-17, 10 am**, location **Widerlager 1**, cause **hydraulic failure**, client **Staatliches Bauamt**, contract **Bauvertrag Nr. 2026-117**. Asks **"How long will the obstruction presumably last?"** | Delay notice created, duration is asked, not invented |
+| A1 | Type: `Excavator idle since 10 am due to hydraulic failure at Widerlager 1, crew of 4 waiting` | "✓ Draft ready: Delay / obstruction notice", chime + green pill. Fields: start **2026-11-17, 10 am**, location **Abutment 1** (German: Widerlager 1), cause **hydraulic failure**, client **State Building Authority**, contract **Construction contract no. 2026-117**. Asks **"How long will the obstruction presumably last?"** | Delay notice created, duration is asked, not invented |
 | A1b | Answer: `about 2 days` | "✓ Expected duration. All filled in. Please review and approve." | Duration = "about 2 days", no new question |
 | A2 | Audio: `00_real_voice_rock_pile7_en.m4a` | Transcript "…pile 7 at abutment 1, hit rock at 4 meters depth…". "✓ Draft ready: Change order notice". Fields: **rock depth 4**, **drilling time pile 4.6 h**, **reference piles 4 h**, **ratio 3**, crew hours 13.8, expected ground **Ground investigation report, page 14**. Asks **"Is there a drilling log for pile 7?"** | Change order notice; 4.6 / 4 / 3 come from the drilling list (computed, not guessed) |
-| A3 | Audio: `01_excavator_breakdown_en.m4a` | Same as A1 (delay notice, Widerlager 1, 10 am, asks duration) | Voice gives the same result as typing |
+| A3 | Audio: `01_excavator_breakdown_en.m4a` | Same as A1 (delay notice, Abutment 1, 10 am, asks duration) | Voice gives the same result as typing |
 | A4 | Audio: `06_bagger_ausfall_de.m4a` (switch to **Deutsch** first) | "✓ Entwurf fertig: Behinderungsanzeige", Ort **Widerlager 1**, Beginn **17.11.2026, 10 Uhr**, asks "Wie lange wird die Behinderung voraussichtlich dauern?" | Whole answer in German |
-| A5 | Audio: `04_defect_en.m4a` | "✓ Draft ready: Defect notice", location **Achse 1**, description "crack in the concrete wall…". Asks which company is responsible and the deadline | Defect notice with Achse 1 |
+| A5 | Audio: `04_defect_en.m4a` | "✓ Draft ready: Defect notice", location **Axis 1** (the voice says "Achse 1"), description "crack in the concrete wall…". Asks which company is responsible and the deadline | Defect notice with Achse 1 |
 | A6 | Type: `I have concerns about concreting Achse 1 on Monday, the forecast says minus 3 degrees` | "✓ Draft ready: Notice of concern", location **Achse 1**. Asks when the concerns were identified | Notice of concern |
 | A7 | Type: `Concrete delivery of 20 cubic metres arrived at 9:30` | "Noted in the site diary; it goes into the daily report." | **No** document created, only a diary note |
 | A8 | Type: `Create today's daily report` | "Daily site report draft for 2026-11-17…". Fields: weather (rain showers, 12.5 mm), temperature **6 / 14 °C**, equipment (excavator, dump truck on 6 photos), work done **Bohrpfähle Widerlager 1… 4.6 m (P07: ab 4 m Fels)**, progress **76.6 / 96 m**. Asks which companies were on site | Daily report from data, staff left open |
@@ -53,7 +58,7 @@ forecast and can change from day to day.
 
 | ID | Input | Expected | Pass if |
 |---|---|---|---|
-| D1 | More → Summaries → **Sample email** → **Summarize** | "Pfahl 7 – weiteres Vorgehen", **2 open items**, deadline **Montag**, "Masked before AI: EMAIL_1, EMAIL_2, PHONE_1", box "Possible change order" | Contact data masked, deadline found |
+| D1 | More → Summaries → **Sample email** → **Summarize** | English: "Pile 7 – next steps", **2 open items**, deadline **Monday** (German: "Pfahl 7 – weiteres Vorgehen", Montag), "Masked before AI: EMAIL_1, EMAIL_2, PHONE_1", box "Possible change order" | Contact data masked, deadline found |
 
 ## E. Money (Dashboard → "Money & time")
 
@@ -80,5 +85,5 @@ Do A1, A1b and then type `Pile 7 at Widerlager 1 hit rock at 4 m, drilling takes
 
 ## Automated tests
 
-`cd backend && .venv/bin/python -m pytest tests -q` → **276 passed** (includes the cost model checks, the export guard
+`cd backend && .venv/bin/python -m pytest tests -q` → **281 passed** (includes the cost model checks, the export guard
 and the voice/location fixes).

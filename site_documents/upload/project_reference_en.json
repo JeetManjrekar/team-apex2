@@ -1,0 +1,11 @@
+{
+  "name": "Replacement bridge BW 27 over the Erlbach (fictitious)",
+  "crs": "EPSG:4326 (WGS84)",
+  "rotation_deg": 0,
+  "anchor": {
+    "label": "Reference point BP0 – bridge axis / Erlbach centre",
+    "lat": 48.2935,
+    "lon": 11.889
+  },
+  "note": "Fictitious site. Site plan oriented to north."
+}

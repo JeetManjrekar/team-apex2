@@ -1,0 +1,9 @@
+pile_id,zone_id,date,start,end,depth_reached_m,target_depth_m,rig_id,crew_count,note_en
+P01,W1,2026-11-12,06:45,10:33,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P02,W1,2026-11-12,11:15,15:27,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P03,W1,2026-11-13,06:45,10:45,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P04,W1,2026-11-13,11:15,15:15,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P05,W1,2026-11-16,06:45,10:39,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P06,W1,2026-11-16,11:15,15:21,12.0,12.0,BG-01,3,"sand/gravel, as planned"
+P07,W1,2026-11-17,06:45,,4.6,12.0,BG-01,3,rock from 4 m (as of 11:20)
+P08,W1,2026-11-17,,,0.0,12.0,BG-01,3,"planned, not started"
