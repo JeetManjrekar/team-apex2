@@ -7,13 +7,13 @@ and records 1080p frames; slides and scenes are rendered separately; ffmpeg asse
 ## Files
 | File | Role |
 |---|---|
-| `director.js` | Film autopilot (Playwright + installed Chrome). Resets the app, restores seed site data, plays the dictation WAV into Chrome's fake mic, opens sources, answers follow-up questions, clicks *Mark as checked*, shows the evidence appendix, AI Manager, 3D twin. Writes `raw/take_<time>/` (frames, `frames.ffconcat`, `markers.json`) |
+| `director.js` | Film autopilot (Playwright + installed Chrome). Resets the app, restores seed site data, places 4 photos on the plan (`photo_positions` in the config, as a user would by clicking), plays the dictation WAV into Chrome's fake mic, opens sources, answers follow-up questions, clicks *Mark as checked*, shows the evidence appendix, AI Manager, then lets the 3D twin tour run and marks each caption (`tour` markers). Writes `raw/take_<time>/` (frames, `frames.ffconcat`, `markers.json`) |
 | `director.config.json` | App data path, typed fallback text, source patterns, answers per missing field key, hold times |
 | `export_slides.ps1` | PowerPoint renders deck slides 2–4 (Morph + timed builds) → `raw/slides_2-4.mp4` |
 | `scenes.html`, `scenes.js` | Time-driven architecture (25 s) and closing (10 s) scenes → `raw/scene_*.mp4`. `preview.js arch:12` screenshots a moment |
 | `script.json` | Voiceover lines (one WAV each in `vo/<id>.wav`) and the German dictation + subtitle |
 | `vo/src/` | Voiceover MP3s from Christo's ElevenLabs clone (eleven_v4), one per line, plus `dictation_de.mp3`; `build_video.py` derives the WAVs |
-| `build_video.py` | Cuts the take by its markers, pads beats to their voice line, labels cuts, zooms, mixes voice + dictation, subtitles, loudnorm −14 LUFS → `out/BauBuddy_Demo.mp4`, refuses > 115 s |
+| `build_video.py` | Cuts the take by its markers (twin: 4 tour beats found by caption), pads beats to their voice line, labels cuts, zooms, mixes voice + dictation, subtitles, loudnorm −14 LUFS → `out/BauBuddy_Demo.mp4`, refuses > 115 s |
 | `raw/`, `out/` | Generated, gitignored |
 
 ## Re-render (Windows, ~10 min)
@@ -32,6 +32,16 @@ py build_video.py --dictation raw/dictation.wav
 - `raw/dictation.wav` must be 16-bit PCM; the director reads its length from the RIFF `data` chunk. Make it from the MP3:
   `ffmpeg -i vo/src/dictation_de.mp3 -af "adelay=500,apad=pad_dur=0.6" -ar 48000 -ac 1 -c:a pcm_s16le raw/dictation.wav`
 - Close the MP4 in any player before rebuilding (the builder writes a temp file and falls back to `BauBuddy_Demo_new.mp4` if the old one is locked).
+
+## UI notes (since `integrate-all-3` @ 203c829)
+- No Assistant tab any more: the director dictates into the AI Manager (`#bbMic`, tap again to stop), opens the draft via
+  "Entwurf öffnen" in Dokumente (`#docView`), answers questions in `#bbInp`.
+- The browser's own speech API is disabled in the director so the app records and sends the audio to its local Whisper.
+- The app language is set to German (`nw-lang=de`): the mic sends the app language to Whisper, and the dictation is German.
+- Sources are opened by field key (`source_fields` in the config); voice now arrives as text, so fields cite the message,
+  the soil report and the drilling list, not audio seconds.
+- If voice uploads return 502 "metadata_errors": PyAV ≥ 17 is installed; `pip install "av==16.1.0"` (pinned in the repo patch).
+- `py build_video.py --dictation raw/dictation.wav --no-subs` renders the version for a live pitch narrated over the muted video.
 
 ## Honesty rules baked in
 Only waiting time is cut, and every cut is labelled. The take is never edited otherwise. Lines claim only what the

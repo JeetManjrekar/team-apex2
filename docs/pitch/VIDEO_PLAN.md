@@ -1,6 +1,8 @@
 # BauBuddy · Demo video (submission, max 2:00) · plan + script
 
-> **Status 21.11.2026, 22:30: v1 rendered** (1:54) → `BauBuddy_Submission/1_demo_video/BauBuddy_Demo_v1.mp4`.
+> **Status 22.11.2026, 09:00: v3 rendered** (1:54) on the team's final UI (`integrate-all-3` @ `2d4da57`) → `BauBuddy_Submission/1_demo_video/BauBuddy_Demo_v3.mp4`.
+> v3: voice + chat in the AI Manager, drafts in Dokumente, app language German; line 05 now cites the drilling list (the new UI no longer
+> cites audio seconds); `--no-subs` render for the live pitch. v2: print view dropped, 3D twin ~10 s (photos placed on the plan before the take).
 > Voiceover generated with Christo's ElevenLabs clone (not self-recorded); dictation WAV also from the clone, fed live
 > into the app's Whisper. Final script = `video/script.json` (line 05 gained "That one, the exact seconds of the voice note").
 > How to re-render: `video/README.md`.

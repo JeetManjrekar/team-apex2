@@ -36,6 +36,11 @@ const wavSeconds = f => {   // walk the RIFF chunks (ffmpeg adds a LIST chunk be
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 810 }, deviceScaleFactor: 4 / 3, permissions: ['microphone'], locale: 'en-US' });
   await ctx.addInitScript(() => {                     // no spoken TTS in the film; our voiceover carries the sound
     try { window.speechSynthesis.speak = () => {}; } catch {}
+    // use the app's recording path (MediaRecorder → /api/voice → local Whisper), not the browser's cloud speech API
+    try { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; } catch {}
+    try { window.SpeechRecognition = undefined; window.webkitSpeechRecognition = undefined; } catch {}
+    // German app language: the dictation is German (the mic sends this language to Whisper) and documents keep their German names
+    try { localStorage.setItem('nw-lang', 'de'); } catch {}
   });
   const page = await ctx.newPage();
   page.on('pageerror', e => console.log('[page error]', e.message));
@@ -48,6 +53,10 @@ const wavSeconds = f => {   // walk the RIFF chunks (ffmpeg adds a LIST chunk be
   for (const f of ['site_layout.json', 'photos.json']) fs.copyFileSync(path.join(DATA, 'seed', f), path.join(DATA, f));
   fs.mkdirSync(path.join(DATA, 'uploads'), { recursive: true });
   for (const f of fs.readdirSync(path.join(DATA, 'seed', 'uploads'))) fs.copyFileSync(path.join(DATA, 'seed', 'uploads', f), path.join(DATA, 'uploads', f));
+  for (const [pid, pos] of Object.entries(CFG.photo_positions || {})) {    // photos onto the plan (what a user does by clicking)
+    if (pid.startsWith('_')) continue;
+    await page.request.patch(`${BASE}/api/photos/${pid}`, { data: pos });
+  }
   const health = await (await page.request.get(BASE + '/api/config')).json().catch(() => ({}));
   console.log('LLM mode:', JSON.stringify(health.llm || health.extraction || '?'));
 
@@ -71,94 +80,101 @@ const wavSeconds = f => {   // walk the RIFF chunks (ffmpeg adds a LIST chunk be
   await page.waitForFunction(() => document.querySelector('#splash')?.hidden, null, { timeout: 15000 }).catch(() => {});
   await settle(400);
 
-  // ================= 1 · dictation → draft =================
-  await page.evaluate(() => NW.TAB('assist'));
-  await settle(700);
-  await page.evaluate(() => document.querySelector('#chat')?.scrollIntoView({ block: 'end', behavior: 'smooth' }));   // chat + draft fill the frame
-  await settle(600);
+  // ================= 1 · dictation in the AI Manager → draft =================
+  // (UI since integrate-all-3 @ 203c829: no Assistant tab; voice + chat live in the AI Manager, drafts open in Documents)
+  const lastAi = () => page.evaluate(() => [...document.querySelectorAll('#bbHist .bb-msg.ai')].pop()?.textContent || '');
+  const aiCount = () => page.evaluate(() => document.querySelectorAll('#bbHist .bb-msg.ai').length);
+  const waitAi = async n0 => {                        // the AI reply after a message (drafting can take ~20-30 s)
+    await page.waitForFunction(n => document.querySelectorAll('#bbHist .bb-msg.ai').length > n, n0, { timeout: 240000 });
+    await page.waitForFunction(() => !/processing|executing|analysing/i.test(document.querySelector('#bbStateTxt')?.textContent || ''), null, { timeout: 60000 }).catch(() => {});
+  };
+  await page.evaluate(() => NW.TAB('command'));
+  await settle(900);
   mark('assist');
+  let n0 = await aiCount();
   if (TYPED) {
-    await page.click('#inp');
-    await page.type('#inp', CFG.dictation_text, { delay: 28 });
+    await page.click('#bbInp');
+    await page.type('#bbInp', CFG.dictation_text, { delay: 28 });
     mark('dictation_start'); await settle(400);
-    await page.click('#send');
+    await page.click('#bbSend');
   } else {
-    await page.click('#mic');
+    await page.click('#bbMic');                        // records (MediaRecorder) → POST /api/voice → local Whisper
     mark('dictation_start');
-    await settle(wavSeconds(WAV) * 1000 + 1300);         // let the whole sentence play, captions appear live
+    await settle(wavSeconds(WAV) * 1000 + 900);
+    await page.click('#bbMic');                        // tap again to stop
     mark('dictation_stop');
-    await page.click('#vSend');
   }
-  await page.waitForFunction(() => document.querySelector('#assistDoc h2'), null, { timeout: 240000 });
-  await settle(700);
-  mark('draft_ready', { title: await page.textContent('#assistDoc h2') });
+  await waitAi(n0);
+  await settle(600);
+  const firstReply = await lastAi();
+  mark('draft_ready', { reply: firstReply.slice(0, 240) });
   await settle(CFG.hold.draft);
 
-  // ================= 2 · proof: open two source quotes =================
-  const openSource = async (re, beat) => {
-    const ok = await page.evaluate(src => {
-      const r = new RegExp(src, 'i');
-      const f = [...document.querySelectorAll('#assistDoc .f')].find(x => r.test(x.querySelector('.src')?.textContent || ''));
-      if (!f) return false;
-      f.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => f.querySelector('[data-q]')?.click(), 700);
-      f.dataset.film = '1'; return f.dataset.k;
-    }, re);
-    if (ok) { await settle(800); const box = await page.locator(`#assistDoc .f[data-k="${ok}"]`).boundingBox(); mark(beat, { field: ok, box }); await settle(CFG.hold.source); }
-    else console.log(`  (no source matching /${re}/ — beat ${beat} skipped)`);
+  // open the draft (the reply's "Open draft" button) → Documents tab
+  const openDraft = async beat => {
+    const btn = page.locator('#bbHist .bb-msg.ai [data-open]').last();
+    await btn.hover(); await settle(400); await btn.click();
+    await page.waitForFunction(() => document.querySelector('#docView h2'), null, { timeout: 30000 });
+    await settle(900);
+    mark(beat, { title: await page.textContent('#docView h2') });
   };
-  await openSource(CFG.source_patterns.document, 'source_document');
-  await openSource(CFG.source_patterns.audio, 'source_audio');
+  await openDraft('doc_open');
+  const docId = await page.evaluate(() => typeof docsSel !== 'undefined' ? docsSel : null);
 
-  // ================= 3 · gap → question → answer =================
-  const docId = await page.evaluate(() => typeof activeDoc !== 'undefined' ? activeDoc : null);
+  // ================= 2 · proof: open two source quotes =================
+  const openSource = async (key, beat) => {        // scroll to a field by key and open its source quote
+    const ok = await page.evaluate(k => {
+      const f = document.querySelector(`#docView .f[data-k="${k}"]`);
+      if (!f || !f.querySelector('[data-q]')) return false;
+      f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => f.querySelector('[data-q]').click(), 700);
+      return true;
+    }, key);
+    if (ok) { await settle(800); const box = await page.locator(`#docView .f[data-k="${key}"]`).boundingBox(); mark(beat, { field: key, box }); await settle(CFG.hold.source); }
+    else console.log(`  (field ${key} has no source — beat ${beat} skipped)`);
+  };
+  await openSource(CFG.source_fields.first, 'source_document');
+  await openSource(CFG.source_fields.second, 'source_second');
+
+  // ================= 3 · gap → question (AI Manager) → answer =================
   const missingNow = async () => docId ? (await (await page.request.get(`${BASE}/api/docs/${docId}`)).json()).missing || [] : [];
   let missing = await missingNow(), round = 0;
   if (!missing.length) console.log('  (no missing field — gap beat skipped)');
-  while (missing.length && round < 3) {      // answer what BauBuddy asks, one question at a time, by field key
+  while (missing.length && round < 3) {
     round++;
-    await page.evaluate(() => { const m = document.querySelector('#msgs'); m.scrollTop = 1e9; });
-    const question = await page.evaluate(() => [...document.querySelectorAll('#msgs .m.assistant')].pop()?.textContent || '');
+    await page.evaluate(() => NW.TAB('command'));
+    await settle(800);
+    await page.evaluate(() => { const h = document.querySelector('#bbHist'); if (h) h.scrollTop = 1e9; });
+    const question = await lastAi();
     const key = missing[0];
     const ans = CFG.answers[key];
     if (!ans) { console.log(`  (no prepared answer for ${key} — add one to director.config.json)`); break; }
     mark(round === 1 ? 'question' : `question_${round}`, { missing, question: question.slice(0, 240) });
     await settle(CFG.hold.question);
-    await page.click('#inp');
-    await page.type('#inp', ans, { delay: 30 });
+    await page.click('#bbInp');
+    await page.type('#bbInp', ans, { delay: 30 });
     await settle(300);
     mark(round === 1 ? 'answer_sent' : `answer_sent_${round}`, { field: key, answer: ans });
-    const n0 = await page.evaluate(() => document.querySelectorAll('#msgs .m').length);
-    await page.click('#send');
-    await page.waitForFunction(n => document.querySelectorAll('#msgs .m').length >= n + 2, n0, { timeout: 120000 }).catch(() => {});
-    await settle(1200);
-    mark(round === 1 ? 'answer_filled' : `answer_filled_${round}`);
+    n0 = await aiCount();
+    await page.click('#bbSend');
+    await waitAi(n0);
+    await settle(900);
+    mark(round === 1 ? 'answer_filled' : `answer_filled_${round}`, { reply: (await lastAi()).slice(0, 200) });
     await settle(CFG.hold.answer);
     missing = await missingNow();
   }
 
-  // ================= 4 · human click → Word =================
-  await page.evaluate(() => document.querySelector('#assistDoc')?.scrollTo({ top: 0, behavior: 'smooth' }));
-  await settle(700);
-  const chk = page.locator('#assistDoc [data-st="checked"]');
+  // ================= 4 · reopen the (now complete) draft → human click =================
+  await openDraft('doc_reopen');
+  await page.evaluate(() => document.querySelector('#docView')?.scrollIntoView({ block: 'start' }));
+  const chk = page.locator('#docView [data-st="checked"]');
   if (await chk.count()) {
-    await chk.hover(); await settle(500);
+    await chk.hover(); await settle(600);
     await chk.click();
     await settle(900);
     mark('checked', { error: (await page.textContent('#derr').catch(() => '')) || undefined });
-  }
+  } else console.log('  (no "Mark as checked" button)');
   await settle(CFG.hold.checked);
-  if (docId) {   // the Word file downloads; on screen we show the same document with its evidence appendix (print view)
-    mark('word_view');
-    await page.goto(`${BASE}/api/docs/${docId}/print`, { waitUntil: 'networkidle' });
-    await settle(1500);
-    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
-    await settle(CFG.hold.word);
-    mark('word_appendix');
-    await settle(1200);
-    await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
-    await page.evaluate(() => { const s = document.querySelector('#splash'); if (s) s.hidden = true; });
-  }
 
   // ================= 5 · AI site manager + 3D twin =================
   await page.evaluate(() => NW.TAB('command'));
@@ -173,8 +189,20 @@ const wavSeconds = f => {   // walk the RIFF chunks (ffmpeg adds a LIST chunk be
   await settle(900);
   mark('twin');
   await page.evaluate(() => { window.SiteTwin?.tour?.(); });
-  await settle(CFG.hold.twin);
-  await page.evaluate(() => window.SiteTwin?.stopTour?.());
+  // follow the app's own tour captions so the edit can pick its best beats
+  const tEnd = Date.now() + (CFG.hold.twin_max || 60000);
+  let last = '';
+  while (Date.now() < tEnd) {
+    const cap = await page.evaluate(() => {
+      const lt = document.querySelector('#lowerThird');
+      return lt?.classList.contains('on') ? `${document.querySelector('#ltK')?.textContent}|${document.querySelector('#ltT')?.textContent}` : '';
+    });
+    if (cap && cap !== last) { last = cap; const [k, t] = cap.split('|'); mark('tour', { kicker: k, title: t }); }
+    const touring = await page.evaluate(() => document.querySelector('#twTour')?.classList.contains('on'));
+    if (!touring && Date.now() > tEnd - (CFG.hold.twin_max || 60000) + 3000) break;
+    await settle(150);
+  }
+  await settle(800);
   mark('end');
   await settle(500);
 

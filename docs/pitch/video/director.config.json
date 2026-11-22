@@ -6,19 +6,56 @@
     "audio": "Diktat|Sprachnotiz|audio:"
   },
   "answers": {
-    "occurred_at": "Heute um 11:30 Uhr.",
+    "occurred_at": "Heute um 11:30 Uhr. Bohrprotokoll Nr. 7 vom 17.11.2026 liegt vor.",
     "drilling_log_ref": "Bohrprotokoll Nr. 7 vom 17.11.2026 liegt vor.",
     "ordered_by": "Angeordnet von der Bauleitung des Bauherrn."
   },
-  "agent_command": "Check today's progress and safety",
+  "agent_command": "Prüfe den heutigen Fortschritt und die Sicherheit",
   "hold": {
     "draft": 2500,
     "source": 3200,
     "question": 3000,
     "answer": 2400,
-    "checked": 1500,
+    "checked": 4500,
     "word": 3200,
     "agent": 9000,
-    "twin": 11000
+    "twin": 11000,
+    "twin_max": 60000
+  },
+  "photo_positions": {
+    "_note": "All seed photos show the excavator loading dump trucks = earthworks zone 'erd' (x 35..70, y -12..45). Placed on its edges looking in; the app's pinhole model then puts every detected machine inside the zone. a7b1a4f1, 4d007fe8, 8d694186 are duplicate images and stay unplaced.",
+    "6342cd1c": {
+      "site_xy": [
+        66,
+        40
+      ],
+      "heading": 212.6
+    },
+    "ecae8902": {
+      "site_xy": [
+        40,
+        -8
+      ],
+      "heading": 28.2
+    },
+    "07179547": {
+      "site_xy": [
+        66,
+        -8
+      ],
+      "heading": 325.3
+    },
+    "1c92357b": {
+      "site_xy": [
+        38,
+        42
+      ],
+      "heading": 149.0
+    }
+  },
+  "source_fields": {
+    "_note": "open these fields' sources by key (since 203c829 voice arrives as text, so the soil report and the drilling list are the citable sources)",
+    "first": "expected_ground",
+    "second": "drilling_time_h"
   }
 }

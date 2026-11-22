@@ -43,26 +43,36 @@ def timeline(take: Path):
     # 0:00-0:25 · slides (story 0-12.3, gap, solution sped up to fit)
     segs += [dict(src="slides", a=0.0, b=12.3, vo="01_hook"),
              dict(src="slides", a=12.3, b=18.0, vo="02_solution", vo_at=0.2),
-             dict(src="slides", a=18.0, b=29.2, speed=1.45)]
+             dict(src="slides", a=18.0, b=29.2, speed=1.8)]
     # 0:25 · live demo
     dict_end = t("dictation_stop") + 1.0 if "dictation_stop" in m else t("dictation_start") + 2.0
-    segs += [dict(src="take", a=max(0.0, t("assist") - 1.6), b=dict_end, vo="03_live", dictation=not typed,
-                  dictation_at=t("dictation_start") - max(0.0, t("assist") - 1.6))]
+    segs += [dict(src="take", a=max(0.0, t("assist") - 1.0), b=dict_end, vo="03_live", dictation=not typed,
+                  dictation_at=t("dictation_start") - max(0.0, t("assist") - 1.0))]
     wait = t("draft_ready") - dict_end
-    proof_end = t("source_audio") + 3.0 if "source_audio" in m else t("source_document") + 3.2
+    proof_end = t("source_second") + 3.0 if "source_second" in m else t("source_document") + 3.2
     segs += [dict(src="take", a=t("draft_ready") - 0.5, b=t("source_document") - 0.2, label=f"{wait:.0f} s later", vo="04_draft"),
              dict(src="take", a=t("source_document") - 0.2, b=proof_end, vo="05_proof",
                   zoom=dict(box=m["source_document"].get("box"), z=1.55))]
     if "question" in m:
         wait2 = t("answer_filled") - t("answer_sent") - 1.0
-        segs += [dict(src="take", a=t("question") - 0.3, b=t("answer_sent") + 1.0, vo="06_gap"),
+        segs += [dict(src="take", a=t("question") - 0.3, b=t("answer_sent") + 1.0, vo="06_gap",
+                      zoom=dict(box={"x": 30, "y": 330, "width": 360, "height": 260}, z=1.6)),   # AI Manager chat column (1440 layout)
                  dict(src="take", a=t("answer_filled") - 1.2, b=t("answer_filled") + 1.6, label=f"{wait2:.0f} s later")]
-    segs += [dict(src="take", a=t("checked") - 1.6, b=t("checked") + 1.4, vo="07_click"),
-             dict(src="take", a=t("word_view") + 0.9, b=t("word_appendix") + 0.6, speed=1.3),
-             dict(src="take", a=t("agent") + 0.2, b=t("agent") + 6.8, vo="08_site"),
-             dict(src="take", a=t("twin") + 1.5, b=t("twin") + 5.5)]
+    click_from = t("doc_reopen") - 0.3 if "doc_reopen" in m else t("checked") - 1.6   # completed draft reopens, then the click
+    segs += [dict(src="take", a=click_from, b=t("checked") + 3.6, vo="07_click"),
+             dict(src="take", a=t("agent") + 0.2, b=t("agent") + 3.7, vo="08_site")]
+    # 3D twin: the best beats of the app's own tour, found by its captions (the pile-row "Structure" caption is skipped:
+    # it divides metres drilled by the pile count, an app bug)
+    tour = [x for x in json.loads((take / "markers.json").read_text(encoding="utf-8"))["markers"] if x["beat"] == "tour"]
+    def cap(kicker, title=None):
+        return next(x["t"] for x in tour if x["kicker"].startswith(kicker) and (title is None or title in x["title"]))
+    ov = tour[0]["t"]                                  # the tour opens with the site overview (caption text depends on language)
+    segs += [dict(src="take", a=ov + 0.4, b=ov + 2.9),
+             dict(src="take", a=cap("Zone", "Bohrpfähle") + 0.2, b=cap("Zone", "Bohrpfähle") + 2.7),
+             dict(src="take", a=cap("Zone", "Erdbau") + 0.2, b=cap("Zone", "Erdbau") + 2.7),
+             dict(src="take", a=cap("AI detection") + 0.2, b=cap("AI detection") + 2.9)]
     # 1:20 · technical approach, 1:45 · close
-    segs += [dict(src="arch", a=0.0, b=25.0, vo="09_tech", vo_at=0.4, speed=1.15),
+    segs += [dict(src="arch", a=0.0, b=25.0, vo="09_tech", vo_at=0.4, speed=1.2),
              dict(src="close", a=0.0, b=10.0, vo="10_close", vo_at=0.2)]
     return segs
 
@@ -125,6 +135,7 @@ def main():
     ap.add_argument("--take", default=None)
     ap.add_argument("--placeholder-vo", action="store_true")
     ap.add_argument("--dictation", default=None, help="WAV of the German dictation used in the take")
+    ap.add_argument("--no-subs", action="store_true", help="no burned-in subtitles (for a live pitch narrated over the muted video)")
     a = ap.parse_args()
     take = Path(a.take) if a.take else sorted(RAW.glob("take_*"))[-1]
     script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
@@ -194,9 +205,9 @@ def main():
            f"amix=inputs={n}:normalize=0,apad,atrim=0:{total:.3f},loudnorm=I=-14:TP=-1.5:LRA=11[a]") if n else None
     style = "FontName=Segoe UI,FontSize=17,PrimaryColour=&H00F8F4F2,BackColour=&H99000000,BorderStyle=4,Outline=0,Shadow=0,MarginV=18"
     cmd = ["ffmpeg", "-v", "error", "-y", "-i", "video.mp4", *audio_in,
-           "-vf", f"subtitles=subs.srt:force_style='{style}'"]
+           *([] if a.no_subs else ["-vf", f"subtitles=subs.srt:force_style='{style}'"])]
     cmd += (["-filter_complex", mix, "-map", "0:v", "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] if mix else ["-an"])
-    final = OUT / "BauBuddy_Demo.mp4"
+    final = OUT / ("BauBuddy_Demo_nosubs.mp4" if a.no_subs else "BauBuddy_Demo.mp4")
     part = tmp / "final.mp4"            # encode next to the parts, swap in only when complete (a player may hold the old file)
     cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "final.mp4"]
     run(cmd, cwd=tmp)

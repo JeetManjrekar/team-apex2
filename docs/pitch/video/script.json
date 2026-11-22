@@ -1,16 +1,46 @@
 {
   "_note": "Voiceover lines, one WAV per id in vo/<id>.wav (Christo's voice). 'sub' is the burned-in subtitle; dictation is the German voice note under the demo.",
   "vo": [
-    {"id": "01_hook", "text": "Eleven thirty on a bridge site. Pile seven hits rock at four metres. The soil report promised sand down to nine. That's a claim worth real money, if someone proves it today."},
-    {"id": "02_solution", "text": "The proof sits in voice notes, photos and emails. It never reaches the office. BauBuddy changes that: talk on site, get the formal notice, with a source behind every field."},
-    {"id": "03_live", "text": "This is the live prototype."},
-    {"id": "04_draft", "text": "Local Whisper transcribes it. Claude extracts the fields and drafts the Nachtragsmeldung."},
-    {"id": "05_proof", "text": "Every value cites its evidence. This one, page fourteen of the client's soil report. That one, the exact seconds of the voice note."},
-    {"id": "06_gap", "text": "Nothing is guessed. A required detail has no source, so the field stays empty and BauBuddy asks. One answer, and it's filled."},
-    {"id": "07_click", "text": "The site manager checks it. Only that click releases it, as a Word file with an evidence appendix for the office."},
-    {"id": "08_site", "text": "And the AI site manager watches the whole site: which piles fall behind, where, and why, every finding linked to its source."},
-    {"id": "09_tech", "text": "Under the hood: voice, photos, emails and schedule rows become evidence chunks with stable IDs. Claude proposes each field, but code enforces the rules: no valid citation or low confidence means no value. Computed values come from Python, and personal data is masked before any model sees it."},
-    {"id": "10_close", "text": "On new builds, six percent of building cost runs through Nachträge. BauBuddy makes sure they're filed, with proof, on time. We're Team Apex."}
+    {
+      "id": "01_hook",
+      "text": "Eleven thirty on a bridge site. Pile seven hits rock at four metres. The soil report promised sand down to nine. That's a claim worth real money, if someone proves it today."
+    },
+    {
+      "id": "02_solution",
+      "text": "The proof sits in voice notes, photos and emails. It never reaches the office. BauBuddy changes that: talk on site, get the formal notice, with a source behind every field."
+    },
+    {
+      "id": "03_live",
+      "text": "This is the live prototype."
+    },
+    {
+      "id": "04_draft",
+      "text": "Local Whisper transcribes it. Claude extracts the fields and drafts the Nachtragsmeldung."
+    },
+    {
+      "id": "05_proof",
+      "text": "Every value cites its evidence. This one, page fourteen of the client's soil report. That one, row seven of the foreman's drilling list."
+    },
+    {
+      "id": "06_gap",
+      "text": "Nothing is guessed. A required detail has no source, so the field stays empty and BauBuddy asks. One answer, and it's filled."
+    },
+    {
+      "id": "07_click",
+      "text": "The site manager checks it. Only that click releases it, as a Word file with an evidence appendix for the office."
+    },
+    {
+      "id": "08_site",
+      "text": "And the AI site manager watches the whole site: which piles fall behind, where, and why, every finding linked to its source."
+    },
+    {
+      "id": "09_tech",
+      "text": "Under the hood: voice, photos, emails and schedule rows become evidence chunks with stable IDs. Claude proposes each field, but code enforces the rules: no valid citation or low confidence means no value. Computed values come from Python, and personal data is masked before any model sees it."
+    },
+    {
+      "id": "10_close",
+      "text": "On new builds, six percent of building cost runs through Nachträge. BauBuddy makes sure they're filed, with proof, on time. We're Team Apex."
+    }
   ],
   "dictation": {
     "de": "Pfahl sieben: um elf Uhr dreißig bei vier Meter auf Fels gestoßen, laut Baugrundgutachten erst ab neun Meter erwartet. Bohrzeit sechs Stunden statt zwei.",
