@@ -70,7 +70,7 @@ def summarize(text):
     return res
 
 
-SAMPLE_MINUTES = """Baubesprechung Nr. 7 – Ersatzneubau Brücke BW 7 – 20.11.2026
+SAMPLE_MINUTES = """Baubesprechung Nr. 7 – Ersatzneubau Brücke BW 12 – 20.11.2026
 Teilnehmer: Bauherr (Hr. Weber), Bauleitung (J. Manjrekar), Tragwerksplanung (Fr. Schulz), NU Bohrarbeiten (Hr. Kaya)
 
 1. Bohrpfähle Achse 10: Pfahl 7 bei 4 m auf Fels gestoßen, laut Baugrundgutachten erst ab 9 m erwartet. Weiteres Vorgehen offen.

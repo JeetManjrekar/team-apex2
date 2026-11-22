@@ -279,6 +279,11 @@ html[lang="de"] .f.miss label::after{content:"fehlt · Rückfrage offen"}
 .src a.gl-chip{display:inline-flex;gap:6px;align-items:center;background:var(--doc-chip);border:1px solid var(--doc-line);border-radius:var(--r-pill);
   padding:2px 10px;font-weight:550;font-size:12.5px;cursor:pointer;transition:border-color .18s,background .18s;max-width:100%}
 .src a.gl-chip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* long multi-source labels (P01…P06) must truncate, never widen the page */
+.src{min-width:0;max-width:100%}
+.src a.gl-chip{min-width:0}
+.src a.gl-chip span:last-child{min-width:0}
+#docView,#docView .f{min-width:0;overflow-wrap:anywhere}
 .src a.gl-chip:hover{border-color:rgba(255,122,0,.6);background:var(--hover-tint)}
 .src code{display:none}
 .src .gl-low{color:var(--warn);font-weight:650}

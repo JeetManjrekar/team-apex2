@@ -147,6 +147,11 @@ function loop() {
   const t = performance.now() / 1000;
   if (selRing) { selRing.material.opacity = 0.55 + 0.35 * Math.sin(t * 1.7); selRing.scale.setScalar(1 + 0.04 * Math.sin(t * 3.4)); }
   if (!RM) for (const f of S.anims) f(t);
+  presenceTick(t);
+  if (S.orbit && !S.flying && !S.touring && !RM) {          // slow cinematic orbit (pinned preview window)
+    const off = camera.position.clone().sub(controls.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.0016);
+    camera.position.copy(controls.target).add(off); camera.lookAt(controls.target);
+  }
   if (composer) composer.render(); else renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
   declutter();
@@ -186,6 +191,8 @@ async function load(keepView) {
   if (!keepView || !S.built) setMode(S.mode, true);
   S.built = true;
   restoreSelection();
+  if (S.presence) setPresence(S.presence);
+  if (S.costPins) setCostPins(S.costPins);
 }
 
 const photo = id => S.data.photos.find(p => p.id === id);
@@ -347,6 +354,7 @@ function build() {
   const bnd = L.boundary.length >= 3 ? L.boundary : [[-30, -20], [30, -20], [30, 20], [-30, 20]];   // empty layout: neutral view window only, nothing drawn
   const xs = bnd.map(p => p[0]), ys = bnd.map(p => p[1]);
   const b = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  S.bounds = b;
   const unplaced = S.data.photos.filter(p => !p.plan_xy);
   const stripY = b.y0 - 14;
   const yLow = unplaced.length ? stripY - 8 : b.y0;
@@ -801,7 +809,7 @@ function objFor(sel) {
 function select(sel, opts = {}) {
   S.sel = sel;
   if (selRing) { root.remove(selRing); selRing = null; }
-  S.labels.det.forEach(l => { if (l.element && l.userData.det) { const { p, d } = l.userData.det; const on = sel?.type === "det" && sel.id === `${p.id}:${d.index}`; l.element.innerHTML = detCard(p, d, on); l.element.classList.toggle("open", on); } });
+  S.labels.det.forEach(l => { if (l.element && l.userData.det) { const { p, d } = l.userData.det; const on = !S.touring && sel?.type === "det" && sel.id === `${p.id}:${d.index}`; l.element.innerHTML = detCard(p, d, on); l.element.classList.toggle("open", on); } });
   for (const o of S.pickables) if (o.userData.pick.type === "zone") o.material.opacity = sel?.type === "zone" && sel.id === o.userData.pick.id ? 0.26 : o.userData.baseOpacity;
   const obj = objFor(sel);
   if (obj && sel.type !== "zone") {
@@ -1040,13 +1048,41 @@ async function patch(id, body) {
 }
 
 /* ------------------------------------------------------------------ layout editor */
+let layEd = null;
+const LD = (() => { try { return localStorage.getItem("nw-lang") === "de"; } catch { return false; } })();
+const LL = (en, de) => (LD ? de : en);
+function editor() {
+  if (!layEd) {
+    layEd = window.LayoutEditor.mount($("#twLayEd"), {});
+    $("#twLayAdv").addEventListener("toggle", () => { if ($("#twLayAdv").open) $("#twLayTxt").value = JSON.stringify(layEd.get(), null, 2); });
+    $("#twLayApply").onclick = () => {
+      try { layEd.set(JSON.parse($("#twLayTxt").value)); $("#twLayErr").textContent = ""; $("#twLayAdv").open = false; }
+      catch (e) { $("#twLayErr").textContent = LL("JSON error: ", "JSON-Fehler: ") + e.message; }
+    };
+    // dialog texts in the chosen language
+    $("#twDlgT").textContent = LL("Site layout", "Baustellen-Layout");
+    $("#twDlgS").textContent = LL("Draw and name the areas of your site. Changes apply to the 3D twin, photos and safety rules.",
+                                  "Bereiche der Baustelle zeichnen und benennen. Änderungen gelten für 3D-Zwilling, Fotos und Sicherheitsregeln.");
+    $("#twSrcLbl").textContent = LL("Add site documents…", "Baustellendokumente hinzufügen…");
+    $("#twSuggest").textContent = LL("Suggest layout from data", "Layout aus Daten vorschlagen");
+    $("#twSrcClear").textContent = LL("Clear documents", "Dokumente entfernen");
+    $("#twLayAdvS").textContent = LL("Advanced (JSON, for experts)", "Erweitert (JSON, für Fachleute)");
+    $("#twLayApply").textContent = LL("Apply JSON to the editor", "JSON in den Editor übernehmen");
+    $("#twLayReset").textContent = LL("Reset to default", "Auf Standard zurücksetzen");
+    $("#twLayCancel").textContent = LL("Cancel", "Abbrechen");
+    $("#twLaySave").textContent = LL("Save layout", "Layout speichern");
+  }
+  layEd.setContext({ photos: S.data?.photos || [], schedule: (S.data?.schedule || []).map(a => ({ id: a.id, name: a.name })) });
+  return layEd;
+}
 async function openLayoutEditor() {
   const lay = await api("/api/site/layout");
-  $("#twLayTxt").value = JSON.stringify(lay, null, 2);
   $("#twLayErr").textContent = "";
   $("#twGenRep").hidden = true;
+  $("#twLayAdv").open = false;
   refreshSrcInfo();
   $("#twDlg").showModal();
+  editor().set(lay);
 }
 async function refreshSrcInfo() {
   try {
@@ -1077,9 +1113,9 @@ async function suggestLayout() {
   } catch (e) { $("#twLayErr").textContent = e.message; }
 }
 function showDraft(layout, r) {
-  $("#twLayTxt").value = JSON.stringify(layout, null, 2);
+  editor().set(layout);
   const li = a => a.length ? `<ul>${a.join("")}</ul>` : "";
-  $("#twGenRep").innerHTML = `<b>Draft layout – review, then “Save layout”</b> <span class="mut">(not saved yet)</span>
+  $("#twGenRep").innerHTML = `<b>${LL("Draft layout – adjust it below, then “Save layout”", "Layout-Entwurf – unten anpassen, dann „Layout speichern“")}</b> <span class="mut">(${LL("not saved yet", "noch nicht gespeichert")})</span>
       <div>Origin: ${r.origin_source ? esc(r.origin_source) : `<span class="warn">none</span>`}${r.boundary_source ? ` · Boundary: ${esc(r.boundary_source)}` : ""}</div>
       <div>Inputs: ${r.inputs.files.length} document(s), ${r.inputs.document_points} coordinates, ${r.inputs.photos_with_gps} photo(s) with GPS${r.photos_on_site != null ? `, ${r.photos_on_site} on site` : ""}</div>
       ${r.zones.length ? `<div>Zones:</div>${li(r.zones.map(z => `<li><b>${esc(z.name)}</b> <span class="mut">(${esc(z.id)}) – ${esc(z.source)}${z.activities.length ? ` · ${esc(z.activities.join(", "))}` : ""}</span></li>`))}` : ""}
@@ -1094,13 +1130,14 @@ async function openLayoutDraft(layout, report) {
   if (!renderer) await window.SiteTwin.show();
   $("#twLayErr").textContent = "";
   refreshSrcInfo();
-  showDraft(layout, report);
   if (!$("#twDlg").open) $("#twDlg").showModal();
+  showDraft(layout, report);
 }
 async function saveLayout() {
   let obj;
-  try { obj = JSON.parse($("#twLayTxt").value); } catch (e) { $("#twLayErr").textContent = "JSON error: " + e.message; return; }
+  obj = editor().get();
   try { await api("/api/site/layout", { method: "PUT", json: obj }); } catch (e) { $("#twLayErr").textContent = e.message; return; }
+  window.SFX?.done(LL("Layout saved", "Layout gespeichert"));
   $("#twDlg").close();
   await load(false);
 }
@@ -1155,6 +1192,16 @@ function stopTour() {
   $("#twTour")?.classList.remove("on"); if ($("#twTour")) $("#twTour").textContent = "▶ Tour";
   if (!window.FX?.autopilotOn) window.FX?.hideCaption();
 }
+// camera target that puts world point `o` slightly above the stage centre (the caption sits at the bottom)
+function framedTarget(o, zoom, theta, phi, lift = 0.12) {
+  const D = 600, tmp = new THREE.PerspectiveCamera();
+  tmp.position.copy(o).add(new THREE.Vector3().setFromSpherical(new THREE.Spherical(D, phi, theta)));
+  tmp.up.copy(camera.up); tmp.lookAt(o);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(tmp.quaternion);
+  const viewH = (camera.top - camera.bottom) / zoom;
+  return o.clone().sub(up.multiplyScalar(viewH * lift));
+}
+
 async function tour({ isCancelled = () => false } = {}) {
   if (S.touring || !S.data) return;
   S.touring = true;
@@ -1164,54 +1211,70 @@ async function tour({ isCancelled = () => false } = {}) {
   const hold = async ms => { const t0 = performance.now(); while (!off() && performance.now() - t0 < ms) await sleep(80); };
   const d = S.data, L = d.layout;
   const placed = d.photos.filter(p => p.plan_xy);
-  const zoomFor = pts => { const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return Math.max(1, Math.min(3.4, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.62))); };
+  // fit the polygon with a comfortable margin (0.62 cropped machines at the zone edge)
+  const zoomFor = pts => { const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return Math.max(1, Math.min(3, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.95))); };
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const short = c => ({ dump_truck: "truck", excavator: "excavator", bulldozer: "bulldozer", person: "person", car: "car" }[c] || nice(c).toLowerCase());
+  const go = (o, zoom, theta, phi, dur, lift) => flyTo({ target: framedTarget(o, zoom, theta, phi, lift), zoom, theta, phi, dur });
   try {
     select(null);
     if (S.mode !== "3d") { setMode("3d"); await sleep(650); }
-    cap("Site", L.name || "Construction site", `${L.zones.length} zones · ${d.photos.length} photos`, 5200);
+    cap("Site", L.name || "Construction site", `${L.zones.length} zones · ${d.photos.length} photos`, 4600);
     await flyTo({ target: center, zoom: 0.95, theta: -Math.PI / 4, phi: 0.98, dur: 1600 });
     if (off()) return;
-    await flyTo({ theta: Math.PI / 5, phi: 0.82, zoom: 1.05, dur: 3400 });
+    await flyTo({ theta: Math.PI / 5, phi: 0.82, zoom: 1.05, dur: 2600 });
+    // follow the structure west -> east, support areas (facilities, future) last
+    const support = z => /facilit|future|einricht/i.test(`${z.kind || ""} ${z.name || ""}`);
+    const zones = [...L.zones].sort((a, b) => (support(a) - support(b)) || (centroid(a.polygon)[0] - centroid(b.polygon)[0]));
     let th = Math.PI / 5;
-    for (const z of L.zones) {
+    for (const z of zones) {
       if (off()) return;
       const zs = zoneSum(z.id), c = centroid(z.polygon);
-      th += 0.55;
+      th += 0.35;
       select({ type: "zone", id: z.id });
-      const acts = zs.activities.map(a => `${a.name}: ${a.actual}/${a.total} ${a.unit}${a.delay_days > 0.4 ? ` · ${a.delay_days} d behind` : ""}`).join(" · ");
-      const mach = zs.machinery.map(m => `${m.count}× ${nice(m.class)}`).join(", ");
-      cap("Zone", z.name, [acts || "No scheduled activity", mach ? `Detected: ${mach}` : `${zs.photos.length} photos`].join(" — "), 3600);
-      await flyTo({ target: P(c[0], c[1]), zoom: zoomFor(z.polygon), theta: th, phi: 0.9, dur: 1500 });
-      await hold(2100);
+      const late = zs.activities.filter(a => a.delay_days > 0.4).sort((a, b) => b.delay_days - a.delay_days)[0];
+      const status = late ? `${late.delay_days} days behind` : zs.activities.some(a => a.actual > 0) ? "On track" : zs.activities.length ? "Not started" : "Support area";
+      const mach = zs.machinery.map(m => plural(m.count, short(m.class))).join(", ");
+      cap(late ? "Behind plan" : "Zone", z.name, mach ? `${status} · ${mach}` : status, 3400);
+      const zm = zoomFor(z.polygon);
+      await go(P(c[0], c[1]), zm, th, 0.9, 1500, 0.1);
+      await hold(1900);
     }
     const piles = L.structures.find(s => s.kind === "pile_row" && s.activity);
     if (piles && !off()) {
       const a = act(piles.activity), done = Math.floor(a?.actual ?? 0);
-      const note = [...(S.data.zones.flatMap(z => z.timeline))].find(t => t.evidence_id === `sched:${piles.activity}` && t.text.includes("–"));
       select({ type: "structure", id: piles.id });
-      cap(a?.light === "red" ? "Early warning" : "Structure", `${done} of ${piles.count} piles complete`, note ? note.text : (a ? `${a.name} · planned ${a.planned} ${a.unit}` : ""), 4200);
-      await flyTo({ target: P((piles.x1 + piles.x2) / 2, (piles.y1 + piles.y2) / 2), zoom: 3.2, theta: th + 0.5, phi: 0.95, dur: 1600 });
-      await hold(2600);
+      const doneN = a && a.total ? Math.round(piles.count * (a.actual / a.total)) : done;
+      cap(a?.light === "red" || a?.delay_days > 0.4 ? "Early warning" : "Structure", `${doneN} of ${piles.count} piles drilled`, a?.delay_days > 0.4 ? `${a.delay_days} days behind plan` : "On plan", 3800);
+      await go(P((piles.x1 + piles.x2) / 2, (piles.y1 + piles.y2) / 2), 2.6, th + 0.4, 0.95, 1600, 0.1);
+      await hold(2400);
     }
-    const dets = placed.flatMap(p => p.detections.filter(x => x.xy).map(x => ({ p, x }))).sort((a, b) => b.x.confidence - a.x.confidence).slice(0, 3);
+    // best detections, one per spot: photos taken metres apart show the same machine
+    const all = placed.flatMap(p => p.detections.filter(x => x.xy).map(x => ({ p, x }))).sort((a, b) => b.x.confidence - a.x.confidence);
+    const dets = [];
+    for (const c of all) {
+      if (dets.length >= 3) break;
+      if (dets.some(o => Math.hypot(o.x.xy[0] - c.x.xy[0], o.x.xy[1] - c.x.xy[1]) < 8)) continue;
+      if (dets.length < 2 && dets.some(o => o.x.class === c.x.class) && all.some(o => !dets.includes(o) && o.x.class !== c.x.class && o.x.confidence > 0.5)) continue;
+      dets.push(c);
+    }
     for (const { p, x } of dets) {
       if (off()) return;
       select({ type: "det", id: `${p.id}:${x.index}` });
-      cap("AI detection", `${nice(x.class)} · ${(x.confidence * 100).toFixed(1)}%`,
-        `Evidence ${p.evidence_id} (${p.original_name}) · ${x.position_method === "pinhole_estimate" ? `${x.distance_m} m from camera, estimated` : "near the camera"}`, 3800);
-      await flyTo({ target: P(x.xy[0], x.xy[1]), zoom: 4.2, theta: th + 0.9, phi: 0.92, dur: 1500 });
-      await hold(2300);
+      cap("AI detection", `${nice(x.class)} · ${Math.round(x.confidence * 100)}%`, `Seen on photo ${p.original_name.replace(/^site_|\.jpg$/g, "")}`, 3400);
+      await go(P(x.xy[0], x.xy[1]), 3.6, th + 0.7, 0.92, 1500, 0.08);
+      await hold(2100);
     }
     if (!dets.length && !off()) {
       const un = d.photos.length - placed.length;
-      cap("Photo evidence", `${un} photo${un === 1 ? "" : "s"} waiting for a position`, "Place them on the plan to see detected machines in 3D.", 3800);
-      await hold(3800);
+      cap("Photos", `${un} photo${un === 1 ? "" : "s"} without a position`, "Place them on the plan to see them in 3D.", 3600);
+      await hold(3600);
     }
     if (off()) return;
     select(null);
-    cap("Site", "Every marker traces back to evidence", "", 4000);
+    cap("Site", "Every marker has a photo behind it", "", 3600);
     await flyTo({ target: center, zoom: 1, theta: -Math.PI / 4, phi: 0.955, dur: 2200 });
-    await hold(1800);
+    await hold(1600);
   } finally {
     const wasOn = S.touring;
     S.touring = false; controls.enabled = true;
@@ -1245,8 +1308,10 @@ async function focusZone(id, { mode = "3d" } = {}) {
   if (mode && S.mode !== mode) { setMode(mode); await sleep(500); }
   select({ type: "zone", id });
   const c = centroid(z.polygon), xs = z.polygon.map(q => q[0]), ys = z.polygon.map(q => q[1]);
-  const zoom = Math.max(1, Math.min(3.4, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.62)));
-  await flyTo({ target: P(c[0], c[1]), zoom, ...(S.mode === "3d" ? { theta: Math.PI / 5, phi: 0.9 } : {}), dur: 1400 });
+  const zoom = Math.max(1, Math.min(3, fitSize / (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.9)));
+  const o = P(c[0], c[1]);
+  if (S.mode === "3d") await flyTo({ target: framedTarget(o, zoom, Math.PI / 5, 0.9, 0.08), zoom, theta: Math.PI / 5, phi: 0.9, dur: 1400 });
+  else await flyTo({ target: o, zoom, dur: 1400 });
   return true;
 }
 async function focusPhoto(id) {
@@ -1262,9 +1327,124 @@ function snapshot() {
   catch (e) { console.warn("snapshot failed", e); return null; }
 }
 
+/* ------------------------------------------------------------------ live location ("You") */
+const PRES = new Map();          // device -> { g, ring, acc, beam, lbl }
+let presGroup = null;
+const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"], COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const fmtDist = m => (m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km` : `${Math.round(m)} m`);
+function presenceMarker(p) {
+  const g = new THREE.Group();
+  const blue = p.simulated ? 0x8b5cf6 : 0x2f80ed;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(1.5, 40), new THREE.MeshBasicMaterial({ color: blue, depthTest: false, transparent: true }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = 0.35; disc.renderOrder = 999;
+  const rim = new THREE.Mesh(new THREE.RingGeometry(1.5, 2.0, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
+  rim.rotation.x = -Math.PI / 2; rim.position.y = 0.36; rim.renderOrder = 999;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(2.0, 2.6, 48), new THREE.MeshBasicMaterial({ color: blue, transparent: true, opacity: 0.6, depthTest: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.3; ring.renderOrder = 998;
+  const acc = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshBasicMaterial({ color: blue, transparent: true, opacity: 0.12, depthTest: false }));
+  acc.rotation.x = -Math.PI / 2; acc.position.y = 0.2; acc.renderOrder = 997;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.5, 16, 12, 1, true), new THREE.MeshBasicMaterial({ color: blue, transparent: true, opacity: 0.35, depthWrite: false }));
+  beam.position.y = 8;
+  g.add(acc, ring, disc, rim, beam);
+  const el = document.createElement("div");
+  el.className = "twl you" + (p.simulated ? " sim" : "");
+  const lbl = new CSS2DObject(el); lbl.position.set(0, 9, 0); g.add(lbl);
+  el.addEventListener("click", () => flyTo({ target: g.position.clone(), zoom: 3, dur: 1200 }));
+  (presGroup || scene).add(g);
+  return { g, ring, acc, beam, el };
+}
+function setPresence(list) {
+  S.presence = list || [];
+  if (!scene || !S.bounds) return;
+  if (!presGroup) { presGroup = new THREE.Group(); scene.add(presGroup); }
+  const seen = new Set(), b = S.bounds, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  for (const p of S.presence) {
+    if (!p.plan_xy) continue;
+    seen.add(p.device);
+    let m = PRES.get(p.device);
+    if (m && m.sim !== !!p.simulated) { presGroup.remove(m.g); m.el.remove(); m = null; }
+    if (!m) { m = presenceMarker(p); m.sim = !!p.simulated; presGroup.add(m.g); PRES.set(p.device, m); }
+    let [x, y] = p.plan_xy, off = !p.on_site;
+    if (off) {                                  // pin to the site edge, in the person's direction
+      const dx = x - cx, dy = y - cy, hw = (b.x1 - b.x0) / 2 + 6, hh = (b.y1 - b.y0) / 2 + 6;
+      const k = Math.min(hw / Math.abs(dx || 1e-9), hh / Math.abs(dy || 1e-9));
+      x = cx + dx * k; y = cy + dy * k;
+    }
+    m.target = P(x, y, 0);
+    if (!m.g.position.lengthSq()) m.g.position.copy(m.target);
+    const r = Math.max(2.5, Math.min(40, p.accuracy || 6));
+    m.acc.scale.setScalar(off ? 0.001 : r); m.acc.visible = !off;
+    const dir = Math.round(((p.bearing_deg || 0) % 360) / 45) % 8;
+    const where = p.simulated ? "simulated on site" : off ? `${fmtDist(p.distance_m || 0)} ${COMPASS[dir]} ${ARROWS[dir]}` : (zone(p.zone)?.name || "on site");
+    const acc = !off && !p.simulated && p.accuracy ? ` · ±${Math.round(p.accuracy)} m` : "";
+    m.el.innerHTML = `<div class="yb"><span class="pin">${p.kind === "phone" ? "📱" : "📍"}</span><b>${esc(p.name || "You")}</b><small>${esc(where)}${acc}</small></div>`;
+    m.el.classList.toggle("far", off);
+  }
+  for (const [dev, m] of PRES) if (!seen.has(dev)) { presGroup.remove(m.g); m.el.remove(); PRES.delete(dev); }
+}
+function presenceTick(t) {
+  for (const m of PRES.values()) {
+    if (m.target) m.g.position.lerp(m.target, 0.08);           // walk smoothly to new fixes
+    const k = (t * 0.7) % 1;
+    m.ring.scale.setScalar(1 + k * 2.6); m.ring.material.opacity = 0.65 * (1 - k);
+    m.beam.material.opacity = 0.22 + 0.15 * Math.sin(t * 2.4);
+  }
+}
+function focusPresence(device) {
+  const m = device ? PRES.get(device) : PRES.values().next().value;
+  if (!m) return false;
+  if (S.mode !== "3d") setMode("3d");
+  flyTo({ target: m.g.position.clone(), zoom: 2.6, theta: Math.PI / 5, phi: 0.9, dur: 1400 });
+  return true;
+}
+
+/* ------------------------------------------------------------------ money badges per zone (js/costs.js, internal estimate) */
+let costObjs = [];
+function setCostPins(list) {
+  S.costPins = list || [];
+  costObjs.forEach(o => { o.parent?.remove(o); o.element?.remove(); });
+  costObjs = [];
+  if (!scene || !S.data) return;
+  const byZone = {};
+  for (const c of S.costPins) {
+    const z = (S.data.layout.zones || []).find(z => String(z.id).toLowerCase() === String(c.zone).toLowerCase());
+    if (z) (byZone[z.id] = byZone[z.id] || { z, items: [] }).items.push(c);
+  }
+  for (const { z, items } of Object.values(byZone)) {
+    const c = centroid(z.polygon);
+    const el = document.createElement("div");
+    el.className = "twl cost";
+    el.innerHTML = items.map(i => `<div class="cp b-${i.band === "high" ? "bad" : i.band === "medium" ? "warn" : "ok"}">💶 ${esc(i.text)}</div>`).join("");
+    const o = new CSS2DObject(el); o.position.copy(P(c[0], c[1], 7));
+    scene.add(o); costObjs.push(o);
+  }
+}
+
+// clean 3D overview for reports: move the camera, render one frame, restore the user's view
+function reportShot() {
+  if (!renderer || !S.data) return null;
+  const keep = { pos: camera.position.clone(), zoom: camera.zoom, target: controls.target.clone(), mode: S.mode, sel: S.sel };
+  try {
+    if (S.mode !== "3d") setMode("3d");
+    select(null);
+    const D = 600, t = center.clone();
+    camera.position.copy(t).add(new THREE.Vector3().setFromSpherical(new THREE.Spherical(D, 0.95, -Math.PI / 4)));
+    camera.zoom = 1.05; camera.updateProjectionMatrix();
+    controls.target.copy(t); camera.lookAt(t); updateOverlays();
+    if (composer) composer.render(); else renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/jpeg", 0.9);
+  } catch (e) { console.warn("report shot failed", e); return null; }
+  finally {
+    if (keep.mode !== S.mode) setMode(keep.mode);
+    camera.position.copy(keep.pos); camera.zoom = keep.zoom; camera.updateProjectionMatrix();
+    controls.target.copy(keep.target); camera.lookAt(keep.target); updateOverlays();
+    if (keep.sel) select(keep.sel);
+  }
+}
+
 /* ------------------------------------------------------------------ public */
 window.SiteTwin = {
-  focusZone, focusPhoto, snapshot, openLayoutDraft,
+  focusZone, focusPhoto, snapshot, reportShot, openLayoutDraft, setPresence, focusPresence, setCostPins,
   highlight(list) { S.hl = {}; (list || []).forEach(h => { if (h?.id) S.hl[h.id] = h.level || "amber"; }); applyHighlights(); },
   clearHighlights() { S.hl = {}; applyHighlights(); },
   reload() { return S.visible ? load(true) : Promise.resolve(); },
@@ -1286,7 +1466,28 @@ window.SiteTwin = {
         <p class="mut">${/WebGL/i.test(String(e.message)) ? "WebGL is disabled in this browser (check chrome://gpu or hardware acceleration settings)." : "Try a hard reload (Cmd+Shift+R)."}</p></div>`;
     }
   },
-  hide() { S.visible = false; stopTour(); },
+  hide() { if (S.pinned) return; S.visible = false; stopTour(); },
+  // move the live twin into another element (Real Time Preview window) and back; the WebGL context is kept
+  async pin(host) {
+    if (!renderer) { init(); }
+    if (!S.data || !S.built) await load(false);
+    if (!S.pinHome) S.pinHome = stage.parentElement;
+    host.appendChild(stage);
+    S.pinned = true; S.visible = true; S.orbit = true;
+    if (S.mode !== "3d") setMode("3d");
+    resize();
+    await flyTo({ target: center, zoom: 1.0, theta: -Math.PI / 4, phi: 0.95, dur: 900 });
+  },
+  unpin() {
+    if (!S.pinned) return;
+    S.pinned = false; S.orbit = false;
+    S.pinHome?.prepend(stage);
+    S.visible = !!document.getElementById("twin")?.classList.contains("on");
+    resize();
+  },
+  overview(dur = 1400) { return flyTo({ target: center, zoom: 1.0, theta: -Math.PI / 4, phi: 0.95, dur }); },
+  zoneIdByName(frag) { const z = (S.data?.layout?.zones || []).find(z => (z.name || "").toLowerCase().includes(String(frag).toLowerCase())); return z?.id || null; },
+  set orbit(v) { S.orbit = !!v; },
   tour, stopTour,
 };
 document.dispatchEvent(new Event("sitetwin-ready"));

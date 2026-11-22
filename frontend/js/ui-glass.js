@@ -91,8 +91,8 @@
     "Open items with owner and deadline appear here.": "Offene Punkte mit Verantwortlichem und Frist erscheinen hier.",
     "Working…": "Wird verarbeitet …", "Open items": "Offene Punkte", "Item": "Punkt", "Owner": "Verantwortlich", "Deadline": "Frist",
     "None found.": "Keine gefunden.", "Decisions": "Entscheidungen",
-    "Possible Nachtrag (client instruction / changed work)": "Möglicher Nachtrag (Anordnung des Bauherrn / geänderte Leistung)",
-    "Draft Nachtragsmeldung from this": "Daraus Nachtragsmeldung entwerfen",
+    "Possible change order (client instruction / changed work)": "Möglicher Nachtrag (Anordnung des Bauherrn / geänderte Leistung)",
+    "Draft change order notice from this": "Daraus Nachtragsmeldung entwerfen",
     // photos, live, metrics
     "Upload photos": "Fotos hochladen", "Photo report (Word)": "Fotobericht (Word)", "No photos yet.": "Noch keine Fotos.",
     "please confirm category": "bitte Kategorie bestätigen", "Add photos": "Fotos hinzufügen",
@@ -106,7 +106,7 @@
     "No measurements yet. Use the assistant first.": "Noch keine Messungen. Erst den Assistenten nutzen.", "Last 20 entries": "Letzte 20 Einträge",
     // site twin
     "2D plan": "2D-Plan", "3D isometric": "3D-Ansicht", "AI detections": "KI-Erkennungen", "Labels": "Beschriftung", "Zones": "Zonen",
-    "Min conf": "Min. Sicherheit", "▶ Tour": "▶ Rundgang", "Reset": "Zurücksetzen", "Layout": "Lageplan",
+    "Min conf": "Min. Sicherheit", "▶ Tour": "▶ Rundgang", "Reset": "Zurücksetzen", "Layout": "Lageplan", "✏️ Edit layout": "✏️ Lageplan bearbeiten",
     "Loading site plan…": "Lageplan wird geladen …", "Object": "Objekt", "Plan position": "Planposition", "Location": "Standort",
     "Evidence": "Beleg", "Detection confidence": "Erkennungssicherheit", "Zone": "Zone", "Vision description": "Bildbeschreibung",
     "Used in": "Verwendet in", "Timestamp": "Zeitstempel", "Timeline": "Verlauf", "Taken": "Aufgenommen", "Site digital twin": "Digitaler Zwilling",

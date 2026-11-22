@@ -183,7 +183,8 @@ def answer_followup(doc, asked, text, msg_id):
     primary = [sources.message_chunk(msg_id, text, locator=T("loc_chat_answer", t=now()[11:16]))]
     locked = {k: v["value"] for k, v in doc["fields"].items() if v["locked"]}
     only = [k for k in only if k not in locked]
-    res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only, followup=True)
+    res = extract(doc["type"], text, primary, [], locked, run_id=f"followup-{doc['id']}", only_fields=only, followup=True,
+                  focus={"asked": asked, "pile_id": sources.pile_id(text)})
     by_ref = {c.ref: c for c in primary}
     filled, proposals = [], []
     for k, f in res["fields"].items():
@@ -444,14 +445,12 @@ def _handle(text, voice, evidence_meta=None, photo_ids=None, lang=None):
                                                                 evidence_meta=evidence_meta, photo_ids=photo_ids)
         state["active"] = doc["id"]
         parts = [T("r_merged" if merged else "r_created", title=doc["title"])]
-        if doc.get("assistant_message_de"):
-            parts.append(doc["assistant_message_de"])
+        # short and countable; the field-by-field detail (value, source, quote) is one tap away in the draft
+        n_open = len([k for k in docs.missing(doc)]) if hasattr(docs, "missing") else len(gaps)
         if filled:
-            parts.append(T("r_from_msg", l=_labels(doc, filled)))
+            parts.append(T("r_counts", n=len(filled)) + (T("r_counts_open", m=n_open) if n_open else T("r_counts_done")))
         if proposals:
             parts.append(T("r_proposal", l=_labels(doc, proposals)))
-        if gaps:
-            parts.append(T("r_gaps", l=_labels(doc, gaps)))
         if doc["photos"]:
             parts.append(T("r_photos_attached", n=len(doc["photos"])))
         if (doc.get("review") or {}).get("status") == "running":

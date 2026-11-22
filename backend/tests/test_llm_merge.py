@@ -151,7 +151,7 @@ def test_followup_answer_is_reextracted_not_invented(monkeypatch):
     # an answer without the value -> question stays open, nothing written
     monkeypatch.setattr(llm_extract, "complete_json", FakeLLM(fields={}))
     r2 = assistant.handle("weiß ich gerade nicht genau, frag den Polier")
-    assert "bleibt offen" in r2["replies"][0]["text"] and not docs.get(d["id"])["fields"][pending]["value"]
+    assert "nicht verstanden" in r2["replies"][0]["text"] and not docs.get(d["id"])["fields"][pending]["value"]
     # an answer with the value -> filled, cited to the answer message
     ans = {pending: {"value": "zwei Tage", "source_refs": [], "confidence": 0.9}}
 

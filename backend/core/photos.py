@@ -104,8 +104,10 @@ def categorize(dets):
     return best or ("uncategorized", 0.0)
 
 
-def ingest(files):
-    """files: iterable of (filename, mimetype, raw bytes). Returns the new photo records."""
+def ingest(files, replay=None):
+    """files: iterable of (filename, mimetype, raw bytes). Returns the new photo records.
+    replay: optional {filename: stored record} -> reuse its detections/caption instead of calling the detector and
+    vision model (offline demo loading; the stored output came from the same models)."""
     rows, out = load("photos", []), []
     for filename, mime, raw in files:
         try:
@@ -121,11 +123,12 @@ def ingest(files):
             img_w, img_h = Image.open(io.BytesIO(raw)).size
         except Exception:
             img_w = img_h = None
-        dets = detect(raw)
+        rp = (replay or {}).get(filename)
+        dets = [{k: d[k] for k in ("class", "confidence", "x", "y", "width", "height")} for d in rp["detections"]] if rp else detect(raw)
         cat, conf = categorize(dets)
-        src, caption, confirm = "model", "", conf < 0.5
+        src, caption, confirm = "model", (rp or {}).get("caption_de", ""), conf < 0.5
         dets_txt = ", ".join(sorted({d["class"] for d in dets or []})) or "keine"
-        cls = llm_bridge.classify_photo(raw, mime or "image/jpeg", f"photo:{pid}", f"Objekterkennung: {dets_txt}")
+        cls = None if rp else llm_bridge.classify_photo(raw, mime or "image/jpeg", f"photo:{pid}", f"Objekterkennung: {dets_txt}")
         if cls is not None:
             caption, confirm = cls.caption_de, cls.needs_human_confirmation
             if cls.category and not cls.needs_human_confirmation:

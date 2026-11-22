@@ -25,8 +25,11 @@ from .store import DATA, SITE, load, new_id, now, save
 MIN_CONF = 0.5                       # detections below this are not used for findings
 MACHINES = {"excavator", "dump_truck", "bulldozer", "tractor", "truck", "crane", "loader", "car"}
 HEAVY = MACHINES - {"car"}
-INCIDENT_WORDS = re.compile(r"unfall|umgekippt|eingebrochen|gestürzt|abgestürzt|verletz|accident|overturn|tipped|fell|collapse|injur|"
-                                r"in (?:die|der) grube|into the (?:pit|excavation)", re.I)
+INCIDENT_WORDS = re.compile(r"unfall|umgekippt|eingebrochen|gestürzt|abgestürzt|verletz|ausgerutscht|zusammengestoßen|kollision|angefahren|"
+                            r"brand\b|feuer|ausgelaufen|vorfall|beinahe-?unfall|"
+                            r"accident|(?:there(?:'s| is| was| has been)|we (?:have|had)|reporting) an? incident|incident (?:at|in|near|on|with)\b|overturn|tipped|fell\b|fallen|collapse|injur|hurt|slipped|tripped|collision|collided|crash|"
+                            r"hit by|struck by|run over|fire\b|smoke|explosion|leak|spill|near miss|"
+                            r"in (?:die|der) grube|into the (?:pit|excavation)", re.I)
 SEV_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 # zone vocabulary -> candidate layout zone ids, most specific first. Works for the seed layout (erd/a10/wls/be/wln) and for
@@ -61,7 +64,9 @@ INTENTS = [
 ]
 # drafting / diary commands stay with the document assistant
 DRAFT_RX = re.compile(r"pfahl \d+.*fels|fels|rock at|bagger steht|excavator idle|riss|crack|mangel|defect|tagebuch|diary|aktennotiz|"
-                      r"file note|telefonat|lieferung|geliefert|delivered|ändere|change .* to|nachtrag|behinderung|mehrkosten|bedenken", re.I)
+                      r"file note|telefonat|lieferung|geliefert|delivered|ändere|change .* to|nachtrag|behinderung|mehrkosten|bedenken|"
+                      r"change order|pile \d+.*rock|hit rock|struck rock|additional cost|obstruction|delay notice|notice of concern|"
+                      r"defect notice|idle since", re.I)
 EN_RX = re.compile(r"\b(the|what|show|give|me|today|any|are|is|check|generate|report|progress|safety|incident|since|yesterday|how)\b", re.I)
 
 
@@ -212,8 +217,15 @@ def set_status(iid, status):
 
 
 # ---------------------------------------------------------------- tools
+# English (and misheard) words for the German element names, so "axis 2" / "abutment 1" find Achse 2 / Widerlager 1
+_PLACE_EN = [(re.compile(r"\b(?:axis|axle|axes|aches)\s*(\d+)", re.I), r"achse \1"), (re.compile(r"\babutment\s*(\d+)", re.I), r"widerlager \1"),
+             (re.compile(r"\bpier\s*(\d+)", re.I), r"pfeiler \1")]
+
+
 def _zone_from_text(text, layout):
     """Zone named in the text: full zone name, then an id with a digit as a word (W1, A2), then vocabulary aliases."""
+    for rx, rep in _PLACE_EN:
+        text = rx.sub(rep, text or "")
     t = (text or "").lower()
     ids = {z["id"] for z in layout["zones"]}
     for z in sorted(layout["zones"], key=lambda z: -len(z["name"])):          # longest name first ("Achse 1 – Fundament")
@@ -244,12 +256,11 @@ def _progress(st, tw, lang):
                  "Es ist kein Bauzeitenplan geladen, daher kann ich Soll und Ist nicht vergleichen. Bitte zuerst die Demodaten laden.")
     elif behind:
         worst = max(behind, key=lambda a: a["delay_days"])
-        say = _t(lang, f"{len(acts)} {'activity is' if len(acts) == 1 else 'activities are'} running; {len(behind)} {'is' if len(behind) == 1 else 'are'} behind plan. "
-                       f"Most critical: {worst['name']}, {worst['delay_days']} days behind ({worst['actual']:g} of {worst['planned']:g} {worst['unit']} planned).",
-                 f"{len(acts)} {'Vorgang läuft' if len(acts) == 1 else 'Vorgänge laufen'}, {len(behind)} hinter Plan. Kritischster: {worst['name']}, {worst['delay_days']} Tage Verzug "
-                 f"({worst['actual']:g} von {worst['planned']:g} {worst['unit']} Soll).")
+        more = len(behind) - 1
+        say = _t(lang, f"{worst['name']} is {worst['delay_days']} days behind plan." + (f" {more} more behind." if more else ""),
+                 f"{worst['name']}: {worst['delay_days']} Tage hinter Plan." + (f" {more} weitere im Verzug." if more else ""))
     else:
-        say = _t(lang, f"All {len(acts)} running activities are on plan.", f"Alle {len(acts)} laufenden Vorgänge liegen im Plan.")
+        say = _t(lang, "All work is on plan.", "Alles im Plan.")
     alerts = [{"level": a["level"], "text": a["text"], "activity": a.get("activity"), "zone": zone_of_act.get(a.get("activity")),
                "evidence": f"sched:{a['activity']}" if a.get("activity") else None} for a in st["alerts"]]
     hl = [{"id": r["zone"], "level": "red" if r["light"] == "red" else "amber"} for r in rows if r["zone"] and r["light"] in ("red", "yellow")]
@@ -262,18 +273,13 @@ def _safety(tw, lang, kinds=None):
     n_photos = len(tw["photos"])
     n_det = sum(len(p["detections"]) for p in tw["photos"])
     if not n_photos:
-        say = _t(lang, "There are no site photos yet, so there is nothing to check. Upload photos or start the live camera.",
-                 "Es gibt noch keine Baustellenfotos zum Prüfen. Bitte Fotos hochladen oder die Live-Kamera starten.")
+        say = _t(lang, "No site photos yet. Upload some or start the camera.", "Noch keine Fotos. Bitte hochladen oder Kamera starten.")
     elif found:
-        hi = sum(1 for i in found if i["severity"] == "high")
         top = found[0]
-        say = _t(lang, f"I checked {n_photos} photos with {n_det} detections and found {len(found)} issue{'s' if len(found) != 1 else ''}"
-                       f"{f', {hi} high severity' if hi else ''}. Top finding: {top['title_en']}.",
-                 f"Ich habe {n_photos} Fotos mit {n_det} Erkennungen geprüft und {len(found)} Befund{'e' if len(found) != 1 else ''} gefunden"
-                 f"{f', davon {hi} mit hoher Priorität' if hi else ''}. Wichtigster Befund: {top['title_de']}.")
+        say = _t(lang, f"{len(found)} safety issue{'s' if len(found) != 1 else ''}: {top['title_en']}.",
+                 f"{len(found)} Sicherheitsbefund{'e' if len(found) != 1 else ''}: {top['title_de']}.")
     else:
-        say = _t(lang, f"I checked {n_photos} photos with {n_det} detections. No rule-based safety issue was found.",
-                 f"Ich habe {n_photos} Fotos mit {n_det} Erkennungen geprüft. Kein regelbasierter Sicherheitsbefund.")
+        say = _t(lang, f"{n_photos} photos checked. No safety issues.", f"{n_photos} Fotos geprüft. Keine Sicherheitsbefunde.")
     hl = [{"id": i["zone"], "level": "red" if i["severity"] == "high" else "amber"} for i in found if i["zone"]]
     return {"kind": "incidents", "items": found, "checked_photos": n_photos, "checked_detections": n_det,
             "rules": ["person_near_machine", "machine_in_restricted_zone", "reported_incident", "flagged_safety_photo"]}, say, hl
@@ -332,7 +338,10 @@ DAILY_DOC_RX = re.compile(r"tagesbericht|daily (?:site )?(?:report|diary)|bautag
 NOTICE_RX = re.compile(r"bedenken|bedenkenanmeldung|behinderungsanzeige|mehrkostenanzeige|nachtragsmeldung|mängelanzeige|aktennotiz", re.I)
 # a question or a negation is not an incident report ("Did anyone get injured?", "Kein Unfall heute")
 _QUESTION_RX = re.compile(r"\?\s*$|^\s*(?:did|does|do|has|have|was|were|is|are|hat|haben|wurde|ist|sind)\b", re.I)
-_NEGATION_RX = re.compile(r"\b(?:kein(?:e|en|er|em)?|nicht|nichts|niemand|no|not|nobody|nothing|without|ohne)\b|nur eine übung|just a drill", re.I)
+# negates the event itself ("no accident today", "nothing happened"), not its consequences ("nobody hurt")
+_NEGATION_RX = re.compile(r"\b(?:no|not an?|kein(?:e|en|er|em)?|nothing|nichts|without)\s+(?:\w+\s+){0,2}?"
+                          r"(?:incident|accident|unfall|vorfall|issue|problem|happened|passiert|incidents|accidents)\b"
+                          r"|\bnichts (?:ist )?passiert|nothing (?:has )?happened|nur eine übung|just a drill|only a drill", re.I)
 
 
 def is_incident_report(text):
@@ -519,17 +528,14 @@ def greeting(lang="en"):
     hour = dt.datetime.now().hour
     hi = _t(lang, "Good morning" if hour < 12 else "Good afternoon" if hour < 18 else "Good evening",
             "Guten Morgen" if hour < 12 else "Guten Tag" if hour < 18 else "Guten Abend")
-    facts = _t(lang, f"{len(behind)} {'activity' if len(behind) == 1 else 'activities'} behind plan, {len(inc)} open incident{'' if len(inc) == 1 else 's'}.",
-               f"{len(behind)} Vorgänge hinter Plan, {len(inc)} offene Vorfälle.")
+    facts = _t(lang, f"{len(behind)} delay{'' if len(behind) == 1 else 's'}, {len(inc)} open issue{'' if len(inc) == 1 else 's'}.",
+               f"{len(behind)} Verzug, {len(inc)} offene Vorfälle.")
     name = SITE["name"]
     if not name:
         return {"text": _t(lang, f"{hi}. I'm your AI Site Manager. How can I help you today?",
                            f"{hi}. Ich bin Ihr KI-Bauleiter. Wie kann ich Ihnen helfen?"),
                 "behind": 0, "incidents": 0, "as_of": st["as_of"]}
-    return {"text": _t(lang, f"{hi}. I'm your AI Site Manager for {name}. I've read the latest site data: {facts} "
-                             "Shall I review today's progress or check for safety issues?",
-                       f"{hi}. Ich bin Ihr KI-Bauleiter für {name}. Aktueller Stand: {facts} "
-                       "Soll ich den Fortschritt prüfen oder nach Sicherheitsproblemen suchen?"),
+    return {"text": _t(lang, f"{hi}! {facts} What should I check?", f"{hi}! {facts} Was soll ich prüfen?"),
             "behind": len(behind), "incidents": len(inc), "as_of": st["as_of"]}
 
 
@@ -546,7 +552,9 @@ def report(scope="site", incident_id=None, snapshot=None, lang="en", findings_no
     inc_all = incidents()
     incs = [i for i in inc_all if i["id"] == incident_id] if scope == "incident" and incident_id else inc_all
     prog, _, _ = _progress(st, tw, lang)
-    photo_ids = list(dict.fromkeys([i["photo"] for i in incs] + ([] if scope == "incident" else [p["id"] for p in tw["photos"]][:6])))
+    photo_ids = list(dict.fromkeys([i["photo"] for i in incs if i.get("photo")] + ([] if scope == "incident" else [p["id"] for p in tw["photos"]][:6])))
+    if scope == "incident" and incs and not photo_ids and incs[0].get("zone"):   # spoken report: show what the zone looks like
+        photo_ids = [p["id"] for p in tw["photos"] if p.get("zone") == incs[0]["zone"]][:4]
     photos = [p for p in tw["photos"] if p["id"] in photo_ids]
     rid = new_id()
     behind = [r for r in prog["rows"] if r["light"] in ("red", "yellow")]
@@ -602,7 +610,7 @@ figure{{display:inline-block;width:48%;margin:0 1% 12px 0;vertical-align:top}} f
 .foot{{margin-top:24px;font-size:11px;color:#666;border-top:1px solid #ddd;padding-top:8px}}
 @media print{{.bar{{display:none}} body{{margin:0}} h2{{break-after:avoid}} figure{{break-inside:avoid}}}}
 </style></head><body>
-<div class="bar"><button onclick="print()">{L('Save as PDF / print', 'Als PDF speichern / drucken')}</button></div>
+<div class="bar">__DOCLINKS__<button onclick="print()" style="background:#fff;color:#111">{L('Print', 'Drucken')}</button></div>
 <h1>{_e(title)}</h1><div class="meta">{_e(SITE['name'])} · {_e(SITE['client'])} · {_e(SITE['manager'])}<br>
 {L('Reporting day', 'Berichtstag')}: {_e(st['as_of'])} · {L('Report id', 'Bericht-Nr.')} {rid} · {L('Status: DRAFT, not yet checked by a person', 'Status: ENTWURF, noch nicht von einer Person geprüft')}</div>
 <h2>{L('Executive summary', 'Zusammenfassung')}</h2><div class="box">{'<br>'.join(_e(s) for s in summary)}
@@ -623,7 +631,37 @@ figure{{display:inline-block;width:48%;margin:0 1% 12px 0;vertical-align:top}} f
 </body></html>"""
     out = DATA / "reports"
     out.mkdir(exist_ok=True)
-    name = f"{'incident' if scope == 'incident' else 'inspection'}_{rid}.html"
-    (out / name).write_text(page, encoding="utf-8")
+    base = f"{'incident' if scope == 'incident' else 'inspection'}_{rid}"
+    name = f"{base}.html"
+    links = _report_files(out, base, rid=rid, title=title, scope=scope, lang=lang, as_of=st["as_of"], summary=summary,
+                          incidents=incs, zones=zones, prog_rows=prog["rows"], alerts=prog["alerts"], photos=photos,
+                          snapshot=snapshot, detector=tw["models"]["detector"], note=findings_note)
+    btns = "".join(f"<a href='{u}' download><button>{lbl}</button></a>" for lbl, u in (("PDF", links.get("pdf_url")), ("Word", links.get("docx_url"))) if u)
+    (out / name).write_text(page.replace("__DOCLINKS__", btns), encoding="utf-8")
     return {"id": rid, "url": f"/data/reports/{name}", "scope": scope, "incidents": len(incs), "photos": len(photos),
-            "title": title}
+            "title": title, **links}
+
+
+def _report_files(out, base, snapshot=None, **kw) -> dict:
+    """Designed Word + PDF of the same report (core/report_docx). Never fails the HTML report."""
+    import base64, io
+    from PIL import Image
+    from . import export, report_docx, report_visuals
+    snap = None
+    if snapshot and str(snapshot).startswith("data:image/"):
+        try:                                   # keep it: notices exported next reuse the same 3D view
+            Image.open(io.BytesIO(base64.b64decode(snapshot.split(",", 1)[1]))).convert("RGB").save(report_visuals.snapshot_path())
+        except Exception:
+            pass
+    snap = report_visuals.twin_snapshot()
+    res = {}
+    try:
+        dx = report_docx.render_site_report(out=out / f"{base}.docx", snapshot=snap, **kw)
+        res["docx_url"] = f"/data/reports/{base}.docx"
+        soffice = export.find_soffice()
+        if soffice:
+            pdf = export.convert_to_pdf(dx, out, soffice)
+            res["pdf_url"] = f"/data/reports/{pdf.name}"
+    except Exception as e:
+        res["files_error"] = str(e)[:200]
+    return res

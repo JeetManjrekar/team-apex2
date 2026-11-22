@@ -233,7 +233,20 @@ def _g(o, k):
     return o[k] if isinstance(o, dict) else getattr(o, k)
 
 
+# Domain fixes for words Whisper merges on construction sites ("hit rock at 4 m" -> "hit rocket 4 m").
+# Only unambiguous patterns; each one keeps the segment timing (the evidence ref still points at the same seconds).
+DOMAIN_FIXES = [(re.compile(r"\brocket (?=\d)", re.I), "rock at "), (re.compile(r"\bpile(s)? (?:seven|7)\b", re.I), r"pile\1 7"),
+                (re.compile(r"\baches (?=\d)", re.I), "Achse ")]       # English Whisper hears the German "Achse 2" as "aches 2"
+
+
+def _fix(text: str) -> str:
+    for rx, rep in DOMAIN_FIXES:
+        text = rx.sub(rep, text)
+    return text
+
+
 def _result(segments, provider, model, duration_s):
+    segments = [dict(s, text=_fix(s["text"])) for s in segments]
     return {"text": " ".join(s["text"] for s in segments).strip(), "segments": segments, "provider": provider, "model": model,
             "duration_s": round(duration_s, 2)}
 

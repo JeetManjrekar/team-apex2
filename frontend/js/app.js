@@ -19,10 +19,10 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>TAB(b.dataset.
 
 async function init(){cfg=await api("/api/config");$("#reportLink").href=API+"/api/report";
   $("#site").textContent=cfg.site.name;
-  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?"BauBuddy AI":"Rules only";
+  const L=cfg.llm;$("#b-llm").textContent=L.mode=="llm"?"BauBuddy AI":(LANG==="de"?"Nur Regeln":"Rules only");
   $("#b-llm").title=L.mode=="llm"?`Confidence threshold ${L.threshold}. Critical fields: ${L.critical_fields.join(", ")}`:`LLM off (${L.error||"no key"}). Rules run under the same evidence and confidence gates.`;
   $("#b-llm").classList.toggle("g",L.mode=="llm");
-  $("#b-rf").textContent=cfg.mock_mode?"Demo photos":"Photo AI live";$("#b-rf").classList.toggle("g",!cfg.mock_mode);
+  $("#b-rf").textContent=cfg.mock_mode?(LANG==="de"?"Demo-Fotos":"Demo photos"):(LANG==="de"?"Foto-KI live":"Photo AI live");$("#b-rf").classList.toggle("g",!cfg.mock_mode);
   $("#newType").innerHTML=Object.entries(cfg.doc_types).map(([k,v])=>`<option value="${k}">${esc(v.title)}</option>`).join("");
   $("#pDate").value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
   await loadPhotos();}
@@ -54,7 +54,7 @@ function renderDoc(el,d){
     <div class="row" style="margin-bottom:6px">
       ${st=="draft"?`<button class="p" data-st="checked" ${d.missing.length?"title='Fill required fields first'":""}>Mark as checked</button>`:""}
       ${st=="checked"?`<button class="p" data-st="sent">Approve & mark as sent</button>`:""}
-      <a href="${API}/api/docs/${d.id}/docx"><button>Word</button></a><button data-pdf>PDF</button><span data-id="${d.id}" style="display:none"></span></div>
+      <button data-docx>Word</button><button data-pdf>PDF</button><span data-id="${d.id}" style="display:none"></span></div>
     <div class="err" id="derr"></div>
     ${d.missing.length?`<div class="mut" style="margin-bottom:4px">Missing required: ${esc(d.missing.map(k=>d.meta.fields.find(f=>f.key==k).label).join(", "))}</div>`:""}
     ${fields}
@@ -76,6 +76,7 @@ function renderDoc(el,d){
   el.querySelectorAll("[data-rmf]").forEach(b=>b.onclick=async()=>{if(!confirm("Feld entfernen?"))return;
     try{reload(await api(`/api/docs/${d.id}/fields/${b.dataset.rmf}`,{method:"DELETE"}))}catch(e){err(e)}});
   el.querySelectorAll("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(d.id,b));
+  el.querySelectorAll("[data-docx]").forEach(b=>b.onclick=async()=>{b.disabled=true;await pushSnap();b.disabled=false;location.href=`${API}/api/docs/${d.id}/docx`});
   el.querySelectorAll("[data-st]").forEach(b=>b.onclick=async()=>{try{reload(await api(`/api/docs/${d.id}/status`,{json:{status:b.dataset.st}}))}catch(e){el.querySelector("#derr").textContent=e.message}});
   const pk=el.querySelector("#pickPh");if(pk)pk.onclick=()=>{const box=el.querySelector("#phPick");box.style.display="flex";const sel=new Set(d.photos);
     box.innerHTML=photos.map(p=>`<img src="${API}/data/${p.file}" data-id="${p.id}" class="${sel.has(p.id)?"sel":""}" title="${esc(p.category)} ${esc(p.taken_at)}">`).join("")+`<button class="s p" id="phSave">Save</button>`;
@@ -117,17 +118,19 @@ $("#sGo").onclick=async()=>{const text=$("#sumText").value.trim();if(!text)retur
     ${r.masked?.length?`<p class="mut">Masked before AI: ${esc(r.masked.join(", "))}</p>`:""}
     <b>Open items</b>${r.open_items.length?`<table class="t"><tr><th>Item</th><th>Owner</th><th>Deadline</th></tr>${r.open_items.map(i=>`<tr title="${esc(i.quote)}"><td>${esc(i.item)}</td><td>${esc(i.owner||"—")}</td><td>${esc(i.deadline||"—")}</td></tr>`).join("")}</table>`:'<p class="mut">None found.</p>'}
     ${r.decisions.length?`<b>Decisions</b><ul>${r.decisions.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:""}
-    ${r.nachtrag_candidates.length?`<div class="alert yellow" style="display:block"><b>Possible Nachtrag (client instruction / changed work)</b><ul>${r.nachtrag_candidates.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
-      <button class="p s" id="mkNT">Draft Nachtragsmeldung from this</button></div>`:""}`;
+    ${r.nachtrag_candidates.length?`<div class="alert yellow" style="display:block"><b>Possible change order (client instruction / changed work)</b><ul>${r.nachtrag_candidates.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+      <button class="p s" id="mkNT">Draft change order notice from this</button></div>`:""}`;
   const b=$("#mkNT");if(b)b.onclick=async()=>{b.disabled=true;const d=await api("/api/docs",{json:{type:"nachtragsmeldung",text,source:r.kind=="email"?"email":"minutes"}});openDocInTab(d.id)};};
 
 /* ---------- photos, map, live ---------- */
 async function loadPhotos(){photos=await api("/api/photos");renderPhotos();}
+// English display names for category keys that are German terms (German mode: js/ui-glass.js translates the keys)
+const CATN=LANG==="de"?{}:{"Nachtrag evidence":"change order evidence"},catName=c=>CATN[c]||c;
 function renderPhotos(){const cats=["all",...cfg.categories];
-  $("#cats").innerHTML=cats.map(c=>`<span class="chip ${c==filter?"on":""}" data-c="${esc(c)}">${esc(c)} ${c=="all"?photos.length:photos.filter(p=>p.category==c).length}</span>`).join("");
+  $("#cats").innerHTML=cats.map(c=>`<span class="chip ${c==filter?"on":""}" data-c="${esc(c)}">${esc(catName(c))} ${c=="all"?photos.length:photos.filter(p=>p.category==c).length}</span>`).join("");
   $("#cats").querySelectorAll(".chip").forEach(x=>x.onclick=()=>{filter=x.dataset.c;renderPhotos()});
   $("#grid").innerHTML=photos.filter(p=>filter=="all"||p.category==filter).slice().reverse().map(p=>`<div class="pc ${p.needs_confirmation??(p.confidence<.5&&p.category_source=="model")?"low":""}">
-    <img src="${API}/data/${p.file}" data-id="${p.id}"><div class="b"><select data-id="${p.id}">${cfg.categories.map(c=>`<option ${c==p.category?"selected":""}>${esc(c)}</option>`).join("")}</select>
+    <img src="${API}/data/${p.file}" data-id="${p.id}"><div class="b"><select data-id="${p.id}">${cfg.categories.map(c=>`<option value="${esc(c)}" ${c==p.category?"selected":""}>${esc(catName(c))}</option>`).join("")}</select>
     <span class="mut">${p.category_source=="user"?"set by you":(p.category_source=="llm"?"vision LLM ":"detector ")+Math.round(p.confidence*100)+"%"} · ${p.location_source=="exif"?"GPS from photo":"site location"}</span>
     ${p.caption_de?`<span style="font-size:12.5px">${esc(p.caption_de)}</span>`:""}${p.needs_confirmation&&p.category_source!="user"?'<span style="color:var(--warn);font-size:12px">please confirm category</span>':""}
     <span class="mut">${esc((p.taken_at||"").replace("T"," "))}</span></div></div>`).join("")||'<p class="mut">No photos yet.</p>';
@@ -139,10 +142,10 @@ function drawBoxes(cv,w,h,dets){cv.width=w;cv.height=h;const c=cv.getContext("2d
 function openP(id){const p=photos.find(x=>x.id==id);dimg.onload=()=>drawBoxes(dcv,dimg.naturalWidth,dimg.naturalHeight,p.detections);dimg.src=API+"/data/"+p.file;
   dinfo.innerHTML=`<b>${esc(p.category)}</b> (${esc(p.category_source)}) · ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} (${esc(p.location_source)})<br><span class="mut">Detections: ${esc(p.detections.map(d=>d.class+" "+Math.round(d.confidence*100)+"%").join(", ")||(p.mock?"mock mode":"none"))}</span>`;dlg.showModal();}
 dlg.onclick=e=>{if(e.target==dlg)dlg.close()};
-function drawMap(){if(!map){map=L.map("mapbox").setView([cfg.site.lat,cfg.site.lon],16);L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);layer=L.layerGroup().addTo(map)}
-  layer.clearLayers();L.marker([cfg.site.lat,cfg.site.lon]).addTo(layer).bindPopup("Site");
-  photos.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:7,color:p.location_source=="exif"?"#c8501e":"#888"}).addTo(layer).bindPopup(`<img src="${API}/data/${p.file}" width="160"><br>${esc(p.category)}`));
-  setTimeout(()=>map.invalidateSize(),50);}
+function drawMap(){if(!map){map=window.L.map("mapbox").setView([cfg.site.lat,cfg.site.lon],16);window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);layer=window.L.layerGroup().addTo(map)}
+  layer.clearLayers();window.L.marker([cfg.site.lat,cfg.site.lon]).addTo(layer).bindPopup("Site");
+  photos.forEach(p=>window.L.circleMarker([p.lat,p.lon],{radius:7,color:p.location_source=="exif"?"#c8501e":"#888"}).addTo(layer).bindPopup(`<img src="${API}/data/${p.file}" width="160"><br>${esc(p.category)}`));
+  setTimeout(()=>{map.invalidateSize();if(!map._fitted&&photos.length){map._fitted=true;map.fitBounds(window.L.latLngBounds(photos.map(p=>[p.lat,p.lon]).concat([[cfg.site.lat,cfg.site.lon]])),{padding:[40,40],maxZoom:17})}},60);}
 let stream,timer,busy=false;
 camBtn.onclick=async()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;clearInterval(timer);camBtn.textContent="Start camera";snap.disabled=true;return}
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});vid.srcObject=stream;await vid.play();camBtn.textContent="Stop camera";snap.disabled=false;
@@ -160,7 +163,8 @@ async function loadMetrics(){const m=await api("/api/metrics");
 $("#mRefresh").onclick=()=>{loadMetrics();window.NWDash?.loadPerf?.()};
 
 /* ---------- demo controls (no browser dialogs) ---------- */
-$("#demoBtn").onclick=async()=>{await api("/api/demo/load",{json:{}});$("#demoBtn").textContent="Demo data loaded ✓";loadPlan()};
+// full demo state (project, schedule, site documents -> layout, geotagged photos, incidents), then reload every view
+$("#demoBtn").onclick=async()=>{$("#demoBtn").textContent="Loading…";await api("/api/demo/full",{json:{}});location.reload()};
 let armed=false;$("#resetBtn").onclick=async()=>{if(!armed){armed=true;$("#resetBtn").textContent="Click again to reset";setTimeout(()=>{armed=false;$("#resetBtn").textContent="Reset demo"},3000);return}
   await api("/api/demo/reset",{json:{}});armed=false;$("#resetBtn").textContent="Reset demo";docsSel=null;NW.loadMsgs?.();};
 init();
@@ -169,8 +173,11 @@ Object.assign(window.NW,{api,esc,$,showAssistDoc,openDocInTab,TAB});
 
 // PDF: headless-LibreOffice export (with ENTWURF watermark); 503/any failure falls back to the browser print view.
 // The tab is opened synchronously (inside the click) so popup blockers allow it; it is then pointed at the PDF blob or the print view.
+// the report embeds a 3D view of the live twin: upload a fresh overview shot before exporting (skipped if the twin never loaded)
+async function pushSnap(){try{const img=window.SiteTwin?.reportShot?.();if(img)await api("/api/site/snapshot",{json:{image:img}})}catch(e){}}
 async function openPdf(id,btn){
   const w=window.open("","_blank"),print=`${API}/api/docs/${id}/print`;
+  await pushSnap();
   if(btn)btn.disabled=true;
   try{
     const r=await fetch(`${API}/api/docs/${id}/pdf`);

@@ -16,7 +16,7 @@ def reset(keep_metrics: bool = True) -> dict:
             p = DATA / f"{n}.json"
             if p.exists():
                 p.unlink(); removed.append(p.name)
-        for pat in ("*.docx", "*.pdf") + (() if keep_metrics else ("llm_metrics.jsonl",)):
+        for pat in ("*.docx", "*.pdf", "twin_snapshot.png") + (() if keep_metrics else ("llm_metrics.jsonl",)):
             for p in DATA.glob(pat):
                 p.unlink(); removed.append(p.name)
         if UPLOADS.exists():
@@ -32,7 +32,49 @@ def reset(keep_metrics: bool = True) -> dict:
     return {"ok": True, "removed": len(removed)}
 
 
+# ---------------------------------------------------------------- full demo state
+ROOT = DATA.parent.parent
+SITE_DOCS = ROOT / "site_documents" / "upload"
+LAYOUT_FILES = ["project_reference.json", "vermessung_punkte.csv", "bauzeitenplan.xlsx", "baugrundgutachten.pdf",
+                "baugrundgutachten.docx", "lageplan.geojson"]
+SKIP_PHOTOS = {"site_4d007fe8.jpg"}      # test fixture with a deliberately wrong GPS fix (Tokyo); not part of the story
+
+
+def load_full() -> dict:
+    """Clean slate + everything the "day in the life" needs, offline and in about a second:
+    project/schedule/progress, site documents -> generated layout, geotagged photos (stored detections replayed,
+    timestamps moved onto the demo day), incident scan."""
+    import datetime as dt, json
+    from . import agent, layout_suggest, photos, plan, site_twin
+    from .llm_settings import today
+    from .store import load, save
+
+    reset()
+    plan.load_demo()
+    layout_suggest.clear_sources()
+    layout_suggest.add_sources([(n, (SITE_DOCS / n).read_bytes()) for n in LAYOUT_FILES if (SITE_DOCS / n).exists()])
+    seed = {f"site_{p['id']}.jpg": p for p in json.loads((DATA / "seed" / "photos.json").read_text(encoding="utf-8"))}
+    files = [(f.name, "image/jpeg", f.read_bytes()) for f in sorted((SITE_DOCS / "photos").glob("site_*.jpg"))
+             if f.name not in SKIP_PHOTOS and f.name in seed]
+    recs = photos.ingest(files, replay=seed)
+    day = today().isoformat()
+    rows = load("photos", [])
+    for r in rows:
+        if r.get("taken_at"):
+            r["taken_at"] = day + r["taken_at"][10:]
+    save("photos", rows)
+    res = layout_suggest.suggest()
+    proj = load("project", {}) or {}
+    if proj.get("name_de"):                # the site documents are a separate fixture; keep one project name in the demo
+        res["layout"]["name"] = proj["name_de"]
+    site_twin.save_layout(res["layout"])
+    new = agent.scan()
+    return {"ok": True, "photos": len(recs), "zones": len(res["layout"].get("zones", [])), "incidents": len(new)}
+
+
 if __name__ == "__main__":
     import sys
     if sys.argv[1:] == ["reset"]:
         print(reset())
+    elif sys.argv[1:] == ["full"]:
+        print(load_full())
