@@ -10,8 +10,8 @@
   const DE = (() => { try { return localStorage.getItem("nw-lang") === "de"; } catch { return false; } })();
   const L = (en, de) => (DE ? de : en);
   const LOC = DE ? "de-DE" : "en-GB";
-  const EUR = x => (x == null ? "––" : new Intl.NumberFormat(LOC, { maximumFractionDigits: 0 }).format(x) + " €");
-  const K = x => (x == null ? "––" : x >= 10000 ? `${new Intl.NumberFormat(LOC, { maximumFractionDigits: 0 }).format(x / 1000)} k€` : EUR(x));
+  const EUR = x => (x == null ? "––" : "€" + new Intl.NumberFormat(LOC, { maximumFractionDigits: 0 }).format(x));
+  const K = x => (x == null ? "––" : x >= 10000 ? `€${new Intl.NumberFormat(LOC, { maximumFractionDigits: 0 }).format(x / 1000)}k` : EUR(x));
   const DEC = (x, d = 1) => new Intl.NumberFormat(LOC, { maximumFractionDigits: d, minimumFractionDigits: d }).format(x);
   const BAND = { low: "ok", medium: "warn", high: "bad" };
   const bandOf = x => (x >= 25000 ? "high" : x >= 5000 ? "medium" : "low");
@@ -33,7 +33,6 @@
   function html(s) {
     const nd = s.nachtrag_documented, no = s.nachtrag_open, ia = s.idle_avoided, iv = s.idle_avoidable, d = s.delay_open, doc = s.documentation;
     const nVal = nd.count ? nd : no;
-    const ratio = s.return_ratio ? (s.return_ratio > 1000 ? "> 1.000 ×" : `${DEC(s.return_ratio, 0)} ×`) : null;
     return `<div class="cm card">
       <div class="cm-h"><div><b>${L("Money &amp; time", "Geld &amp; Zeit")}</b><span>${L("today", "heute")} · ${esc(s.as_of)}</span></div><span class="cm-tag">${esc(s.label)}</span></div>
       <div class="cm-kpis">
@@ -46,13 +45,11 @@
               d ? `+${DEC(d.slip_days.exp)} ${L("working days", "AT")} · ${EUR(d.low_eur)} – ${EUR(d.high_eur)}` : L("no delay forecast", "kein Verzug prognostiziert"),
               d ? bandOf(d.expected_eur) : null)}
         ${kpi(L("Paperwork time", "Doku-Zeit"), doc.docs ? `${DEC(doc.assisted_min, 0)} <i>${L("instead of", "statt")}</i> ${doc.manual_min} min` : "––",
-              doc.docs ? `${doc.docs} ${L("docs", "Dok.")} · ${EUR(doc.saved_eur)} ${L("saved", "gespart")} · ${L("AI", "KI")} ${doc.ai_cost_total_eur != null ? DEC(doc.ai_cost_total_eur, 3) + " €" : L("not recorded", "nicht erfasst")}`
+              doc.docs ? `${doc.docs} ${L("docs", "Dok.")} · ${EUR(doc.saved_eur)} ${L("saved", "gespart")} · ${L("AI", "KI")} ${doc.ai_cost_total_eur != null ? "€" + DEC(doc.ai_cost_total_eur, 3) : L("not recorded", "nicht erfasst")}`
                        : L("no documents yet", "noch keine Dokumente"), null)}
       </div>
-      ${ratio ? `<div class="cm-ratio">${L("Return", "Rendite")}: <b>${ratio}</b> ${L("value per euro of AI cost", "Wert je Euro KI-Kosten")}</div>` : ""}
-      <div class="cm-top"><div class="cm-sub">${L("Where your next 10 minutes are worth the most", "Wo deine nächsten 10 Minuten am meisten wert sind")}</div>
-        ${(s.top || []).map(row).join("") || `<div class="mut pad">${L("Nothing open.", "Nichts offen.")}</div>`}</div>
-      <div class="cm-foot">${esc(s.footer)}</div></div>`;
+      <div class="cm-top">
+        ${(s.top || []).map(row).join("") || `<div class="mut pad">${L("Nothing open.", "Nichts offen.")}</div>`}</div></div>`;
   }
   function bind(root) {
     qa(".cm-more", root).forEach(b => b.onclick = () => b.closest(".cm-row").classList.toggle("open"));

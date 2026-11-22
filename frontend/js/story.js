@@ -91,7 +91,7 @@
   anchor ? anchor.before(btn) : q("header")?.append(btn);
 
   /* ------------------------------------------------------------------ helpers */
-  const eurK = x => (x == null ? "––" : x >= 10000 ? `${Math.round(x / 1000)} k€` : `${new Intl.NumberFormat(de ? "de-DE" : "en-GB").format(Math.round(x))} €`);
+  const eurK = x => (x == null ? "––" : x >= 10000 ? `€${Math.round(x / 1000)}k` : `€${new Intl.NumberFormat(de ? "de-DE" : "en-GB").format(Math.round(x))}`);
   const fmtMin = m => (m >= 60 ? `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")} min` : `${Math.round(m)} min`);
   function setClock(t) { q("#stClock").textContent = t; }
   function addSaved(min) {
@@ -341,7 +341,7 @@
       },
     },
     {
-      time: "16:55", title: L("Your turn: on your phone", "Jetzt du: auf dem Handy"),
+      time: "16:55", title: L("Your crew can join in", "Auch die Crew macht mit"),
       intro: L("Scan. Talk. It appears live.", "Scannen. Sprechen. Erscheint live."),
       async run() {
         let info = {};
@@ -437,20 +437,17 @@
     if (e.key === "Escape") stop();
   });
 
-  // start: fresh demo state, reload (all views pick it up), then a start card whose click unlocks audio + speech
+  // start: fresh demo state, reload (all views pick it up), then the day starts straight away.
+  // The click is the user gesture, so audio + speech are primed here, before the reload.
   btn.onclick = async () => {
+    try { speechSynthesis?.speak(Object.assign(new SpeechSynthesisUtterance(" "), { volume: 0 })); new (window.AudioContext || window.webkitAudioContext)().resume(); } catch {}
     btn.disabled = true; btn.textContent = L("Preparing the site…", "Baustelle wird vorbereitet…");
     try { await api("/api/demo/full", { json: {} }); } catch (e) { btn.disabled = false; btn.textContent = L("▶ Real Time Preview", "▶ Echtzeit-Vorschau"); return; }
     location.href = location.pathname + "?story=1";
   };
   if (new URLSearchParams(location.search).get("story") === "1") {
     history.replaceState(null, "", location.pathname);
-    q("#stCt").textContent = "07:00";
-    q("#stCh").textContent = L("A day in the life of a site manager", "Ein Tag im Leben eines Bauleiters");
-    q("#stCp").innerHTML = esc(L("Bridge BW 12 · everything runs live", "Brücke BW 12 · alles läuft live"))
-      + `<br><br><button class="p" id="stGo" style="pointer-events:auto;font-size:16px;padding:12px 22px">${L("▶ Start the day", "▶ Den Tag starten")}</button>`;
-    chap.classList.add("on");
-    q("#stGo").onclick = () => { chap.classList.remove("on"); setTimeout(run, 400); };
+    setTimeout(run, 400);
   }
   window.Story = { run, stop, phoneCard, get active() { return ST.on; } };
 })();

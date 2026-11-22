@@ -15,7 +15,8 @@
   const ST = DE ? { draft: "Entwurf", checked: "Geprüft", sent: "Weitergegeben" } : { draft: "Draft", checked: "Checked", sent: "Sent" };
   const NT_TYPES = ["nachtragsmeldung", "mehrkostenanzeige"];
   const DASH = "––";
-  const EUR = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  // euro sign first, no space; 10 000 and above are shortened to "€12k"
+  const EUR = { format: x => (x >= 10000 ? `€${Math.round(x / 1000).toLocaleString("de-DE")}k` : "€" + Math.round(x).toLocaleString("de-DE")) };
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -356,7 +357,7 @@
     const html = `<div class="db-perf">
         <div><b>${e2e != null ? n1(e2e / 1000) + " s" : DASH}</b><span>${L("end to end", "Ende zu Ende")}</span></div>
         <div><b>${acc != null ? Math.round(acc * (acc <= 1 ? 100 : 1)) + " %" : DASH}</b><span>${L("fields correct", "Felder korrekt")}</span></div>
-        <div><b>${cpd != null ? cpd.toLocaleString(DE ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " €" : DASH}</b><span>${L("per document", "pro Dokument")}</span></div></div>
+        <div><b>${cpd != null ? "€" + cpd.toLocaleString(DE ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) : DASH}</b><span>${L("per document", "pro Dokument")}</span></div></div>
       ${shown.length ? `<div class="db-stages">${shown.map(s => `<div><span>${esc(s.stage.replace(/_/g, " "))}</span><div class="gl-progress"><i style="width:${(s.avg_ms || 0) / maxMs * 100}%"></i></div><b>${ms(s.avg_ms)}</b></div>`).join("")}</div>` : ""}`;
 
     box.innerHTML = html;
