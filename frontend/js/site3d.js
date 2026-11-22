@@ -28,7 +28,7 @@ const CAM_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" str
 const S = {
   data: null, mode: "2d", built: false, visible: false, sel: null, hover: null, placing: null,
   show: { det: true, lbl: true, pho: true, zon: true }, minConf: 0,
-  photoNo: {}, pickables: [], anims: [], touring: false, flying: null, labels: { zone: [], dim: [], struct: [], photo: [], det: [] },
+  photoNo: {}, pickables: [], anims: [], touring: false, flying: null, labels: { zone: [], dim: [], struct: [], photo: [], det: [], claim: [] },
 };
 let renderer, labelRenderer, scene, camera, controls, root, selRing, ghost, stage, fitSize = 100, center = new THREE.Vector3();
 let composer = null, bloom = null, siteBounds = null, fitHalfW = 60;
@@ -431,9 +431,28 @@ function build() {
   // AI detections
   for (const p of S.data.photos) if (p.plan_xy) for (const d of p.detections) if (d.xy) buildDetection(p, d);
 
+  // claim potential: one pill per spot (claims within 3 m merge), red until sent, green after
+  buildClaims(S.data.claims || []);
+
   renderLegend();
   applyVisibility();
   applyHighlights();
+}
+
+const EUR = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+function buildClaims(claims) {
+  const spots = [];
+  for (const c of claims.slice().sort((a, b) => b.amount_eur - a.amount_eur)) {
+    const s = spots.find(s => Math.hypot(s.x - c.x, s.y - c.y) < 3);
+    s ? s.items.push(c) : spots.push({ x: c.x, y: c.y, items: [c] });
+  }
+  for (const s of spots) {
+    const sum = s.items.reduce((t, c) => t + c.amount_eur, 0), open = s.items.some(c => c.status !== "sent");
+    const tip = s.items.map(c => `${c.title}${c.location ? " · " + c.location : ""}: ${EUR.format(c.amount_eur)} (${c.status === "sent" ? "approved" : "draft – not approved yet"})`).join("\n");
+    const l = label(`<div class="cp" title="${esc(tip)}"><b>${EUR.format(sum)}</b>${s.items.length > 1 ? `<span>× ${s.items.length}</span>` : ""}</div>`,
+      "claim " + (open ? "open" : "ok"), s.x, s.y, 0.3, "claim");
+    l.element.querySelector(".cp").addEventListener("click", e => { e.stopPropagation(); window.NW?.openDocInTab?.(s.items[0].doc_id); });
+  }
 }
 
 function centroid(pts) {
@@ -638,6 +657,7 @@ function renderLegend() {
     `<div><i class="sw" style="background:#c8501e;border-radius:50%"></i>Photo location</div>` +
     `<div><i class="sw" style="background:#8a8780;border-radius:50%"></i>Photo without GPS</div>` +
     classes.map(c => `<div><i class="sw" style="background:${classColor(c)}"></i>${esc(nice(c))}</div>`).join("") +
+    ((S.data.claims || []).length ? `<div><i class="sw" style="background:#e5484d;border-radius:50%"></i>Claim potential – not approved</div><div><i class="sw" style="background:#2fa66a;border-radius:50%"></i>Claim potential – approved (sent)</div>` : "") +
     `<div><i class="sw" style="background:#2f7d4a"></i>Built (from progress log)</div><div><i class="sw ghost"></i>Planned (dashed)</div>`;
 }
 

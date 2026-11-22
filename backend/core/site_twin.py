@@ -20,7 +20,7 @@ projected with a pinhole model: bearing from the box centre column, distance fro
 object height per class. Without a heading, objects are drawn in a small ring around the camera and flagged as such.
 Every placed object carries `position_method` so the UI never presents an estimate as a survey.
 """
-import math, os, datetime as dt
+import math, os, re, datetime as dt
 from functools import lru_cache
 
 from PIL import Image
@@ -224,6 +224,82 @@ def _neighbours(placed, k=3):
         p["neighbours"] = sorted(rows, key=lambda r: r["distance_m"])[:k]
 
 
+# ---------------------------------------------------------------- claim positions (claim potential blips)
+CLAIM_TYPES = ("nachtragsmeldung", "mehrkostenanzeige")
+CODE_ALIAS = {"pfeiler": "P", "pier": "P", "widerlager": "W", "abutment": "W", "achse": "A", "axis": "A",
+              "bauabschnitt": "BA", "baufeld": "BF", "baustelleneinrichtung": "BE", "lager": "L", "zufahrt": "Z",
+              "bohrpfahl": "BP", "pfahl": "BP", "pile": "BP"}
+
+
+def _norm(s):
+    return re.sub(r"[\s_\-./]+", "", (s or "").lower())
+
+
+def _codes(text):
+    """Element codes named in free text: 'Pfeiler 2' / 'P02' -> P2, 'Achse 10' -> A10, 'Bohrpfahl 7' / 'BP7' -> BP7."""
+    out = set()
+    for word, num in re.findall(r"([A-Za-zÄÖÜäöü]+)\s*[-_]?\s*0*(\d{1,3})(?!\d)", text or ""):
+        w = word.lower()
+        if w in CODE_ALIAS:
+            out.add(CODE_ALIAS[w] + num)
+        elif len(w) <= 2:
+            out.add(w.upper() + num)
+    return out
+
+
+def _centroid(pts):
+    a = cx = cy = 0.0
+    for i, p in enumerate(pts):
+        q = pts[(i + 1) % len(pts)]
+        f = p[0] * q[1] - q[0] * p[1]
+        a, cx, cy = a + f, cx + (p[0] + q[0]) * f, cy + (p[1] + q[1]) * f
+    if abs(a) < 1e-9:
+        return [sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)]
+    return [cx / (3 * a), cy / (3 * a)]
+
+
+def resolve_location(loc, layout, photo_xy=()):
+    """Plan [x, y] and how it was found, or (None, None). Order: marker / structure name, zone code, pile in a
+    pile_row, linked photo positions. Nothing is guessed: an unmatched location stays off the plan."""
+    n, codes = _norm(loc), _codes(loc)
+    if n:
+        for s in layout.get("structures", []):
+            if s.get("kind") != "pile_row" and s.get("x") is not None and s.get("name") and (
+                    _norm(s["name"]) == n or (s.get("kind") == "marker" and codes & _codes(s["name"]))):
+                return [s["x"], s["y"]], "structure"
+        for z in layout.get("zones", []):
+            if codes & (_codes(z["id"]) | _codes(z.get("name"))) or _norm(z.get("name")) == n:
+                return _centroid(z["polygon"]), "zone"
+        piles = [int(c[2:]) for c in codes if c.startswith("BP")]
+        rows = [s for s in layout.get("structures", []) if s.get("kind") == "pile_row"]
+        if piles and len(rows) > 1:            # several pile rows: only the one the text also names
+            rows = [s for s in rows if codes & _codes(s.get("name"))]
+        if piles and len(rows) == 1:
+            s, k = rows[0], piles[0]
+            cnt = s.get("count") or 10
+            if 1 <= k <= cnt:
+                t = 0.5 if cnt == 1 else (k - 1) / (cnt - 1)
+                return [s["x1"] + (s["x2"] - s["x1"]) * t, s["y1"] + (s["y2"] - s["y1"]) * t], "pile"
+    if photo_xy:
+        return [sum(p[0] for p in photo_xy) / len(photo_xy), sum(p[1] for p in photo_xy) / len(photo_xy)], "photo"
+    return None, None
+
+
+def claim_spots(layout, docs, placed):
+    pos = {p["id"]: p["plan_xy"] for p in placed if p["plan_xy"]}
+    out = []
+    for d in docs:
+        cp = d.get("claim_potential") or {}
+        if d.get("type") not in CLAIM_TYPES or cp.get("amount_eur") is None:
+            continue
+        loc = ((d.get("fields") or {}).get("location") or {}).get("value", "")
+        xy, how = resolve_location(loc, layout, [pos[i] for i in d.get("photos") or [] if i in pos])
+        if xy:
+            out.append({"doc_id": d["id"], "title": d.get("title"), "location": loc, "x": round(xy[0], 2), "y": round(xy[1], 2),
+                        "amount_eur": cp["amount_eur"], "status": d.get("status"), "matched_by": how})
+    return out
+
+
 def twin():
     layout = normalise(get_layout())
     photos = load("photos", [])
@@ -292,6 +368,7 @@ def twin():
                       "timeline": timeline, "evidence": evidence})
 
     return {"layout": layout, "photos": placed, "zones": zones, "schedule": list(sched_rows.values()),
+            "claims": claim_spots(layout, docs, placed),
             "models": {"detector": det_default, "vision": vision_model_name()},
             "camera": {"hfov_deg": HFOV_DEG, "object_height_m": OBJECT_HEIGHT_M},
             "generated_at": dt.datetime.now().isoformat(timespec="seconds")}

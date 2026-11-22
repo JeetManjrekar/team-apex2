@@ -1,0 +1,57 @@
+{
+  "project_id": "bw12_muehlbach",
+  "staff_by_company": {
+    "Muster Bau GmbH (fiktiv)": 6,
+    "TiefBohr GmbH (fiktiv)": 3,
+    "Stahlflechter Süd (fiktiv)": 4
+  },
+  "visits": [],
+  "incidents": [],
+  "reassignments": [],
+  "photos": [],
+  "source_sections": {
+    "weather": "wetter",
+    "staff_by_company": "personal",
+    "equipment": "geraete",
+    "work_done": "leistungen",
+    "deliveries": "lieferungen",
+    "visits": "besuche",
+    "incidents": "vorkommnisse",
+    "instructions": "anweisungen"
+  },
+  "completed_activity_ids": [
+    "BE",
+    "W1_AUSHUB",
+    "A1_AUSHUB"
+  ],
+  "date": "2026-11-13",
+  "weather": "bedeckt, trocken",
+  "temperature_min_c": 4,
+  "temperature_max_c": 9,
+  "equipment": [
+    "BG-01 Bohrgerät (W1)",
+    "EX-01 Bagger (Achse 1, Aushub)",
+    "KR-01 Mobilkran"
+  ],
+  "work_done": [
+    "Bohrpfähle P03 und P04 (je 12 m) hergestellt",
+    "Aushub Achse 1 abgeschlossen",
+    "Bewehrung Widerlager 1: Biegen und Vorbereitung"
+  ],
+  "deliveries": [
+    "Ersatzzähne Bohrwerkzeug, 09:30"
+  ],
+  "instructions": [
+    "keine"
+  ],
+  "output_by_activity": {
+    "W1_BP": {
+      "unit": "m",
+      "value": 24.0,
+      "piles": [
+        "P03",
+        "P04"
+      ]
+    }
+  }
+}

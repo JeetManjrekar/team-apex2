@@ -1,0 +1,96 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//BW12 Upload Sample (fiktiv)//DE
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:Europe/Berlin
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+TZNAME:CET
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+TZNAME:CEST
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:2026-11-19-baubesprechung-fels@upload-sample.example
+DTSTAMP:20261118T093500Z
+SEQUENCE:0
+DTSTART;TZID=Europe/Berlin:20261119T100000
+DTEND;TZID=Europe/Berlin:20261119T110000
+SUMMARY:Baubesprechung Bauherr: Fels bei Pfahl 7 (BW 12)
+LOCATION:Baustelle BW 12 Mühlbach\, Container BE
+DESCRIPTION:Tagesordnung:\n1. Fels bei P07 ab 4\,0 m (Anzeige vom 17.11.20
+ 26\, Gutachten Nr. 2026-0481)\n2. Ergänzende Stellungnahme Baugrundgutac
+ hter\, Aufschlussbohrung BK 5\n3. Terminfolge Bohrpfähle P08 – P24\, M
+ eilenstein Unterbau fertig 02.12.2026\n4. Nachtragsangebot Fels P07\, Unt
+ erlagen\n5. Aussparung DN 100 Flügelwand W2
+ORGANIZER;CN=Hans Lindner:mailto:h.lindner@bauamt.example
+STATUS:CONFIRMED
+ATTENDEE;CN=Hans Lindner;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto
+ :h.lindner@bauamt.example
+ATTENDEE;CN=Markus Brandl;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailt
+ o:m.brandl@muster-bau.example
+ATTENDEE;CN=Josef Huber;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:
+ j.huber@muster-bau.example
+ATTENDEE;CN=Sabine Keller;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailt
+ o:s.keller@muster-bau.example
+ATTENDEE;CN=Dr. Petra Nowak;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mai
+ lto:p.nowak@geo-sued.example
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Baubesprechung Bauherr: Fels bei Pfahl 7 (BW 12)
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:2026-11-20-nachtragsunterlagen@upload-sample.example
+DTSTAMP:20261118T093500Z
+SEQUENCE:0
+DTSTART;TZID=Europe/Berlin:20261120T120000
+DTEND;TZID=Europe/Berlin:20261120T123000
+SUMMARY:Frist: Nachtragsangebot Fels P07 beim Bauamt einreichen
+LOCATION:Büro Muster Bau GmbH
+DESCRIPTION:Bohrprotokoll P07\, Bohrzeiten P01–P07\, Nachtragsangebot mi
+ t Mengen und EP.
+ORGANIZER;CN=Hans Lindner:mailto:h.lindner@bauamt.example
+STATUS:CONFIRMED
+ATTENDEE;CN=Sabine Keller;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailt
+ o:s.keller@muster-bau.example
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Frist: Nachtragsangebot Fels P07 beim Bauamt einreichen
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:2026-11-23-bk5@upload-sample.example
+DTSTAMP:20261118T093500Z
+SEQUENCE:0
+DTSTART;TZID=Europe/Berlin:20261123T070000
+DTEND;TZID=Europe/Berlin:20261123T150000
+SUMMARY:Aufschlussbohrung BK 5 im Bereich P08/P09
+LOCATION:Baustelle BW 12\, Widerlager 1
+DESCRIPTION:Ergänzende Erkundung durch Geo-Süd\; Bohrgerät BG-01 steht 
+ bereit.
+ORGANIZER;CN=Hans Lindner:mailto:h.lindner@bauamt.example
+STATUS:CONFIRMED
+ATTENDEE;CN=Dr. Petra Nowak;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mai
+ lto:p.nowak@geo-sued.example
+ATTENDEE;CN=Josef Huber;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:
+ j.huber@muster-bau.example
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Aufschlussbohrung BK 5 im Bereich P08/P09
+TRIGGER:-PT30M
+END:VALARM
+END:VEVENT
+END:VCALENDAR

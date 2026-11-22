@@ -2,7 +2,7 @@
 extraction, intent and review.
 
 Public: complete_json(), vision_json(). Both return (validated Pydantic object, Usage).
-Providers: openai | anthropic | groq (OpenAI-compatible). One repair retry on invalid JSON.
+Providers: openai | anthropic | groq | qwen (OpenAI-compatible; qwen = CLAIM_LLM_BASE_URL, used for claim potential). One repair retry on invalid JSON.
 Replay cache: LLM_CACHE_MODE=off|record|replay (record once with keys, replay the demo offline).
 Callers mask PII before building prompts (core.sanitizer); nothing here sees unmasked chat text.
 """
@@ -37,6 +37,8 @@ class LLMError(RuntimeError):
 
 def _key(provider: str) -> str | None:
     # CFG.api_key belongs to LLM_PROVIDER; a second provider (judge B) uses REVIEW_JUDGE_B_API_KEY, else the SDK's env var.
+    if provider == "qwen":
+        return CFG.claim_api_key or "EMPTY"      # local vLLM / Ollama accept any key, the SDK refuses none
     if provider == CFG.provider:
         return CFG.api_key or None
     return CFG.judge_b_api_key or None
@@ -44,7 +46,7 @@ def _key(provider: str) -> str | None:
 
 def _openai_compatible(system: str, content: Any, model: str, provider: str) -> tuple[str, Usage]:
     from openai import OpenAI   # heavy import inside: the backend starts without the SDK
-    kw = {"base_url": GROQ_BASE_URL} if provider == "groq" else {}
+    kw = {"base_url": GROQ_BASE_URL} if provider == "groq" else {"base_url": CFG.claim_base_url} if provider == "qwen" else {}
     client = OpenAI(api_key=_key(provider), timeout=CFG.timeout_s, **kw)
     extra = {"reasoning_effort": CFG.reasoning_effort} if provider == "groq" and CFG.reasoning_effort else {}
     r = client.chat.completions.create(
@@ -73,11 +75,11 @@ def _anthropic(system: str, content: Any, model: str, provider: str = "anthropic
     return text, Usage(input=r.usage.input_tokens, output=r.usage.output_tokens, model=r.model)
 
 
-_PROVIDERS = {"openai": _openai_compatible, "groq": _openai_compatible, "anthropic": _anthropic}
+_PROVIDERS = {"openai": _openai_compatible, "groq": _openai_compatible, "qwen": _openai_compatible, "anthropic": _anthropic}
 
 
 def _parse_json(text: str) -> dict:
-    text = text.strip()
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()   # Qwen3 emits an (empty) think block even with /no_think
     if text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z]*\n?|```$", "", text).strip()
     try:

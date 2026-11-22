@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body
 from fastapi.responses import FileResponse, HTMLResponse
 
-from core import assistant, docs, export, llm_bridge
+from core import assistant, claim_potential, docs, export, llm_bridge
 from core.errors import ApiError
 from core.store import SITE, load
 
@@ -32,7 +32,10 @@ def _doc(doc_id):
 
 @router.get("/docs")
 def list_docs():
-    return [docs.public(d) for d in sorted(docs.all_docs(), key=lambda d: d["updated_at"], reverse=True)]
+    rows = sorted(docs.all_docs(), key=lambda d: d["updated_at"], reverse=True)
+    for d in rows:
+        claim_potential.schedule(d)     # claims never estimated yet (seed data, model added later)
+    return [docs.public(d) for d in rows]
 
 
 @router.get("/docs/{doc_id}")
