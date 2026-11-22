@@ -61,6 +61,8 @@ def test_german_demo_unchanged(site):
 
 
 def test_cost_numbers_identical_in_both_languages(site):
+    from core import plan
+    plan.load_demo()          # the cost model only reads the demo CSVs while a project is loaded
     out = {}
     for lang in ("de", "en"):
         set_lang(lang)

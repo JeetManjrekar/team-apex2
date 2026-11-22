@@ -154,10 +154,15 @@ def _demo_dir():
     return DEMO_DIR
 
 
+def _demo_loaded() -> bool:
+    """The cost model reads the demo CSVs only while project data is loaded; a reset instance must show nothing."""
+    return bool(store.load("schedule", []) or store.load("project", {}))
+
+
 def drilling_rows() -> list[dict]:
     from .plan import demo_path
     p = demo_path("drilling", "drilling_times.csv")
-    if not p.exists():
+    if not _demo_loaded() or not p.exists():
         return []
     rows = []
     with p.open(encoding="utf-8") as f:
@@ -181,7 +186,7 @@ def drilling_rows() -> list[dict]:
 def schedule_rows() -> list[dict]:
     from .plan import demo_path
     p = demo_path("schedule", "bauzeitenplan.csv")
-    if not p.exists():
+    if not _demo_loaded() or not p.exists():
         return []
     out = []
     with p.open(encoding="utf-8") as f:
