@@ -52,7 +52,9 @@ def load_full() -> dict:
     reset()
     plan.load_demo()
     layout_suggest.clear_sources()
-    layout_suggest.add_sources([(n, (SITE_DOCS / n).read_bytes()) for n in LAYOUT_FILES if (SITE_DOCS / n).exists()])
+    from .store import localized                                   # English: the *_en duplicates of the same site documents
+    files = [localized(SITE_DOCS / n) for n in LAYOUT_FILES]
+    layout_suggest.add_sources([(f.name, f.read_bytes()) for f in files if f.exists()])
     seed = {f"site_{p['id']}.jpg": p for p in json.loads((DATA / "seed" / "photos.json").read_text(encoding="utf-8"))}
     files = [(f.name, "image/jpeg", f.read_bytes()) for f in sorted((SITE_DOCS / "photos").glob("site_*.jpg"))
              if f.name not in SKIP_PHOTOS and f.name in seed]
@@ -65,8 +67,9 @@ def load_full() -> dict:
     save("photos", rows)
     res = layout_suggest.suggest()
     proj = load("project", {}) or {}
-    if proj.get("name_de"):                # the site documents are a separate fixture; keep one project name in the demo
-        res["layout"]["name"] = proj["name_de"]
+    from .store import project_name
+    if project_name(proj):                 # the site documents are a separate fixture; keep one project name in the demo
+        res["layout"]["name"] = project_name(proj)
     site_twin.save_layout(res["layout"])
     new = agent.scan()
     return {"ok": True, "photos": len(recs), "zones": len(res["layout"].get("zones", [])), "incidents": len(new)}

@@ -1,0 +1,27 @@
+id;description;type;latitude;longitude
+BP0;Reference point bridge axis;reference;48,2935000;11,8890000
+B1;Property boundary;boundary;48,2930477;11,8879873
+B2;Property boundary;boundary;48,2930477;11,8900127
+B3;Property boundary;boundary;48,2938619;11,8900127
+B4;Property boundary;boundary;48,2939523;11,8898101
+B5;Property boundary;boundary;48,2939523;11,8879873
+W1-1;Abutment 1, corner SW;zone;48,2933643;11,8882169
+W1-2;Abutment 1, corner SE;zone;48,2933643;11,8885949
+W1-3;Abutment 1, corner NE;zone;48,2936357;11,8885949
+W1-4;Abutment 1, corner NW;zone;48,2936357;11,8882169
+A1-1;Axis 1, corner SW;zone;48,2933914;11,8887300
+A1-2;Axis 1, corner SE;zone;48,2933914;11,8888650
+A1-3;Axis 1, corner NE;zone;48,2936086;11,8888650
+A1-4;Axis 1, corner NW;zone;48,2936086;11,8887300
+A2-1;Axis 2, corner SW;zone;48,2933914;11,8891350
+A2-2;Axis 2, corner SE;zone;48,2933914;11,8892700
+A2-3;Axis 2, corner NE;zone;48,2936086;11,8892700
+A2-4;Axis 2, corner NW;zone;48,2936086;11,8891350
+W2-1;Abutment 2, corner SW;zone;48,2933643;11,8894051
+W2-2;Abutment 2, corner SE;zone;48,2933643;11,8897831
+W2-3;Abutment 2, corner NE;zone;48,2936357;11,8897831
+W2-4;Abutment 2, corner NW;zone;48,2936357;11,8894051
+BE-1;Site facilities, corner SW;zone;48,2930929;11,8880549
+BE-2;Site facilities, corner SE;zone;48,2930929;11,8884599
+BE-3;Site facilities, corner NE;zone;48,2933010;11,8884599
+BE-4;Site facilities, corner NW;zone;48,2933010;11,8880549

@@ -113,8 +113,17 @@ def photo_chunks(day: str | None = None, ids: list[str] | None = None) -> list[S
 
 
 # ---------------------------------------------------------------- project context (seeded demo data, cited like any source)
+from .store import pick, project_name  # noqa: E402
+
+
 def _demo(*parts):
-    return CFG.demo_dir.joinpath(*parts)
+    from .store import localized
+    return localized(CFG.demo_dir.joinpath(*parts))
+
+
+def _en():
+    from .i18n import get_lang
+    return get_lang() == "en"
 
 
 def project() -> dict:
@@ -130,7 +139,10 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
     if proj:
         chunks.append(SourceChunk(
             ref="doc:project@p1", kind="project", label_de=T("c_project"), locator=T("c_page", n=1),
-            text=(f"Projekt: {proj.get('name_de')}. Bauherr: {proj.get('bauherr')}. Auftragnehmer: {proj.get('contractor')}. "
+            text=(f"Project: {project_name(proj)}. Client: {proj.get('bauherr')}. Contractor: {proj.get('contractor')}. "
+                  f"Site manager: {proj.get('site_manager')}. Foreman: {proj.get('polier')}. "
+                  f"Change order manager: {proj.get('nachtragsmanager')}. Contract: {proj.get('contract_ref')}." if _en() else
+                  f"Projekt: {project_name(proj)}. Bauherr: {proj.get('bauherr')}. Auftragnehmer: {proj.get('contractor')}. "
                   f"Bauleiter: {proj.get('site_manager')}. Polier: {proj.get('polier')}. "
                   f"Nachtragsmanager: {proj.get('nachtragsmanager')}. Vertrag: {proj.get('contract_ref')}.")))
     f = _demo("source_documents", "baugrundgutachten_auszug.md")
@@ -139,22 +151,27 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
             chunks.append(SourceChunk(ref=f"doc:bgg@p{n}", kind="document", label_de=T("c_bgg", n=n),
                                       locator=T("c_page", n=n), text=page))
     zf = _demo("site_plan", "zones.json")
-    zones = {z["id"]: z["label_de"] for z in json.loads(zf.read_text(encoding="utf-8"))} if zf.exists() else {}
+    zones = {z["id"]: pick(z, "label") for z in json.loads(zf.read_text(encoding="utf-8"))} if zf.exists() else {}
     f = _demo("drilling", "drilling_times.csv")
     if f.exists():
         for row in csv.DictReader(f.open(encoding="utf-8")):
             if not row.get("start"):
                 continue
-            end = row["end"] or (re.search(r"Stand (\d{1,2}:\d{2})", row.get("note_de") or "") or [None, None])[1]
+            note = pick(row, "note")
+            end = row["end"] or (re.search(r"(?:Stand|as of) (\d{1,2}:\d{2})", note) or [None, None])[1]
             data = {**row, "end": end, "depth_reached_m": float(row["depth_reached_m"] or 0),
                     "target_depth_m": float(row["target_depth_m"] or 0), "crew_count": int(row["crew_count"] or 0)}
             chunks.append(SourceChunk(
                 ref=f"drill:{row['pile_id']}", kind="drilling", label_de=T("c_drill", id=row["pile_id"]),
                 locator=T("c_row", id=row["pile_id"]),
-                text=(f"Bohrzeitenliste des Poliers (kein förmliches Bohrprotokoll). {zones.get(row['pile_id'], row['pile_id'])} "
+                text=(f"Foreman's drilling list (not a formal drilling log). {zones.get(row['pile_id'], row['pile_id'])} "
+                      f"({row['pile_id']}), element {zones.get(row['zone_id'], row['zone_id'])}, {row['date']}, {row['start']} to "
+                      f"{end or 'ongoing'}, reached {row['depth_reached_m']} m of {row['target_depth_m']} m, "
+                      f"rig {row['rig_id']}, {row['crew_count']} people. {note}" if _en() else
+                      f"Bohrzeitenliste des Poliers (kein förmliches Bohrprotokoll). {zones.get(row['pile_id'], row['pile_id'])} "
                       f"({row['pile_id']}), Bauteil {zones.get(row['zone_id'], row['zone_id'])}, {row['date']}, {row['start']} bis "
                       f"{end or 'laufend'} Uhr, erreicht {row['depth_reached_m']} m von {row['target_depth_m']} m, "
-                      f"Gerät {row['rig_id']}, {row['crew_count']} Personen. {row['note_de']}"), data=data))
+                      f"Gerät {row['rig_id']}, {row['crew_count']} Personen. {note}"), data=data))
     f = _demo("schedule", "bauzeitenplan.csv")
     if f.exists():
         for row in csv.DictReader(f.open(encoding="utf-8")):
@@ -165,8 +182,10 @@ def context_chunks(today: dt.date) -> list[SourceChunk]:
             if (s - today).days <= 2 and (today - e).days <= 2:
                 chunks.append(SourceChunk(
                     ref=f"sched:{row['id']}", kind="schedule", label_de=T("c_sched", id=row["id"]), locator=row["id"],
-                    text=f"{row['name_de']} (Zone {row['zone_id']}), {row['start_planned']} bis {row['end_planned']}, "
-                         f"Rolle {row.get('crew_role', '')}. {row.get('assumption_note_de', '')}"))
+                    text=(f"{pick(row, 'name')} (zone {row['zone_id']}), {row['start_planned']} to {row['end_planned']}, "
+                          f"role {row.get('crew_role', '')}. {pick(row, 'assumption_note')}" if _en() else
+                          f"{pick(row, 'name')} (Zone {row['zone_id']}), {row['start_planned']} bis {row['end_planned']}, "
+                          f"Rolle {row.get('crew_role', '')}. {pick(row, 'assumption_note')}")))
     reports = sorted(p for p in _demo("daily_reports").glob("*.json") if p.stem < today.isoformat()) if _demo("daily_reports").exists() else []
     if reports:
         dr = json.loads(reports[-1].read_text(encoding="utf-8"))

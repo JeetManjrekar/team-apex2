@@ -25,7 +25,7 @@
     $("#simL").textContent = L("On site", "Vor Ort");
     $("#hint").textContent = L("Hold to talk · release to send", "Gedrückt halten · loslassen zum Senden");
     const e = $(".empty");
-    if (e) e.innerHTML = L("<b>Hold the button and talk</b>“Excavator idle since 10, hydraulic failure at Achse 1”<br>or take a photo of the site.",
+    if (e) e.innerHTML = L("<b>Hold the button and talk</b>“Excavator idle since 10, hydraulic failure at Axis 1”<br>or take a photo of the site.",
                            "<b>Knopf halten und sprechen</b>„Bagger steht seit 10 Uhr, Hydraulikschaden an Achse 1“<br>oder ein Foto der Baustelle machen.");
     paintLoc();
   }

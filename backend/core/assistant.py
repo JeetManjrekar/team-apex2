@@ -109,7 +109,7 @@ def _host_fields(doc):
     f = doc["fields"]
     proj = sources.project()
     pchunk = next((c for c in sources.context_chunks(llm_today()) if c.ref == "doc:project@p1"), None)
-    for key, val in (("project", proj.get("name_de") or SITE["name"]), ("addressee", proj.get("bauherr")),
+    for key, val in (("project", (proj.get("name_en") or proj.get("name_de")) or SITE["name"]), ("addressee", proj.get("bauherr")),
                      ("contract_ref", proj.get("contract_ref"))):
         if key in f and not f[key]["value"] and val:
             src = sources.field_source([pchunk.ref], {pchunk.ref: pchunk}, val) if pchunk else \

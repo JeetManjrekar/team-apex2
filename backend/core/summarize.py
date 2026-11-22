@@ -6,10 +6,10 @@ from .i18n import T
 I = re.I
 OPEN_KW = re.compile(r"\bbis\b|until|\bby\b|deadline|frist|offen|\bopen\b|todo|to do|soll|muss|klären|liefern|prüf|senden|einholen|"
                      r"entscheid|freigabe|bitte|please|needs? to|will\b", I)
-DECIDE_KW = re.compile(r"beschlossen|vereinbart|festgelegt|decided|agreed|beibehalten", I)
+DECIDE_KW = re.compile(r"beschlossen|vereinbart|festgelegt|decided|agreed|beibehalten|\bkept\b|retained|confirmed", I)
 DATE = re.compile(r"\b\d{1,2}\.\d{1,2}\.(?:\d{2,4})?|\b\d{4}-\d{2}-\d{2}|\bKW\s?\d{1,2}\b|"
                   r"\b(?:montag|dienstag|mittwoch|donnerstag|freitag|monday|tuesday|wednesday|thursday|friday)\b", I)
-OWNER = re.compile(r"(?:verantwortlich|verantw\.|zuständig|owner|wer)\s*:\s*([^|;\n]+)|@(\w+)|\(([A-ZÄÖÜ][\w. ]+)\)\s*$", I)
+OWNER = re.compile(r"(?:verantwortlich|verantw\.|zuständig|responsible|owner|wer)\s*:\s*([^|;\n]+)|@(\w+)|\(([A-ZÄÖÜ][\w. ]+)\)\s*$", I)
 NACHTRAG = re.compile(r"bitte führen sie|please (?:proceed|continue|carry out)|ordnen (?:wir )?an|anordnung|instruct|zusätzlich|"
                       r"additional|abweichend|geänderte|change order", I)
 
@@ -95,3 +95,19 @@ Bitte senden Sie uns bis Montag, 23.11.2026, eine Aufstellung der zusätzlichen 
 Mit freundlichen Grüßen
 Klaus Weber
 Tel. 089 1234567"""
+
+
+def samples() -> dict:
+    """Sample minutes + email for the Summaries tab in the request language. German: the texts above; English: their
+    translations, kept as their own files (backend/data/demo/samples/*_en.*)."""
+    from .i18n import get_lang
+    from .plan import DEMO_DIR
+    if get_lang() == "en":
+        d = DEMO_DIR / "samples"
+        try:
+            return {"minutes": (d / "sample_minutes_en.md").read_text(encoding="utf-8").strip(),
+                    "email": (d / "sample_email_en.txt").read_text(encoding="utf-8").strip()}
+        except OSError:
+            pass
+    return {"minutes": SAMPLE_MINUTES, "email": SAMPLE_EMAIL}
+

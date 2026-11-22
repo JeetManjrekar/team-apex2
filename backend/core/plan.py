@@ -2,7 +2,7 @@
 import csv, datetime as dt, json, time
 import requests
 from .llm_settings import today as demo_today
-from .store import DATA, load, save, SITE
+from .store import DATA, load, save, SITE, localized, pick
 from .i18n import T, get_lang
 
 WMO = {0: "klar", 1: "überwiegend klar", 2: "teilweise bewölkt", 3: "bedeckt", 45: "Nebel", 48: "Reifnebel",
@@ -56,15 +56,20 @@ DEMO_DIR = DATA / "demo"
 _PLAN_IDS = ("W1_BP", "A1_BP", "A2_BP", "W2_BP", "W1_BET", "A1_BET", "A2_BET", "W2_BET")
 
 
+def demo_path(*parts):
+    """A demo file in the request language: <name>_en.<ext> for English when it exists, else the German original."""
+    return localized(DEMO_DIR.joinpath(*parts))
+
+
 def _demo_schedule():
     rows = []
-    with (DEMO_DIR / "schedule" / "bauzeitenplan.csv").open(encoding="utf-8") as f:
+    with demo_path("schedule", "bauzeitenplan.csv").open(encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if r["id"] not in _PLAN_IDS:
                 continue
             per_day, days = float(r["planned_output_per_day"] or 0), int(r["duration_days"] or 1)
             qty = per_day * days if per_day else 1
-            rows.append({"id": r["id"], "name": r["name_de"], "unit": r["unit"] or "Vorgang", "total": qty,
+            rows.append({"id": r["id"], "name": pick(r, "name"), "unit": r["unit"] or ("activity" if get_lang() == "en" else "Vorgang"), "total": qty,
                          "start": r["start_planned"], "end": r["end_planned"], "concrete": r["weather_sensitive"] == "1",
                          "zone": r["zone_id"], "crew_role": r["crew_role"]})
     return rows
@@ -74,22 +79,23 @@ def _demo_progress():
     """Drilling metres per pile and day from the Polier's drilling list (activity = W1_BP etc. by zone)."""
     act = {"W1": "W1_BP", "A1": "A1_BP", "A2": "A2_BP", "W2": "W2_BP"}
     out = []
-    with (DEMO_DIR / "drilling" / "drilling_times.csv").open(encoding="utf-8") as f:
+    with demo_path("drilling", "drilling_times.csv").open(encoding="utf-8") as f:
         for r in csv.DictReader(f):
             m = float(r["depth_reached_m"] or 0)
             if m and r["zone_id"] in act:
-                out.append({"date": r["date"], "activity": act[r["zone_id"]], "qty": m, "note": f"{r['pile_id']}: {r['note_de']}"})
+                out.append({"date": r["date"], "activity": act[r["zone_id"]], "qty": m, "note": f"{r['pile_id']}: {pick(r, 'note')}"})
     return out
 
 
 def _demo_client_docs():
     from .sources import pages
-    md = (DEMO_DIR / "source_documents" / "baugrundgutachten_auszug.md").read_text(encoding="utf-8")
-    return [{"id": f"doc:bgg@p{n}", "locator": f"Baugrundgutachten BW 12, Seite {n}", "excerpt": t} for n, t in pages(md)]
+    md = demo_path("source_documents", "baugrundgutachten_auszug.md").read_text(encoding="utf-8")
+    loc = "Geotechnical report BW 12, page {n}" if get_lang() == "en" else "Baugrundgutachten BW 12, Seite {n}"
+    return [{"id": f"doc:bgg@p{n}", "locator": loc.format(n=n), "excerpt": t} for n, t in pages(md)]
 
 
 def load_demo():
-    save("project", json.loads((DEMO_DIR / "project.json").read_text(encoding="utf-8")))
+    save("project", json.loads(demo_path("project.json").read_text(encoding="utf-8")))
     save("client_docs", _demo_client_docs())
     save("schedule", _demo_schedule())
     save("progress", _demo_progress())

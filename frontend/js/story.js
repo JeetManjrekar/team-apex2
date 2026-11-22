@@ -73,7 +73,7 @@
     return `<div class="st-pbox">
       <div class="st-phone" aria-hidden="true"><div class="scr">
         <div class="s1"><div class="qrf"><i></i><i></i><i></i><i></i><b></b></div><span>${L("Scanning…", "Scannt…")}</span></div>
-        <div class="s2"><div class="bub">“${L("Truck tipped over at Achse 2", "Lkw an Achse 2 umgekippt")}”</div><div class="mic"><span></span></div><span>${L("Hold to talk", "Halten zum Sprechen")}</span></div>
+        <div class="s2"><div class="bub">“${L("Truck tipped over at Axis 2", "Lkw an Achse 2 umgekippt")}”</div><div class="mic"><span></span></div><span>${L("Hold to talk", "Halten zum Sprechen")}</span></div>
         <div class="s3"><div class="ok">✓</div><b>${L("Sent to the site manager", "An die Bauleitung gesendet")}</b><span>📱 ${L("visible in 3D", "sichtbar in 3D")}</span></div>
       </div><div class="notch"></div></div>
       <div class="st-pside">
@@ -207,7 +207,7 @@
         window.SFX?.alert();
         await wait(2600);
         q(".bb-x")?.click();                                    // close the popup, the big 3D window takes over
-        await look(inc.zone, L("⚠ Safety finding · ", "⚠ Sicherheitsbefund · ") + (inc.title_en || ""), true);
+        await look(inc.zone, L("⚠ Safety finding · ", "⚠ Sicherheitsbefund · ") + ((de ? inc.title_de : inc.title_en) || inc.title_en || ""), true);
         await wait(8000);
         takeaway(L("Spotted on a photo", "Auf einem Foto erkannt"), L("You confirm. The AI never decides alone.", "Du bestätigst. Die KI entscheidet nie allein."));
         setTimeout(small, 2500);
@@ -219,14 +219,15 @@
       intro: L("Hydraulic failure. One sentence.", "Hydraulikschaden. Ein Satz."),
       async run() {
         NW.TAB("command");
-        look("Widerlager 1", L("Widerlager 1 · excavator down", "Widerlager 1 · Bagger steht"));
-        await cmd("Excavator idle since 10 am due to hydraulic failure, excavation at Widerlager 1 stopped, crew of 4 waiting");
+        look("w1", L("Abutment 1 · excavator down", "Widerlager 1 · Bagger steht"));
+        await cmd(L("Excavator idle since 10 am due to hydraulic failure, excavation at Abutment 1 stopped, crew of 4 waiting",
+                    "Bagger steht seit 10 Uhr wegen Hydraulikschaden, Aushub am Widerlager 1 gestoppt, 4 Mann warten"));
         await wait(400);
-        await cmd("about 2 days");
+        await cmd(L("about 2 days", "etwa 2 Tage"));
         const d = await latestDoc("behinderungsanzeige"); ST.docs.beh = d?.id;
         const n = d ? Object.values(d.fields).filter(f => f.value).length : 0;
         takeaway(L("Delay notice ready", "Behinderungsanzeige fertig"), L(`${n} fields, each with a source`, `${n} Felder, jedes mit Quelle`));
-        addSaved(30); log("10:05", L("Behinderungsanzeige (delay notice)", "Behinderungsanzeige"), 30);
+        addSaved(30); log("10:05", L("Delay notice", "Behinderungsanzeige"), 30);
         if (d) { await wait(800); await showDoc(d.id, "cause"); }
       },
     },
@@ -235,8 +236,8 @@
       intro: L("Rock at 4 m instead of 9 m. He just speaks.", "Fels bei 4 m statt 9 m. Er spricht einfach."),
       async run() {
         NW.TAB("command");
-        look("Widerlager 1", L("Pile 7 · drilling", "Pfahl 7 · Bohrung"));
-        const v = await voiceNote("demo/rock_pile7.m4a", "en");
+        look("w1", L("Pile 7 · drilling", "Pfahl 7 · Bohrung"));
+        const v = await voiceNote(de ? "demo/rock_pile7_de.m4a" : "demo/rock_pile7.m4a", de ? "de" : "en");
         if (!v.text) { takeaway(L("Speech recognition unavailable", "Spracherkennung nicht verfügbar"), ""); return; }
         const t0 = performance.now();
         await Promise.race([window.BB.command(v.text, { voice: true }), sleep(15000)]);
@@ -246,7 +247,7 @@
         const n = d ? Object.values(d.fields).filter(f => f.value).length : 0;
         takeaway(L("Change order ready", "Nachtrag fertig"), L(`${n} fields · soil report · drilling list`, `${n} Felder · Gutachten · Bohrliste`));
         if (d) { await wait(500); await showDoc(d.id, "expected_ground"); }
-        addSaved(90); log("11:20", L("Nachtragsmeldung (change order) from a voice note", "Nachtragsmeldung aus Sprachnotiz"), 90);
+        addSaved(90); log("11:20", L("Change order notice from a voice note", "Nachtragsmeldung aus Sprachnotiz"), 90);
       },
     },
     {
@@ -303,7 +304,7 @@
         await showDoc(d.id, "work_done");
         window.SFX?.done(L("Daily report ready", "Tagesbericht fertig"));
         takeaway(L("Daily report ready", "Tagesbericht fertig"), L("Weather · progress · photos · notices", "Wetter · Fortschritt · Fotos · Meldungen"));
-        addSaved(45); log("16:30", L("Bautagesbericht (daily site report)", "Bautagesbericht"), 45);
+        addSaved(45); log("16:30", L("Daily site report", "Bautagesbericht"), 45);
       },
     },
     {
@@ -332,7 +333,7 @@
         const money = c ? ` · Nachtrag ~${eurK(c.nachtrag_documented?.expected_eur || c.nachtrag_open?.expected_eur)} · ${L("delay risk", "Terminrisiko")} ~${eurK(c.delay_open?.expected_eur)}` : "";
         await look(null, L("End of day · every marker traces back to evidence", "Feierabend · jeder Marker hat einen Beleg"), true);
         await wait(3500);
-        await look("Widerlager 1", "Widerlager 1" + money, true);
+        await look("w1", L("Abutment 1", "Widerlager 1") + money, true);
         await wait(4000);
         await look(null, L("Bridge BW 12 · ready for tomorrow", "Brücke BW 12 · bereit für morgen"), true);
         await wait(2000);

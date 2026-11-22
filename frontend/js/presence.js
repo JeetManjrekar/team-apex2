@@ -31,7 +31,7 @@
     } catch (e) { NW.toast?.(e.message); }
   }
   function tell(r) {
-    const msg = r.simulated ? L("📍 You're on site (simulated) – Baustelleneinrichtung", "📍 Du bist vor Ort (simuliert)")
+    const msg = r.simulated ? L("📍 You're on site (simulated) – site facilities", "📍 Du bist vor Ort (simuliert) – Baustelleneinrichtung")
       : r.on_site ? L(`📍 You're on site${r.zone ? "" : ""} · ±${Math.round(r.accuracy || 0)} m`, `📍 Du bist auf der Baustelle · ±${Math.round(r.accuracy || 0)} m`)
       : r.distance_m != null ? L(`📍 Found you: ${(r.distance_m / 1000).toFixed(1)} km from the site`, `📍 Gefunden: ${(r.distance_m / 1000).toFixed(1)} km von der Baustelle`)
       : L("📍 Found you", "📍 Standort gefunden");
