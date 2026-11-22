@@ -144,14 +144,14 @@ def test_llm_asks_several_fields_and_fills_any_of_them(monkeypatch, dtype):
     d = assistant.handle(START[dtype])["active"]
     assert docs.get(d)["type"] == dtype
     asked = pending()["fields"]
-    assert len(asked) > 1 and "beliebiger Reihenfolge" in store.load("messages", [])[-1]["text"]
+    assert len(asked) > 1 and "in einer Nachricht" in store.load("messages", [])[-1]["text"]
     # the answer gives the 2nd and 3rd asked field but not the main one
     given = asked[1:3]
     fake = FakeLLM({k: "10:30" if "time" in k or k.endswith("_at") else "Achse 3" for k in given})
     monkeypatch.setattr(llm_extract, "complete_json", fake)
     r = assistant.handle("Achse 3, um 10:30, und noch was dazu")
     assert all(value(d, k) for k in given) and not value(d, asked[0])
-    assert "Übernommen" in r["replies"][0]["text"] and asked[0] in pending()["fields"]
+    assert "✓" in r["replies"][0]["text"] and asked[0] in pending()["fields"]
     # the model saw every empty field, not only the asked one, and the any-order note
     empty = [k for k, v in docs.get(d)["fields"].items() if not v["value"]]
     assert all(k in fake.prompts[-1] for k in empty)

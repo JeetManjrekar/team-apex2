@@ -170,7 +170,7 @@ _WATERMARK = """<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml
 <v:path textpathok="t" o:connecttype="custom" o:connectlocs="@9,0;@10,10800;@11,21600;@12,10800" o:connectangles="270,180,90,0"/>
 <v:textpath on="t" fitshape="t"/><o:lock v:ext="edit" text="t" shapetype="t"/></v:shapetype>
 <v:shape id="PowerPlusWaterMarkObject1" o:spid="_x0000_s2049" type="#_x0000_t136" style="position:absolute;margin-left:0;margin-top:0;width:430pt;height:140pt;rotation:315;z-index:-251658752;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin"
- o:allowincell="f" fillcolor="#e8a98c" stroked="f"><v:fill opacity=".45"/><v:textpath style="font-family:&quot;Arial&quot;;font-size:1pt" string="ENTWURF"/></v:shape>
+ o:allowincell="f" fillcolor="#f3c7ae" stroked="f"><v:fill opacity=".22"/><v:textpath style="font-family:&quot;Arial&quot;;font-size:1pt" string="ENTWURF"/></v:shape>
 </w:pict></w:r></w:p>"""
 
 
@@ -236,12 +236,17 @@ def docx(doc) -> Path:
     with llm_bridge.Timer("export_docx", doc["id"], document_type=doc["type"]):
         out = DATA / f"{doc['type']}_{doc['id']}.docx"
         template = templates_dir() / TEMPLATE_FOR.get(doc["type"], "notice.docx")
-        try:
-            if not template.is_file():
-                raise FileNotFoundError(template)
-            _render_template(doc, template, out)
-        except Exception:      # missing or broken template: never fail the export
-            _docx_fallback(doc, build_context(doc), out)
+        try:                   # designed layout with live site images (core/report_docx.py)
+            from . import report_docx
+            report_docx.render(doc, build_context(doc), out)
+        except Exception as e:
+            llm_bridge._state["error"] = f"designed export failed, template used: {e}"
+            try:
+                if not template.is_file():
+                    raise FileNotFoundError(template)
+                _render_template(doc, template, out)
+            except Exception:      # missing or broken template: never fail the export
+                _docx_fallback(doc, build_context(doc), out)
         if doc["status"] == "draft":
             add_watermark(out)
         return out

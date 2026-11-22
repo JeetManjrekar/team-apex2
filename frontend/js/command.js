@@ -69,9 +69,7 @@
   <div class="bb-grid">
     <div class="bb-core card">
       <div class="bb-orb-wrap"><canvas id="bbOrb" width="560" height="560" aria-hidden="true"></canvas>
-        <div class="bb-orb-label"><b id="bbStateTxt">${L("Idle", "Bereit")}</b><span id="bbStateSub">${L("AI Site Manager", "KI-Bauleiter")}</span></div>
-        <div class="bb-orbtools"><button class="bb-ico" id="bbTts" title="${L("Voice answers on/off", "Sprachausgabe an/aus")}"></button>
-          <button class="bb-ico bb-lang" id="bbLang" title="${L("Language for voice", "Sprache")}">${S.lang.toUpperCase()}</button></div></div>
+        <div class="bb-orb-label"><b id="bbStateTxt">${L("Idle", "Bereit")}</b><span id="bbStateSub">${L("AI Site Manager", "KI-Bauleiter")}</span></div></div>
       <ol class="bb-rail" id="bbRail">${STATES.map(([k, t]) => `<li data-s="${k}"><i></i>${esc(t)}</li>`).join("")}</ol>
       <div class="bb-hist"><div id="bbHist" class="bb-histlist" aria-live="polite"></div></div>
       <div class="bb-live" id="bbLive" hidden></div>
@@ -89,7 +87,7 @@
           <button class="bb-tool" id="bbFileBtn" title="${L("Upload files", "Dateien hochladen")}">${ICON.clip}<span>${L("Files", "Dateien")}</span></button>
         </div>
         <input type="file" id="bbPhotoIn" accept="image/*" multiple hidden>
-        <input type="file" id="bbFileIn" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv,.geojson,.json" multiple hidden>
+        <input type="file" id="bbFileIn" accept=".eml,.ics,.pdf,.docx,.xlsx,.csv,.geojson,.json,audio/*,.m4a,.mp3,.wav,.ogg,.oga,.opus,.webm,.flac,.aac,.amr" multiple hidden>
       </div>
     </div>
     <div class="bb-work"><div id="bbCards" class="bb-cards"></div></div>
@@ -182,17 +180,43 @@
 
   /* ------------------------------------------------------------------ text to speech */
   let ttsOn = store.get("bb-tts") !== "0";
-  const ttsBtn = q("#bbTts");
-  const paintTts = () => { ttsBtn.innerHTML = ttsOn ? ICON.spk : ICON.mute; ttsBtn.classList.toggle("off", !ttsOn); };
-  paintTts();
-  ttsBtn.onclick = () => { ttsOn = !ttsOn; store.set("bb-tts", ttsOn ? "1" : "0"); paintTts(); if (!ttsOn) speechSynthesis?.cancel(); };
-  q("#bbLang").onclick = () => { store.set("nw-lang", S.lang === "de" ? "en" : "de"); location.reload(); };   // one language for the whole app
+  const ttsLabel = () => (ttsOn ? "🗣️ " + L("Voice answers on", "Sprachausgabe an") : "🔇 " + L("Voice answers off", "Sprachausgabe aus"));
+  function addTtsToggle() {
+    const pop = q("#glMenuPop"); if (!pop || q("#bbTtsItem")) return !!pop;
+    pop.insertAdjacentHTML("beforeend", `<button type="button" class="s" id="bbTtsItem">${ttsLabel()}</button>`);
+    q("#bbTtsItem").onclick = () => { ttsOn = !ttsOn; store.set("bb-tts", ttsOn ? "1" : "0"); q("#bbTtsItem").textContent = ttsLabel(); if (!ttsOn) speechSynthesis?.cancel(); };
+    return true;
+  }
+  if (!addTtsToggle()) addEventListener("load", () => setTimeout(addTtsToggle, 200));
   function pickVoice(lang) {
     const vs = speechSynthesis.getVoices(), pre = lang === "de" ? "de" : "en";
     return vs.find(v => v.lang?.toLowerCase().startsWith(pre) && /natural|neural|premium|enhanced|google/i.test(v.name)) || vs.find(v => v.lang?.toLowerCase().startsWith(pre));
   }
+  // short spoken form of a reply: people read the details, the voice only confirms
+  function brief(t) {
+    const x = String(t || ""), de = S.lang === "de", n = re => +((x.match(re) || [])[1] || 0);
+    const R = [
+      [/^(good (morning|afternoon|evening)|guten (morgen|tag|abend)|hello|hallo)/i, () => de ? "Guten Morgen." : "Good morning."],
+      [/attention|achtung/i, () => de ? "Sicherheitshinweis." : "Safety alert."],
+      [/draft ready|entwurf fertig|added to|ergänzt/i, () => de ? "Entwurf fertig." : "Draft ready."],
+      [/all filled|alles ausgefüllt/i, () => de ? "Alles erledigt." : "All set."],
+      [/^✓/, () => de ? "Verstanden." : "Got it."],
+      [/compiling the report|bericht wird erstellt|erstelle den bericht/i, () => de ? "Bin dran." : "On it."],
+      [/failed|fehlgeschlagen|sorry/i, () => de ? "Das hat nicht geklappt." : "That didn't work."],
+      [/behind plan|hinter plan|on plan|im plan|safety issue|sicherheitsbefund|photos checked|fotos geprüft/i, () => {
+        const late = /behind plan|hinter plan/i.test(x), iss = n(/(\d+) (?:safety issue|sicherheitsbefund)/i);
+        const a = late ? (de ? "Ein Verzug" : "One delay") : (de ? "Im Plan" : "On track");
+        const b = iss ? (de ? `${iss} Befund` : `${iss} issue${iss > 1 ? "s" : ""}`) : "";
+        return [a, b].filter(Boolean).join(", ") + ".";
+      }],
+      [/\?\s*(\(.*\))?\s*$/, () => de ? "Eine Frage." : "Quick question."],
+    ];
+    for (const [rx, f] of R) if (rx.test(x)) return f();
+    return de ? "Erledigt." : "Done.";
+  }
   function speak(text, lang) {
     if (!ttsOn || !("speechSynthesis" in window) || !text) { setState("idle"); return Promise.resolve(); }
+    text = brief(text);                                      // the assistant speaks in two or three words; details stay on screen
     return new Promise(res => {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[„“”]/g, "")), v = pickVoice(lang || S.lang);
@@ -379,8 +403,10 @@
     }
     if (c.kind === "notice") return `<div class="card bb-card bb-notice">${esc(c.text)}</div>`;
     if (c.kind === "report") return `<div class="card bb-card bb-report"><div class="bb-h"><b>${esc(c.title)}</b><span class="mut">${c.incidents} ${L("findings", "Befunde")} · ${c.photos} ${L("photos", "Fotos")}</span></div>
-      <p>${L("Compiled from the data in this conversation. Open it and use “Save as PDF”.", "Aus den Daten dieses Gesprächs erstellt. Öffnen und „Als PDF speichern“ wählen.")}</p>
-      <a class="p s bb-btn" href="${API}${esc(c.url)}" target="_blank" rel="noopener">${L("Open report (PDF)", "Bericht öffnen (PDF)")}</a></div>`;
+      <p>${L("Built from live site data: plan, 3D view, photos.", "Aus Live-Daten der Baustelle: Plan, 3D-Ansicht, Fotos.")}</p>
+      <div class="bb-acts">${c.pdf_url ? `<a class="p s bb-btn" href="${API}${esc(c.pdf_url)}" target="_blank" rel="noopener">PDF</a>` : ""}
+      ${c.docx_url ? `<a class="s bb-btn" href="${API}${esc(c.docx_url)}" download>Word</a>` : ""}
+      <a class="s bb-btn" href="${API}${esc(c.url)}" target="_blank" rel="noopener">${L("View", "Ansehen")}</a></div></div>`;
     return "";
   }
   function layoutButton() {
@@ -440,7 +466,7 @@
       const html = card({ kind: "report", ...r });
       q("#bbCards").insertAdjacentHTML("afterbegin", html);
       hist("ai", `${r.title}: ${r.url}`);
-      const w = window.open(API + r.url, "_blank", "noopener");
+      const w = window.open(API + (r.pdf_url || r.url), "_blank", "noopener");
       if (!w) toast(L("Report ready: use the “Open report” button (pop-up blocked).", "Bericht fertig: Button „Bericht öffnen“ nutzen (Pop-up blockiert)."));
       BB.emit("report", r);
       return r;
@@ -531,7 +557,7 @@
     text = (text || "").trim(); if (!text) return;
     speechSynthesis?.cancel();
     closePal();
-    q("#bbInp").value = ""; if (!silent && echo) hist("user", text);
+    q("#bbInp").value = ""; if (!silent && echo) { hist("user", text); window.SFX?.send(); }
     setState("processing");
     let r;
     try { r = await api("/api/agent", { json: { text, ctx: S.ctx, lang: S.lang } }); }
@@ -547,6 +573,9 @@
         const replies = (c.replies || []).filter(m => m.role === "assistant");
         const doc = c.active || replies.find(m => m.doc)?.doc;
         replies.forEach((m, i) => hist("ai", m.text, { doc: m.doc || (i === replies.length - 1 ? doc : null), actions: m.actions, masked: m.masked, at: m.at }));
+        const made = replies.find(m => /^✓ (Draft ready|Added to|Entwurf fertig|Ergänzt)/.test(m.text || ""));
+        if (made) window.SFX?.done(made.text.replace(/^✓\s*/, "").split(".")[0], q("#bbHist")?.lastElementChild);
+        else if (replies.some(m => /^✓/.test(m.text || ""))) window.SFX?.success();
         const say = replies.map(m => m.text).join(" ");
         return speak(say.length > 420 ? say.slice(0, 400) + " …" : say, lang);
       } catch (e) { setState("idle"); hist("ai", e.message); return speak(e.message); }
@@ -619,20 +648,32 @@
   function stage(files, kind) {
     for (const f of files) {
       if (staged.length >= MAX_STAGED) { toast(L(`At most ${MAX_STAGED} attachments per message.`, `Höchstens ${MAX_STAGED} Anhänge pro Nachricht.`), "bad"); break; }
-      const k = kind || (f.type.startsWith("image/") ? "photo" : "file");
+      const k = isAudio(f) ? "audio" : kind || (f.type.startsWith("image/") ? "photo" : "file");
       staged.push({ id: Math.random().toString(36).slice(2), file: f, kind: k, url: k === "photo" ? URL.createObjectURL(f) : null });
     }
     renderTray(); q("#bbInp").focus();
   }
+  function isAudio(f) { return (f.type || "").startsWith("audio/") || /\.(m4a|mp3|wav|ogg|oga|opus|webm|flac|aac|amr)$/i.test(f.name || ""); }
   function renderTray() {
     tray.hidden = !staged.length;
     tray.innerHTML = staged.map(a => `<div class="bb-att${a.url ? " img" : ""}" title="${esc(a.file.name)}">
-      ${a.url ? `<img src="${esc(a.url)}" alt="${esc(a.file.name)}">` : `${ICON.clip}<b>${esc(a.file.name)}</b>`}
+      ${a.url ? `<img src="${esc(a.url)}" alt="${esc(a.file.name)}">` : `${a.kind === "audio" ? ICON.mic : ICON.clip}<b>${esc(a.file.name)}</b>`}
       <button data-rm="${a.id}" aria-label="${L("Remove", "Entfernen")}" title="${L("Remove", "Entfernen")}">×</button></div>`).join("");
     qa("[data-rm]", tray).forEach(b => b.onclick = () => {
       const a = staged.find(x => x.id === b.dataset.rm); if (a?.url) URL.revokeObjectURL(a.url);
       staged = staged.filter(x => x !== a); renderTray(); q("#bbInp").focus();
     });
+  }
+  // audio recordings: speech to text (/api/voice), then the transcript runs through the assistant like a spoken command
+  async function transcribeAudio(a) {
+    const fd = new FormData();
+    fd.append("audio", a.file, a.file.name || "recording");
+    fd.append("submit", "false");
+    fd.append("language", S.lang);
+    const r = await api("/api/voice", { method: "POST", body: fd });
+    const text = (r.transcript?.text || "").trim();
+    if (!text) throw new Error(L("No speech found in ", "Keine Sprache gefunden in ") + a.file.name);
+    return { text, secs: r.transcript?.duration_s, model: r.transcript?.model };
   }
   photoIn.onchange = () => { stage([...photoIn.files], "photo"); photoIn.value = ""; };
   fileIn.onchange = () => { stage([...fileIn.files], "file"); fileIn.value = ""; };
@@ -685,7 +726,7 @@
     const batch = staged; staged = []; renderTray(); inp.value = "";
     hist("user", text, { attach: batch.map(a => ({ name: a.file.name, url: a.url })) });
     setState("processing", L("Uploading attachments", "Anhänge werden hochgeladen"));
-    const photos = batch.filter(a => a.kind === "photo"), files = batch.filter(a => a.kind === "file");
+    const photos = batch.filter(a => a.kind === "photo"), files = batch.filter(a => a.kind === "file"), audios = batch.filter(a => a.kind === "audio");
     const [p, f] = await Promise.allSettled([photos.length ? uploadPhotos(photos.map(a => a.file)) : null, files.length ? importFiles(files.map(a => a.file)) : null]);
     poll(true);
     const failed = [...(p.status === "rejected" ? photos : []), ...(f.status === "rejected" ? files : [])];
@@ -698,6 +739,15 @@
     if (f.status === "fulfilled" && f.value) hist("ai", f.value.text, { docs: f.value.docs, buttons: f.value.buttons });
     sending = false;
     if (failed.length) return setState("idle");
+    for (const a of audios) {                                // one recording after the other, each as its own command
+      setState("processing", L(`Transcribing ${a.file.name}`, `Transkribiere ${a.file.name}`));
+      try {
+        const t = await transcribeAudio(a);
+        hist("ai", `🎙 ${a.file.name}${t.secs ? ` (${Math.round(t.secs)} s)` : ""}: “${t.text}”`);
+        await command(t.text, { voice: true, echo: false });
+      } catch (e) { toast(e.message, "bad"); hist("ai", "⚠ " + e.message); }
+    }
+    if (audios.length && !text) return setState("idle");
     if (text) return command(text, { echo: false });
     if (p.value) typeof p.value === "string" ? hist("ai", p.value) : hist("ai", p.value.text, { buttons: p.value.buttons });
     setState("idle");

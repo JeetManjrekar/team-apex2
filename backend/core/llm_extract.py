@@ -26,7 +26,7 @@ from . import sanitizer
 from .llm_adapter import Usage, complete_json
 from .llm_settings import CFG, today as cfg_today
 from . import registry
-from .i18n import T
+from .i18n import T, get_lang
 from .registry import all_specs, doc_spec, prompt
 from .sources import SourceChunk
 
@@ -242,9 +242,17 @@ def extract(doc_type: str, chunks: list[SourceChunk], only_fields: list[str] | N
             "beliebig viele Felder der Feldliste in beliebiger Reihenfolge enthalten, auch andere als das zuletzt "
             "erfragte (z. B. Ort und Uhrzeit in einem Satz). Fülle jedes Feld der Feldliste, das die Antwort belegt; "
             "alle übrigen bleiben null.\n") if only_fields else ""
+    if only_fields and focus.get("asked"):
+        asked = [k for k in focus["asked"] if k in only_fields]
+        if asked:
+            note += (f"ZULETZT ERFRAGT: {', '.join(asked)}. Eine kurze Antwort ohne Feldnamen (z. B. \"etwa 2 Tage\", "
+                     f"\"ja\", \"Herr Weber\") beantwortet genau diese Frage; trage sie dort ein (Beleg = die Antwort).\n")
     text = (prompt(spec["prompt"]).replace("{rules}", prompt("extraction_rules.md"))
             .replace("{today}", today.isoformat()).replace("{only_fields_note}", note)
             .replace("{fields}", _render_fields(fields)).replace("{sources}", _render_sources(masked, derived)))
+    if get_lang() == "en":                             # chat language follows the user; the JSON keys stay as they are
+        text += ("\n\nANTWORTSPRACHE: Der Bauleiter arbeitet auf Englisch. Schreibe `assistant_message_de` und jede "
+                 "`question_de` auf Englisch. Feldwerte unverändert nach den Regeln oben.")
 
     with _timed("llm_extraction", run_id, CFG.model_extract, document_type=doc_type, chunks=len(chunks), targeted=bool(only_fields)) as tm:
         raw, usage = complete_json(text, _LLMOut, CFG.model_extract)

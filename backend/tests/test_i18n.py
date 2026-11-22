@@ -59,7 +59,7 @@ def test_drafting_reply_english(isolated, monkeypatch):  # noqa: F811
     rules_mode(monkeypatch)
     r = assistant.handle("Change order: rock at pile 7 from 4 m, drilling rig stuck", lang="en")
     reply = r["replies"][0]["text"]
-    assert reply.startswith("Draft created: Change order notice"), reply
+    assert reply.startswith("✓ Draft ready: Change order notice"), reply
     assert not DE_MARK.search(reply), reply
     doc = docs.get(r["active"])
     for k, f in doc["fields"].items():

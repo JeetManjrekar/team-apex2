@@ -104,11 +104,11 @@ def test_docxtpl_render_with_photo_and_source_appendix(site):
 
     path = export.docx(d)
     text, word = all_text(path)
-    assert len(word.inline_shapes) == 2                                # annotated photos embedded
-    assert "C30/37 & <Zusatz>" in text and "— (offen)" in text
+    assert len(word.inline_shapes) >= 2                                # annotated photos (+ live site plan / chart)
+    assert "C30/37 & <Zusatz>" in text and "offen – bitte ergänzen" in text
     assert "Quellenanhang" in text and ("msg:" in text or "msg-" in text) and "manuell bearbeitet" in text
     assert "Entwurf" in ctx["footer"] or "ENTWURF" in ctx["footer"]
-    assert any("original (1).jpg" in p.text for p in word.paragraphs)  # caption
+    assert "original (1).jpg" in text                                  # caption (photo grid)
     assert "ENTWURF" in word.sections[0].header._element.xml            # draft watermark
 
 
@@ -125,7 +125,7 @@ def test_checked_document_has_no_watermark_and_review_footer(site):
 def test_fallback_when_template_missing(site, tmp_path, monkeypatch):
     monkeypatch.setenv("EXPORT_TEMPLATES_DIR", str(tmp_path / "no_templates"))
     text, word = all_text(export.docx(pile7()))
-    assert "Nachtragsmeldung" in text and "— (offen)" in text and "Nachweise je Feld" in text
+    assert "Nachtragsmeldung" in text and "offen – bitte ergänzen" in text and "Nachweise je Feld" in text
     assert "ENTWURF" in word.sections[0].header._element.xml
 
 

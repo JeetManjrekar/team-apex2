@@ -23,9 +23,27 @@ _s = _s if os.environ.get("LLM_METRICS_FILE") else replace(_s, metrics_file=DATA
 # nachweis_llm only ships an OpenAI adapter and is used here only for photo classification + replanner wording
 # (with OPENAI_API_KEY). LLM_PROVIDER belongs to the main pipeline (may be groq / anthropic), so pin it here.
 SETTINGS = replace(_s, provider="openai")
+# Optional: run the package against any OpenAI-compatible endpoint (e.g. Groq + a vision model) instead of OpenAI.
+# PHOTO_LLM_BASE_URL, PHOTO_LLM_API_KEY, PHOTO_LLM_MODEL (all three needed; the package itself stays unmodified).
+_PHOTO_BASE = os.environ.get("PHOTO_LLM_BASE_URL", "").strip()
+if _PHOTO_BASE and os.environ.get("PHOTO_LLM_API_KEY") and os.environ.get("PHOTO_LLM_MODEL"):
+    SETTINGS = replace(SETTINGS, api_key=os.environ["PHOTO_LLM_API_KEY"], model=os.environ["PHOTO_LLM_MODEL"],
+                       reviewer_model=os.environ["PHOTO_LLM_MODEL"])
+else:
+    _PHOTO_BASE = ""
 METRICS = MetricsRecorder(SETTINGS)
 _state = {"services": None, "error": None, "tried": False}
 
+
+def _compatible_provider():
+    """OpenAIAdapter with its client pointed at PHOTO_LLM_BASE_URL (None = default OpenAI endpoint)."""
+    if not _PHOTO_BASE:
+        return None
+    from openai import AsyncOpenAI
+    from nachweis_llm.adapters.openai_adapter import OpenAIAdapter
+    p = OpenAIAdapter(SETTINGS.api_key, SETTINGS.request_timeout_seconds)
+    p.client = AsyncOpenAI(api_key=SETTINGS.api_key, base_url=_PHOTO_BASE, timeout=SETTINGS.request_timeout_seconds)
+    return p
 
 
 def services():
@@ -37,7 +55,7 @@ def services():
         return None
     try:
         from nachweis_llm.factory import create_services
-        _state["services"] = create_services(SETTINGS)
+        _state["services"] = create_services(SETTINGS, provider=_compatible_provider())
     except Exception as e:   # missing openai SDK, bad provider etc. -> rules fallback
         _state["error"] = str(e)
     return _state["services"]

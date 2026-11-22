@@ -226,7 +226,7 @@ def _neighbours(placed, k=3):
 
 # ---------------------------------------------------------------- claim positions (claim potential blips)
 CLAIM_TYPES = ("nachtragsmeldung", "mehrkostenanzeige")
-CODE_ALIAS = {"pfeiler": "P", "pier": "P", "widerlager": "W", "abutment": "W", "achse": "A", "axis": "A",
+CODE_ALIAS = {"pfeiler": "P", "pier": "P", "widerlager": "W", "abutment": "W", "achse": "A", "axis": "A", "axle": "A", "aches": "A", "axes": "A",
               "bauabschnitt": "BA", "baufeld": "BF", "baustelleneinrichtung": "BE", "lager": "L", "zufahrt": "Z",
               "bohrpfahl": "BP", "pfahl": "BP", "pile": "BP"}
 

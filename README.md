@@ -95,9 +95,9 @@ Tab "Site twin": a Three.js engineering site plan (`frontend/js/site3d.js`, layo
 - Formal completeness checklist only, no legal advice.
 
 ## Demo script ("a day in the life")
-1. Assistant: tap "Rock at pile 7" → Mehrkostenanzeige draft, answer the follow-up question, "Also draft Behinderungsanzeige".
-2. Tap a field's "source" to show the quote. Edit a field, show lock + edit log + undo.
-3. Summaries: sample email → masked contact data, open item, "Draft Mehrkostenanzeige from this" merges into the pile 7 draft as proposals.
-4. Plan vs actual: piles red (3 days) → "Draft Behinderungsanzeige"; frost warning if the forecast is cold.
-5. Diary note, then "daily report" → Bautagesbericht with weather, plan status, photos, notices.
-6. Mark as checked → Word / PDF export with photos and evidence appendix.
+Click **▶ Real Time Preview** in the header. It loads a clean demo state (`POST /api/demo/full`: project, schedule,
+site documents → generated layout, geotagged photos with stored detections, incident scan) and replays a working day
+from 07:00 to 17:00 through the real app (`frontend/js/story.js`): morning briefing → safety finding in the 3D twin →
+delay notice from one sentence → change order from a voice note → evidence per field → email summary → frost alert →
+notice of concern → daily report → sign-off and PDF. About 3 minutes. Space pauses, → skips, Esc stops.
+Presenter notes, fallbacks and likely jury questions: [DEMO.md](DEMO.md).
