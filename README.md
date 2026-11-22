@@ -1,6 +1,6 @@
 # BauBuddy – AI Site Manager Assistant
 
-TUM.ai Construction Hackathon, Challenge B. Voice, chat, photos and documents go in; evidence-backed notices and site reports come out.
+BauBuddy is a Python FastAPI backend with a vanilla JS, Leaflet and Three.js frontend (served by the backend), a JSON-file store, an LLM generator and judge pair for report drafting, speech-to-text via faster-whisper, Groq, OpenAI or ElevenLabs, and an RF-DETR vision model served through Roboflow.
 
 ## 1. Run
 
