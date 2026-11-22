@@ -11,7 +11,7 @@
   const DEV = store.get("nw-dev") || (() => { const id = "lap-" + Math.random().toString(36).slice(2, 9); store.set("nw-dev", id); return id; })();
   const P = { on: false, sim: store.get("nw-sim") === "1", watch: null, last: null, list: [], told: false, markers: new Map() };
 
-  // header button
+  // Site tab toolbar button
   const btn = document.createElement("button");
   btn.className = "s"; btn.id = "locBtn"; btn.type = "button";
   btn.title = L("Show my live location in the 3D twin and on the map", "Meinen Live-Standort im 3D-Zwilling und auf der Karte zeigen");
@@ -20,7 +20,7 @@
     btn.innerHTML = `<span class="dot"></span>${P.on ? (P.sim ? L("On site (sim.)", "Vor Ort (Sim.)") : L("Live location", "Live-Standort")) : "📍 " + L("Locate me", "Wo bin ich?")}`;
   };
   paint();
-  (q("#storyBtn") || q("#autoBtn"))?.before(btn);
+  (q("#twTour") || q("#twReset"))?.before(btn); // lives in the Site tab's toolbar, not the navbar
 
   async function send(body) {
     try {

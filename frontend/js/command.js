@@ -95,7 +95,7 @@
       <div class="card bb-plan"><div class="bb-h"><b>${L("Site plan", "Lageplan")}</b><button class="s" id="bbTo3d">${L("Open 3D twin", "3D-Zwilling öffnen")}</button></div>
         <div id="bbPlan" class="bb-plansvg"><div class="mut pad">${L("Loading plan…", "Plan wird geladen …")}</div></div>
         <div class="bb-legend"><span><i class="r"></i>${L("incident / critical", "Vorfall / kritisch")}</span><span><i class="a"></i>${L("behind plan / check", "Verzug / prüfen")}</span><span><i class="p"></i>${L("photo", "Foto")}</span></div></div>
-      <div class="card bb-feed"><div class="bb-h"><b>${L("Incident feed", "Vorfälle")}</b><span class="bb-livedot" title="${L("Polling every 5 s", "Abfrage alle 5 s")}"></span></div><div id="bbFeed"></div></div>
+      <div class="card bb-feed"><div class="bb-h"><b>${L("Safety findings", "Sicherheitsbefunde")}</b><span class="mut" id="bbFeedSub"></span><span class="bb-livedot" title="${L("Polling every 5 s", "Abfrage alle 5 s")}"></span></div><div id="bbFeed"></div></div>
     </div>
   </div>`;
   main.insertBefore(sec, main.firstElementChild);
@@ -363,28 +363,18 @@
 
   /* ------------------------------------------------------------------ result cards */
   function photoTile(p) {
-    const dets = (p.detections || []).map(d => `${cls(d.class)} ${pct(d.confidence)}`).join(", ") || L("no detections", "keine Erkennungen");
+    const dets = [...new Set((p.detections || []).map(d => cls(d.class)))].join(", ") || L("no detections", "keine Erkennungen");
     return `<figure class="bb-ph" data-photo="${esc(p.id)}"><img loading="lazy" src="${API}/data/${esc(p.ann_file || p.file)}" alt="">
       <figcaption><b>${esc((p.taken_at || "").replace("T", " ").slice(5, 16))}</b> · ${esc(p.zone ? zoneName(p.zone) : L("no plan position", "ohne Planposition"))}<br>${esc(dets)}<small>${esc(p.detector || "")} · photo:${esc(p.id)}</small></figcaption></figure>`;
   }
   function incidentRow(i) {
     return `<div class="bb-inc sev-${i.severity}" data-inc="${esc(i.id)}"><span class="bb-sev">${sevTxt(i.severity)}</span>
       <div><b>${esc(i["title_" + S.lang] || i.title_en)}</b><small>${esc(i.zone ? zoneName(i.zone) : L("location unknown", "Ort unbekannt"))} · ${esc((i.taken_at || i.created_at || "").replace("T", " ").slice(5, 16))}
-      ${i.objects?.length ? " · " + esc(i.objects.map(o => `${cls(o.class)} ${pct(o.confidence)}`).join(", ")) : ""}</small></div><button class="s">${L("Open", "Öffnen")}</button></div>`;
+      ${i.objects?.length ? " · " + esc([...new Set(i.objects.map(o => cls(o.class)))].join(", ")) : ""}</small></div><button class="s">${L("Open", "Öffnen")}</button></div>`;
   }
   function card(c) {
-    if (c.kind === "progress") {
-      const rows = c.rows.filter(r => r.light !== "grey");
-      return `<div class="card bb-card"><div class="bb-h"><b>${L("Planned vs actual", "Soll-Ist")}</b><span class="mut">${L("as of", "Stand")} ${esc(c.as_of)}${c.weather ? ` · ${Math.round(c.weather.tmin)}…${Math.round(c.weather.tmax)} °C` : ""}</span></div>
-        ${rows.map(r => `<div class="bb-prog ${r.light}" data-zone="${esc(r.zone || "")}"><div class="bb-pl"><span>${esc(r.name)}</span><b>${r.actual} / ${r.planned} ${esc(r.unit)}${r.delay_days >= 0.5 ? ` · <em>${r.delay_days} ${L("d behind", "T Verzug")}</em>` : ""}</b></div>
-          <div class="bb-bar"><i style="--w:${Math.min(100, r.pct_actual)}%"></i><u style="left:${Math.min(100, r.pct_planned)}%" title="${L("planned", "Soll")}"></u></div><small>${esc(r.evidence)}${r.zone ? " · " + esc(zoneName(r.zone)) : ""}</small></div>`).join("") || `<p class="mut">${L("No activity running on this day.", "Heute läuft kein Vorgang.")}</p>`}
-        ${c.alerts.length ? `<div class="bb-alerts">${c.alerts.map(a => `<div class="bb-al ${a.level}">${esc(a.text)}</div>`).join("")}</div>` : ""}</div>`;
-    }
-    if (c.kind === "incidents") {
-      return `<div class="card bb-card"><div class="bb-h"><b>${L("Safety findings", "Sicherheitsbefunde")}</b><span class="mut">${c.checked_photos != null ? `${c.checked_photos} ${L("photos", "Fotos")} · ${c.checked_detections} ${L("detections checked", "Erkennungen geprüft")}` : ""}</span></div>
-        ${c.items.length ? c.items.map(incidentRow).join("") : `<p class="mut">${L("No rule-based finding.", "Kein regelbasierter Befund.")}</p>`}
-        <p class="bb-fine">${L("Rules on stored detector output; detections below 50 % ignored. Findings need a person's confirmation.", "Regeln auf gespeicherter Detektorausgabe, Erkennungen unter 50 % ignoriert. Befunde brauchen eine Bestätigung durch eine Person.")}</p></div>`;
-    }
+    if (c.kind === "progress") return ""; // "Planned vs actual" card removed from the AI Manager (still in the Plan tab)
+    if (c.kind === "incidents") return ""; // shown in the merged "Safety findings" widget on the right (feed())
     if (c.kind === "photos") return c.items.length ? `<div class="card bb-card"><div class="bb-h"><b>${L("Photo evidence", "Fotobelege")}</b><span class="mut">${c.items.length}</span></div><div class="bb-phs">${c.items.map(photoTile).join("")}</div></div>` : "";
     if (c.kind === "changes") return `<div class="card bb-card"><div class="bb-h"><b>${L("Changes since", "Änderungen seit")} ${esc(c.since)}</b></div>${c.items.map(i => `<div class="bb-ch ${i.kind}"><span>${esc(i.kind)}</span><div>${esc(i.text)}<small>${esc((i.date || "").replace("T", " ").slice(0, 16))} · ${esc(i.evidence)}</small></div></div>`).join("") || `<p class="mut">${L("Nothing new.", "Nichts Neues.")}</p>`}</div>`;
     if (c.kind === "zone") return `<div class="card bb-card"><div class="bb-h"><b>${esc(c.name)}</b><button class="s" data-fly="${esc(c.id)}">${L("Fly there in 3D", "Im 3D anfliegen")}</button></div>
@@ -475,8 +465,10 @@
 
   /* ------------------------------------------------------------------ incidents: popup, feed, polling */
   function feed() {
-    const list = S.incidents;
-    q("#bbFeed").innerHTML = list.length ? list.slice(0, 8).map(incidentRow).join("") : `<p class="mut">${L("No open incidents.", "Keine offenen Vorfälle.")}</p>`;
+    const list = S.incidents, f = S.findings;
+    const shown = f ? [...f.items, ...list.filter(i => !f.items.some(x => x.id === i.id))] : list;
+    q("#bbFeedSub").textContent = f && f.checked_photos != null ? `${f.checked_photos} ${L("photos", "Fotos")} · ${f.checked_detections} ${L("detections checked", "Erkennungen geprüft")}` : "";
+    q("#bbFeed").innerHTML = shown.length ? shown.slice(0, 8).map(incidentRow).join("") : `<p class="mut">${L("No open findings.", "Keine offenen Befunde.")}</p>`;
     bindCards(q("#bbFeed"));
     navBtn.dataset.badge = list.filter(i => i.severity === "high").length || "";
   }
@@ -495,7 +487,7 @@
           <dt>${L("Where", "Wo")}</dt><dd>${esc(inc.zone ? zoneName(inc.zone) : L("Not placed on the plan yet", "Noch nicht im Plan verortet"))}</dd>
           <dt>${L("When", "Wann")}</dt><dd>${esc((inc.taken_at || inc.created_at || "").replace("T", " ").slice(0, 16))}</dd>
           <dt>${L("Source", "Quelle")}</dt><dd>${esc(inc.source === "user" ? L("Reported by the site team", "Vom Bauteam gemeldet") : `${L("Rule", "Regel")} ${inc.rule}${inc.detector ? " · " + inc.detector : ""}`)} · <code>${esc(inc.evidence.join(", "))}</code></dd>
-          <dt>${L("Recommendation (AI, not verified)", "Empfehlung (KI, nicht geprüft)")}</dt><dd>${esc(rec)}</dd></dl>
+          <dt>${L("Recommendation", "Empfehlung")}</dt><dd>${esc(rec)}</dd></dl>
       </div>
       <div class="bb-mfoot">
         ${inc.zone ? `<button class="s" data-m="fly">${L("Show in 3D twin", "Im 3D-Zwilling zeigen")}</button>` : inc.photo ? `<button class="s" data-m="place">${L("Place photo on plan", "Foto im Plan verorten")}</button>` : ""}
@@ -588,6 +580,8 @@
     if (lc) S.layoutDraft = { layout: lc.layout, report: lc.report };
     q("#bbCards").innerHTML = (r.cards || []).map(card).join("");
     bindCards(q("#bbCards"));
+    const fc = (r.cards || []).find(c => c.kind === "incidents");
+    if (fc) { S.findings = fc; feed(); }
     await stepsDone;
 
     setState("executing");
