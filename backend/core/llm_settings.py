@@ -70,6 +70,10 @@ class LLMConfig:
     # vision (scanned PDFs; photos still go through nachweis_llm)
     vision_provider: str = "openai"
     vision_model: str = ""
+    # claim potential (Qwen3-14B behind any OpenAI-compatible endpoint: vLLM, DashScope, Ollama, ...)
+    claim_base_url: str = ""
+    claim_api_key: str = ""
+    claim_model: str = ""
     # demo
     demo_today: dt.date | None = None
     demo_dir: Path = BACKEND / "data" / "demo"
@@ -78,6 +82,11 @@ class LLMConfig:
     def llm_ready(self) -> bool:
         """True when extraction can call a model (or replay recorded answers)."""
         return bool(self.model_extract and (self.api_key or self.cache_mode == "replay"))
+
+    @property
+    def claim_ready(self) -> bool:
+        """True when the claim-potential model is configured (a local vLLM / Ollama may run without a key)."""
+        return bool(self.claim_model and (self.claim_base_url or self.cache_mode == "replay"))
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
@@ -112,6 +121,9 @@ class LLMConfig:
             review_timeout_s=int(_f(_e("REVIEW_TIMEOUT_S", default="30"), 30)),
             vision_provider=_e("VISION_PROVIDER", default="openai").lower(),
             vision_model=_e("VISION_MODEL", default=model),
+            claim_base_url=_e("CLAIM_LLM_BASE_URL"),
+            claim_api_key=_e("CLAIM_LLM_API_KEY"),
+            claim_model=_e("CLAIM_LLM_MODEL"),
             demo_today=demo_today,
             demo_dir=Path(_e("DEMO_DATA_DIR", default=str(BACKEND / "data" / "demo"))),
         )

@@ -179,12 +179,17 @@ def put(doc):
         doc["updated_at"] = now()
         for i, d in enumerate(docs):
             if d["id"] == doc["id"]:
+                cp_new, cp_old = doc.get("claim_potential"), d.get("claim_potential")
+                if cp_old and (not cp_new or cp_old.get("at", "") > cp_new.get("at", "")):
+                    doc["claim_potential"] = cp_old   # estimate stored by the background thread after `doc` was read
                 docs[i] = doc
                 break
         else:
             docs.append(doc)
         save("docs", docs)
-        return doc
+    from . import claim_potential       # lazy: claim_potential imports this module
+    claim_potential.schedule(doc)       # background, debounced, no-op unless a claim's fields changed
+    return doc
 
 
 def create(dtype, origin="chat"):

@@ -1,0 +1,59 @@
+{
+  "project_id": "bw12_muehlbach",
+  "staff_by_company": {
+    "Muster Bau GmbH (fiktiv)": 6,
+    "TiefBohr GmbH (fiktiv)": 3,
+    "Stahlflechter Süd (fiktiv)": 4
+  },
+  "visits": [
+    "Bauüberwachung (Staatliches Bauamt, fiktiv), Rundgang"
+  ],
+  "incidents": [],
+  "reassignments": [],
+  "photos": [],
+  "source_sections": {
+    "weather": "wetter",
+    "staff_by_company": "personal",
+    "equipment": "geraete",
+    "work_done": "leistungen",
+    "deliveries": "lieferungen",
+    "visits": "besuche",
+    "incidents": "vorkommnisse",
+    "instructions": "anweisungen"
+  },
+  "completed_activity_ids": [
+    "BE",
+    "W1_AUSHUB",
+    "A1_AUSHUB"
+  ],
+  "date": "2026-11-16",
+  "weather": "wechselnd bewölkt, trocken",
+  "temperature_min_c": 3,
+  "temperature_max_c": 8,
+  "equipment": [
+    "BG-01 Bohrgerät (W1)",
+    "EX-01 Bagger (Achse 2, Aushub)",
+    "RL-01 Radlader"
+  ],
+  "work_done": [
+    "Bohrpfähle P05 und P06 (je 12 m) hergestellt",
+    "Aushub Achse 2 begonnen",
+    "Schalungsarbeiten Achse 1 begonnen"
+  ],
+  "deliveries": [
+    "Schalungstafeln Achse 1, 14:30"
+  ],
+  "instructions": [
+    "Polier Huber: Pfähle P07 und P08 am 17.11. ab 06:45"
+  ],
+  "output_by_activity": {
+    "W1_BP": {
+      "unit": "m",
+      "value": 24.0,
+      "piles": [
+        "P05",
+        "P06"
+      ]
+    }
+  }
+}

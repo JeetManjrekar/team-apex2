@@ -15,6 +15,7 @@
   const ST = DE ? { draft: "Entwurf", checked: "Geprüft", sent: "Weitergegeben" } : { draft: "Draft", checked: "Checked", sent: "Sent" };
   const NT_TYPES = ["nachtragsmeldung", "mehrkostenanzeige"];
   const DASH = "––";
+  const EUR = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -201,6 +202,22 @@
       kpi(L("Writing time saved", "Schreibzeit gespart"), typeof saved === "number" ? Math.round(saved) : DASH, typeof saved === "number" ? L("min today", "min heute") : "", "", typeof saved === "number" ? "" : "na"),
     ].join("");
 
+    /* ---- 0 · Claim potential (AI estimate per claim, GET /api/docs → claim_potential) ---- */
+    const cpOf = d => d.claim_potential?.amount_eur ?? null;
+    const claims = docs.filter(d => NT_TYPES.includes(d.type)).sort((a, b) => (cpOf(b) ?? -1) - (cpOf(a) ?? -1));
+    const known = claims.filter(d => cpOf(d) != null), cpTotal = known.reduce((t, d) => t + cpOf(d), 0);
+    const cpRows = claims.slice(0, 5).map(d => {
+      const cp = d.claim_potential, v = cpOf(d);
+      const sub = v != null ? `${L("range", "Spanne")} ${EUR.format(cp.low_eur)} – ${EUR.format(cp.high_eur)} · ${L("confidence", "Sicherheit")} ${Math.round((cp.confidence || 0) * 100)} %`
+        : cp ? (cp.rationale_de || L("Not enough data to estimate", "Zu wenige Angaben für eine Schätzung")) : L("Not estimated yet", "Noch nicht geschätzt");
+      return `<div class="db-row db-cp-row ${v == null ? "na" : d.status === "sent" ? "ok" : "open"}" data-db-open="${d.id}" title="${esc(cp?.rationale_de || "")}">
+        <div class="db-row-t"><b>${esc(docTitle(d))}</b><span>${esc(sub)}</span></div>
+        <span class="pill ${d.status}">${ST[d.status] || esc(d.status)}</span><b class="db-cp-v">${v != null ? EUR.format(v) : DASH}</b></div>`;
+    }).join("");
+    const cpHtml = `<div class="card pad db-cp"><div class="db-ct"><b>💶 ${L("Highest claim potential", "Höchstes Nachtragspotenzial")}</b>${claims.length ? `<span class="db-count">${claims.length}</span>` : ""}
+        <span class="sp"></span><span class="db-cp-sum" title="${L("Sum of all estimated claims", "Summe aller geschätzten Nachträge")}">${known.length ? EUR.format(cpTotal) : DASH}</span></div>
+      ${claims.length ? `<div class="db-rows">${cpRows}</div>` : `<div class="mut">${L("No claims yet.", "Noch keine Nachträge.")}</div>`}</div>`;
+
     /* ---- 1 · Decide today ---- */
     const rows = [];
     for (const a of letters) rows.push({ u: a.level === "red" ? 0 : 2, cls: a.level === "red" ? "bad" : "warn", ic: "✉️",
@@ -277,6 +294,7 @@
         <button class="s" data-db="refresh" title="${L("Refresh", "Aktualisieren")}" aria-label="${L("Refresh", "Aktualisieren")}">↻</button></div>
         ${projHtml(plan, data.zones)}</div>
       <div class="db-toast" id="dbToast" role="status" hidden></div>
+      ${cpHtml}
 
       <h3 class="db-q"><span>1</span>${L("What needs me?", "Was braucht mich?")}</h3>
       <div class="db-kpis">${kpis}</div>
